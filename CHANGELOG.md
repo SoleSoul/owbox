@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Fixed: menus and tooltips of bars (a tray icon's menu in waybar) never
+  showed. Their popups get their parent from the layer surface after they
+  are made, and owbox ignored them.
+- Fixed: an application's menu stayed open when clicking outside of it,
+  on the desktop, a frame or another window. The click now closes it, as
+  in other compositors.
 - Fixed: the example waybar configuration kept its bars from reserving
   space, so without `<autoHide>` they covered maximized windows' title
   bars. owbox already gives hidden panels' space to the windows. The smoke

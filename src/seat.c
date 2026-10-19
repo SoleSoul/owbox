@@ -66,6 +66,7 @@
 #include <wlr/types/wlr_virtual_keyboard_v1.h>
 #include <wlr/types/wlr_virtual_pointer_v1.h>
 #include <wlr/types/wlr_xcursor_manager.h>
+#include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/region.h>
 
 typedef struct {
@@ -1122,6 +1123,23 @@ void seat_pointer_replay_press(void)
     }
 }
 
+/* owbox: wlroots keeps a menu open until a click outside of its
+   application reaches the seat, which owbox's own clicks (the desktop,
+   frames, other windows) don't.  End its grab, which closes the menu. */
+static gboolean popup_grab_ends(struct wlr_surface *surface)
+{
+    struct wlr_xdg_popup_grab *g;
+
+    wl_list_for_each(g, &server.xdg_shell->popup_grabs, link) {
+        if (server.seat->pointer_state.grab != &g->pointer_grab) continue;
+        if (surface && wl_resource_get_client(surface->resource) == g->client)
+            return FALSE;
+        wlr_seat_pointer_end_grab(server.seat);
+        return TRUE;
+    }
+    return FALSE;
+}
+
 static void handle_cursor_button(struct wl_listener *listener, void *data)
 {
     struct wlr_pointer_button_event *ev = data;
@@ -1187,6 +1205,13 @@ static void handle_cursor_button(struct wl_listener *listener, void *data)
 
     /* a new press */
     fill_event_target(&e, &surface, &sx, &sy, &node);
+
+    /* owbox: an application's menu (an xdg popup with a grab) closes when
+       the click is outside its application, the click is used for that */
+    if (popup_grab_ends(surface)) {
+        seat.buttons &= ~(1u << MIN(xbutton, 31));
+        return;
+    }
     /* owbox: a click outside the shown panels hides them */
     panels_pointer_pressed(surface);
 

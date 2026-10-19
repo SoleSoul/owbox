@@ -25,6 +25,7 @@
 #include "debug.h"
 #include "config.h"
 #include "panels.h"
+#include "xdg.h"
 
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_layer_shell_v1.h>
@@ -355,7 +356,13 @@ static void handle_destroy(struct wl_listener *l, void *data)
 
 static void handle_new_popup(struct wl_listener *l, void *data)
 {
-    /* the xdg-shell code adds popups to the scene, see xdg.c */
+    ObLayerSurface *s = wl_container_of(l, s, new_popup);
+    struct wlr_xdg_popup *popup = data;
+
+    /* the popup has had no parent until now (get_popup), so xdg.c left it
+       alone (a tray icon's menu) */
+    if (!popup->base->data)
+        xdg_popup_add(popup, s->popup_tree);
 }
 
 static void handle_new_surface(struct wl_listener *l, void *data)

@@ -708,21 +708,10 @@ static void popup_handle_destroy(struct wl_listener *l, void *data)
     g_free(p);
 }
 
-static void handle_new_popup(struct wl_listener *l, void *data)
+void xdg_popup_add(struct wlr_xdg_popup *popup,
+                   struct wlr_scene_tree *parent_tree)
 {
-    struct wlr_xdg_popup *popup = data;
-    struct wlr_xdg_surface *parent;
-    struct wlr_scene_tree *parent_tree;
     ObXdgPopup *p;
-
-    if (!popup->parent) return;
-    parent = wlr_xdg_surface_try_from_wlr_surface(popup->parent);
-    if (parent)
-        parent_tree = parent->data;
-    else
-        /* a layer shell surface's popup */
-        parent_tree = layers_popup_parent_tree(popup->parent);
-    if (!parent_tree) return;
 
     popup->base->data = wlr_scene_xdg_surface_create(parent_tree,
                                                      popup->base);
@@ -733,6 +722,26 @@ static void handle_new_popup(struct wl_listener *l, void *data)
     wl_signal_add(&popup->base->surface->events.commit, &p->commit);
     p->destroy.notify = popup_handle_destroy;
     wl_signal_add(&popup->events.destroy, &p->destroy);
+}
+
+static void handle_new_popup(struct wl_listener *l, void *data)
+{
+    struct wlr_xdg_popup *popup = data;
+    struct wlr_xdg_surface *parent;
+    struct wlr_scene_tree *parent_tree;
+
+    /* a layer surface's popup is made without a parent, which it gets
+       from the layer surface (get_popup) before its first commit, see
+       layers.c */
+    if (!popup->parent) return;
+    parent = wlr_xdg_surface_try_from_wlr_surface(popup->parent);
+    if (parent)
+        parent_tree = parent->data;
+    else
+        /* a layer shell surface's popup */
+        parent_tree = layers_popup_parent_tree(popup->parent);
+    if (!parent_tree) return;
+    xdg_popup_add(popup, parent_tree);
 }
 
 void xdg_init(void)

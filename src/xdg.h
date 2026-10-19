@@ -23,7 +23,13 @@
 
 extern const ObClientImpl xdg_client_impl;
 
+struct wlr_xdg_popup;
+struct wlr_scene_tree;
+
 void xdg_init(void);
+/*! Show a popup in parent_tree, and keep it on its output */
+void xdg_popup_add(struct wlr_xdg_popup *popup,
+                   struct wlr_scene_tree *parent_tree);
 void xdg_finish(void);
 
 #endif

@@ -275,6 +275,19 @@ def test_bars(out):
     check("a maximized window fits between the bars",
           w["y"] > 0 and bottom < screen["height"], (w, bottom))
 
+    # a bar's popups (tooltips, tray menus) are made without a parent, which
+    # they get from the layer surface
+    below = (screen["width"] // 2, 60)
+    without = pixel(out, *below)
+    inp(out, "move", str(screen["width"] // 2), "12", "sleep", "1500",
+        "run", "grim %s" % os.path.join(out, "tooltip.png"))
+    import cairo
+    img = cairo.ImageSurface.create_from_png(os.path.join(out, "tooltip.png"))
+    d, st = img.get_data(), img.get_stride()
+    b, g, r = d[below[1] * st + below[0] * 4:below[1] * st + below[0] * 4 + 3]
+    check("a bar's tooltip shows", (r, g, b) != without, ((r, g, b), without))
+    inp(out, "move", "10", "300")
+
     rc = os.path.join(out, "rc.xml")
     orig = open(rc).read()
     with open(rc, "w") as f:

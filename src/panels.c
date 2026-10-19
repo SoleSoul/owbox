@@ -227,9 +227,10 @@ gboolean panels_key(const ObEvent *e)
         e->sym != XKB_KEY_Escape)
         return FALSE;
     /* the launcher has the keyboard, Escape is for it, and closing it ends
-       this */
+       this.  Or a panel's menu (a tray icon's) has it, Escape closes the
+       menu first. */
     s = layers_keyboard_surface();
-    if (s && g_list_find(launchers, s))
+    if (s && (g_list_find(launchers, s) || layers_is_panel(s)))
         return FALSE;
     panels_hide();
     return TRUE;
