@@ -33,8 +33,9 @@
 #include "obt/keyboard.h"
 #include "render/theme.h"
 
-#define PADDING 2
-#define MAX_MENU_WIDTH 400
+/* owbox: at owbox's scale */
+#define PADDING ob_scaled(2)
+#define MAX_MENU_WIDTH ob_scaled(400)
 
 #define ITEM_HEIGHT (ob_rr_theme->menu_font_height + 2*PADDING)
 

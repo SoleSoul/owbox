@@ -127,6 +127,18 @@ The color of the desktop when no wallpaper program is running, any color
 Openbox themes accept.
 
 ```xml
+  <scale>1.5</scale>
+```
+
+How much larger than the theme says owbox draws window frames, menus,
+Alt-Tab and the other popups, with their fonts: `1.5` or `150%` is half
+again as large, from 0.5 to 4. Applications keep their size, while an
+output's `<scale>` makes everything on that monitor larger. The theme's
+bevels and borders get thicker by whole pixels, and its bitmap buttons are
+exact at whole number scales and smoothed between them; SVG and PNG
+buttons, gradients and text are sharp at any scale.
+
+```xml
   <snapping enabled="yes">
     <range>10</range>          <!-- pixels from the edge -->
     <cornerRange>60</cornerRange>
@@ -192,6 +204,24 @@ terminal emulator it finds.
 Openbox's `client-list-menu` and `client-list-combined-menu` work as in
 Openbox. Pipe menus work too.
 
+## Default key bindings owbox adds
+
+Besides Openbox's defaults and Super+arrows for snapping, the default rc.xml
+binds Super+E to the file manager (`xdg-open ~`), the volume keys to `pactl`
+(PulseAudio and PipeWire), the media keys to `playerctl`, the brightness
+keys to `brightnessctl`, and Print Screen to `owbox-screenshot`: Print for
+the whole screen, Alt+Print for the focused window, Shift+Print for an area
+chosen with the mouse (`slurp`). Screenshots go to `Pictures/Screenshots`
+and the clipboard.
+
+## The session
+
+`owbox-session` points `SSH_AUTH_SOCK` at the SSH agent systemd started
+(GNOME's from gcr, or OpenSSH's `ssh-agent.socket`), as other desktops'
+sessions do. The system autostart (`/etc/xdg/owbox/autostart`, run before
+the user's) starts an installed polkit agent, which asks for passwords when
+applications need administrator rights.
+
 ## The control socket
 
 owbox listens on `$XDG_RUNTIME_DIR/owbox-$WAYLAND_DISPLAY.sock` and exports
@@ -220,6 +250,7 @@ Examples:
 A window object has `id`, `title`, `app_id`, `identifier` (its
 ext-foreign-toplevel identifier, for `grim -T`), `desktop` (-1 is all
 desktops), `x`, `y` (of the frame), `width`, `height` (of the client),
+`frame` (the frame's left, top, right and bottom sizes around the client),
 `focused`, `iconic`, `maximized`, `fullscreen` and `shaded`.
 
 ## Environment

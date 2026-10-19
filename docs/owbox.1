@@ -1,4 +1,4 @@
-.TH OWBOX 1 "2026" "owbox 0.2.0" "User Commands"
+.TH OWBOX 1 "2026" "owbox 0.3.0" "User Commands"
 .SH NAME
 owbox \- Openbox for Wayland, a stacking window manager and compositor
 .SH SYNOPSIS
@@ -7,6 +7,9 @@ owbox \- Openbox for Wayland, a stacking window manager and compositor
 .br
 .B owbox-session
 [\fIOPTION\fR]...
+.br
+.B owbox-screenshot
+[\fBscreen\fR|\fBarea\fR|\fBwindow\fR]
 .SH DESCRIPTION
 .B owbox
 is a Wayland compositor that is Openbox: the same window management, the
@@ -70,7 +73,9 @@ The configuration, see
 .UR http://openbox.org/wiki/Help:Configuration
 .UE .
 owbox's additions are in an \fB<owbox>\fR section, which Openbox ignores;
-the installed rc.xml describes them.  The file is reloaded when it changes.
+the installed rc.xml describes them.  \fB<owbox><scale>\fR draws window
+frames, menus and popups larger than the theme, applications keep their
+size.  The file is reloaded when it changes.
 .TP
 .I menu.xml
 The menus.  owbox's built\-in \fBapplications\-menu\fR lists the installed
@@ -82,7 +87,8 @@ Openbox's autostart usually starts X programs).  Applications in the XDG
 autostart directories are started too.
 .TP
 .I environment
-Shell variable assignments read by \fBowbox\-session\fR.
+Shell variable assignments read by \fBowbox\-session\fR, which also
+points \fBSSH_AUTH_SOCK\fR at the SSH agent systemd started.
 .PP
 Themes are Openbox themes, found in \fI~/.local/share/themes\fR,
 \fI~/.themes\fR and \fI/usr/share/themes\fR (\fINAME/openbox\-3/themerc\fR).
@@ -102,6 +108,10 @@ owbox \-\-msg 'action <action name="GoToDesktop"><to>2</to></action>'
 .B windows
 The windows, one JSON object per line, bottom to top.
 .TP
+.B choose\-share
+Show the menu of monitors and windows to share, and reply with the choice
+(also \fBowbox \-\-choose\-share\fR).
+.TP
 .B desktops
 The desktops and the current one, as JSON.
 .TP
@@ -115,6 +125,12 @@ owbox sets \fBWAYLAND_DISPLAY\fR, \fBDISPLAY\fR (for X applications),
 \fBXDG_CURRENT_DESKTOP\fR=owbox (if not set), \fBXDG_SESSION_TYPE\fR and
 \fBOWBOX_SOCK\fR for the programs it runs, and passes them to D\-Bus and
 systemd.
+.SH SCREENSHOTS
+\fBowbox\-screenshot\fR saves a screenshot with \fBgrim\fR(1) in
+\fIPictures/Screenshots\fR and copies it to the clipboard: of every
+monitor (\fBscreen\fR, the default), of an area chosen with
+\fBslurp\fR(1) (\fBarea\fR), or of the focused window (\fBwindow\fR).
+The default rc.xml binds it to Print, Shift+Print and Alt+Print.
 .SH FILES
 .TP
 .I ~/.cache/owbox/owbox.log

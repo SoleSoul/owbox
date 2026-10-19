@@ -107,6 +107,10 @@ static void list_windows(GString *out)
             c->desktop == DESKTOP_ALL ? -1 : (gint)c->desktop,
             c->frame->area.x, c->frame->area.y,
             c->area.width, c->area.height);
+        /* the frame's size around the client, left, top, right, bottom */
+        g_string_append_printf(out, ",\"frame\":[%d,%d,%d,%d]",
+            c->frame->size.left, c->frame->size.top,
+            c->frame->size.right, c->frame->size.bottom);
         g_string_append_printf(out,
             ",\"focused\":%s,\"iconic\":%s,\"maximized\":%s,"
             "\"fullscreen\":%s,\"shaded\":%s}\n",

@@ -271,6 +271,24 @@ RrTheme* RrThemeNew(const RrInstance *inst, const gchar *name,
     READ_INT("window.client.padding.width", theme->cbwidthx, 0, 100, theme->paddingx);
     READ_INT("window.client.padding.height", theme->cbwidthy, 0, 100, theme->cbwidthx);
 
+    /* owbox: the sizes at owbox's scale */
+#define SCALE(x) x = RrScaleInt(inst, x)
+    SCALE(theme->menu_overlap_x);
+    SCALE(theme->menu_overlap_y);
+    SCALE(theme->handle_height);
+    SCALE(theme->paddingx);
+    SCALE(theme->paddingy);
+    SCALE(theme->fbwidth);
+    SCALE(theme->mbwidth);
+    SCALE(theme->obwidth);
+    SCALE(theme->ubwidth);
+    SCALE(theme->menu_sep_width);
+    SCALE(theme->menu_sep_paddingx);
+    SCALE(theme->menu_sep_paddingy);
+    SCALE(theme->cbwidthx);
+    SCALE(theme->cbwidthy);
+#undef SCALE
+
     /* load colors */
     READ_COLOR_("window.active.border.color",
                 "border.color",
@@ -631,9 +649,10 @@ RrTheme* RrThemeNew(const RrInstance *inst, const gchar *name,
         gint j;
         if (strstr(str, "shadow=y")) {
             if ((p = strstr(str, "shadowoffset=")))
-                i = parse_inline_number(p + strlen("shadowoffset="));
+                i = RrScaleInt(inst, /* owbox */
+                    parse_inline_number(p + strlen("shadowoffset=")));
             else
-                i = 1;
+                i = RrLineWidth(inst);
             theme->a_focused_label->texture[0].data.text.shadow_offset_x = i;
             theme->a_focused_label->texture[0].data.text.shadow_offset_y = i;
         }
@@ -666,9 +685,10 @@ RrTheme* RrThemeNew(const RrInstance *inst, const gchar *name,
         gint j;
         if (strstr(str, "shadow=y")) {
             if ((p = strstr(str, "shadowoffset=")))
-                i = parse_inline_number(p + strlen("shadowoffset="));
+                i = RrScaleInt(inst, /* owbox */
+                    parse_inline_number(p + strlen("shadowoffset=")));
             else
-                i = 1;
+                i = RrLineWidth(inst);
             theme->osd_hilite_label->texture[0].data.text.shadow_offset_x = i;
             theme->osd_hilite_label->texture[0].data.text.shadow_offset_y = i;
         }
@@ -748,9 +768,10 @@ RrTheme* RrThemeNew(const RrInstance *inst, const gchar *name,
         gint j;
         if (strstr(str, "shadow=y")) {
             if ((p = strstr(str, "shadowoffset=")))
-                i = parse_inline_number(p + strlen("shadowoffset="));
+                i = RrScaleInt(inst, /* owbox */
+                    parse_inline_number(p + strlen("shadowoffset=")));
             else
-                i = 1;
+                i = RrLineWidth(inst);
             theme->a_unfocused_label->texture[0].data.text.shadow_offset_x = i;
             theme->a_unfocused_label->texture[0].data.text.shadow_offset_y = i;
         }
@@ -785,9 +806,10 @@ RrTheme* RrThemeNew(const RrInstance *inst, const gchar *name,
         gint j;
         if (strstr(str, "shadow=y")) {
             if ((p = strstr(str, "shadowoffset=")))
-                i = parse_inline_number(p + strlen("shadowoffset="));
+                i = RrScaleInt(inst, /* owbox */
+                    parse_inline_number(p + strlen("shadowoffset=")));
             else
-                i = 1;
+                i = RrLineWidth(inst);
             theme->osd_unhilite_label->texture[0].data.text.shadow_offset_x=i;
             theme->osd_unhilite_label->texture[0].data.text.shadow_offset_y=i;
         }
@@ -833,9 +855,10 @@ RrTheme* RrThemeNew(const RrInstance *inst, const gchar *name,
         gint j;
         if (strstr(str, "shadow=y")) {
             if ((p = strstr(str, "shadowoffset=")))
-                i = parse_inline_number(p + strlen("shadowoffset="));
+                i = RrScaleInt(inst, /* owbox */
+                    parse_inline_number(p + strlen("shadowoffset=")));
             else
-                i = 1;
+                i = RrLineWidth(inst);
             theme->a_menu_text_title->texture[0].data.text.shadow_offset_x = i;
             theme->a_menu_text_title->texture[0].data.text.shadow_offset_y = i;
         }
@@ -885,9 +908,10 @@ RrTheme* RrThemeNew(const RrInstance *inst, const gchar *name,
         gint j;
         if (strstr(str, "shadow=y")) {
             if ((p = strstr(str, "shadowoffset=")))
-                i = parse_inline_number(p + strlen("shadowoffset="));
+                i = RrScaleInt(inst, /* owbox */
+                    parse_inline_number(p + strlen("shadowoffset=")));
             else
-                i = 1;
+                i = RrLineWidth(inst);
             theme->a_menu_text_normal->
                 texture[0].data.text.shadow_offset_x = i;
             theme->a_menu_text_normal->
@@ -982,7 +1006,7 @@ RrTheme* RrThemeNew(const RrInstance *inst, const gchar *name,
             theme->paddingy * 2;
     }
     theme->button_size = theme->label_height - 2;
-    theme->grip_width = 25;
+    theme->grip_width = RrScaleInt(inst, 25); /* owbox: at the scale */
 
     RrAppearanceFree(fbs.focused_disabled);
     RrAppearanceFree(fbs.unfocused_disabled);

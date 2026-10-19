@@ -29,6 +29,8 @@
 #include <glib.h>
 
 extern RrInstance *ob_rr_inst;
+/*! owbox: a size in pixels at owbox's scale (<owbox><scale>) */
+#define ob_scaled(x) RrScaleInt(ob_rr_inst, (x))
 extern RrImageCache *ob_rr_icons;
 
 /*! The config directories' subdirectories looked in for rc.xml and the

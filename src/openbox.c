@@ -147,6 +147,11 @@ static void load_config(gchar **xml_error_string)
 
     if (loaded) {
         ob_debug("Loaded config file %s", loaded_config_file);
+        /* owbox: the scale comes first, the fonts are opened at it */
+        config_read_scale(obt_xml_root(i));
+    }
+    RrInstanceSetScale(ob_rr_inst, config_scale);
+    if (loaded) {
         obt_xml_tree_from_root(i);
         obt_xml_close(i);
     }

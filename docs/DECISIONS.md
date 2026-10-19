@@ -95,3 +95,15 @@ after two missed intervals) is kept.
 
 **Icon and cursor themes default to the desktop's** (GNOME/GTK settings),
 since Openbox users usually set them for GTK and don't want to repeat it.
+
+**owbox's scale is the theme's.** `<owbox><scale>` makes frames, menus and
+popups larger without making applications larger (an output's scale does
+both). Openbox's window management code takes every size from the theme,
+so the scale is applied in obrender when the theme loads: its sizes are
+multiplied, fonts are opened at 96 dpi times the scale, XBM masks are
+resampled (exact at whole numbers, smoothed between), and one pixel lines
+(bevels, borders, interlacing) become whole pixels wider. Gradients draw at
+any size. The few sizes Openbox hardcodes in the popups, menus and dialogs
+are multiplied where they are defined, and the code using them is
+unchanged. Drawing at the theme's size and enlarging the picture would have
+been simpler but blurry, text especially.

@@ -163,6 +163,12 @@ struct _RrPixmapMask {
     gint width;
     gint height;
     gchar *data;
+    /* owbox: the XBM's size when it is drawn larger than its data (width and
+       height are the size drawn), and how much of each pixel drawn it
+       covers, 0 to 255 */
+    gint xbm_width;
+    gint xbm_height;
+    guchar *alpha;
 };
 
 struct _RrTextureMask {
@@ -342,6 +348,10 @@ struct _RrButton {
 
 RrInstance* RrInstanceNew (void);
 void        RrInstanceFree (RrInstance *inst);
+void        RrInstanceSetScale (RrInstance *inst, gdouble scale);
+gdouble     RrScale (const RrInstance *inst);
+gint        RrScaleInt (const RrInstance *inst, gint v);
+gint        RrLineWidth (const RrInstance *inst);
 
 RrColor *RrColorNew   (const RrInstance *inst, gint r, gint g, gint b);
 RrColor *RrColorCopy  (RrColor *c);

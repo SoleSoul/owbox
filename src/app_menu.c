@@ -120,7 +120,7 @@ static RrImage* cached_icon(const gchar *name)
     if (g_hash_table_lookup_extended(icon_cache, name, NULL,
                                      (gpointer*)&img))
         return img;
-    img = icons_load(name, 48);
+    img = icons_load(name, ob_scaled(48));
     g_hash_table_insert(icon_cache, g_strdup(name), img);
     return img;
 }

@@ -107,19 +107,27 @@ static void draw_mask(cairo_surface_t *s, RrTextureMask *m, RrRect *area)
     cairo_surface_mark_dirty(s);
 }
 
-static void draw_line(cairo_t *cr, RrTextureLineArt *l)
+static void draw_line(cairo_t *cr, RrTextureLineArt *l, gint lw,
+                      gint w, gint h)
 {
     /* emulate XDrawLine with a 1px wide projecting cap */
     gint x1 = MIN(l->x1, l->x2), x2 = MAX(l->x1, l->x2);
     gint y1 = MIN(l->y1, l->y2), y2 = MAX(l->y1, l->y2);
     cairo_set_source_rgb(cr, l->color->r / 255.0, l->color->g / 255.0,
                          l->color->b / 255.0);
-    if (x1 == x2 || y1 == y2)
+    if (x1 == x2 || y1 == y2) {
+        /* owbox: lines lw wide at a scale, growing toward the middle, as
+           they are drawn at the edges */
+        if (y1 == y2 && y1 >= h / 2) y1 -= lw - 1;
+        else if (y1 == y2) y2 += lw - 1;
+        if (x1 == x2 && x1 >= w / 2) x1 -= lw - 1;
+        else if (x1 == x2) x2 += lw - 1;
         cairo_rectangle(cr, x1, y1, x2 - x1 + 1, y2 - y1 + 1);
+    }
     else {
         cairo_move_to(cr, l->x1 + 0.5, l->y1 + 0.5);
         cairo_line_to(cr, l->x2 + 0.5, l->y2 + 0.5);
-        cairo_set_line_width(cr, 1.0);
+        cairo_set_line_width(cr, lw);
         cairo_stroke(cr);
         return;
     }
@@ -163,7 +171,8 @@ cairo_surface_t* RrPaintSurface(RrAppearance *a, gint w, gint h)
                 pixel_data_to_surface(a, s, force_transfer);
             }
             if (!cr) cr = cairo_create(s);
-            draw_line(cr, &a->texture[i].data.lineart);
+            draw_line(cr, &a->texture[i].data.lineart, RrLineWidth(a->inst),
+                      w, h);
             break;
         case RR_TEXTURE_MASK:
             if (!transferred) {
@@ -385,6 +394,11 @@ void RrMargins (RrAppearance *a, gint *l, gint *t, gint *r, gint *b)
             *l = *t = *r = *b = 1;
         }
     }
+    /* owbox: the lines are wider at a scale */
+    *l *= RrLineWidth(a->inst);
+    *t *= RrLineWidth(a->inst);
+    *r *= RrLineWidth(a->inst);
+    *b *= RrLineWidth(a->inst);
 }
 
 void RrMinSize(RrAppearance *a, gint *w, gint *h)

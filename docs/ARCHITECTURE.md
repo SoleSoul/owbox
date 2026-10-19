@@ -174,6 +174,12 @@ Openbox's X-isms are emulated:
 Fonts use pango-cairo at 96 dpi with slight hinting and grayscale
 antialiasing, like Xft's defaults.
 
+owbox's scale (`<owbox><scale>`) is the instance's `RrInstanceSetScale()`,
+set before rc.xml's fonts are opened (`config_read_scale()`, then the rest
+of the file). Theme sizes go through `RrScaleInt()`, one pixel lines are
+`RrLineWidth()` wide, masks are resampled into coverage (`mask.c`), and the
+sizes hardcoded in Openbox's popups, menus and dialogs use `ob_scaled()`.
+
 ## Testing hooks
 
 - `WLR_BACKENDS=headless` (tests/headless.sh) runs owbox without

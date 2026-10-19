@@ -29,7 +29,7 @@
 
 #include <glib.h>
 
-#define FOCUS_INDICATOR_WIDTH 6
+#define FOCUS_INDICATOR_WIDTH ob_scaled(6) /* owbox: at owbox's scale */
 
 static struct
 {

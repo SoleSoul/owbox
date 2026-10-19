@@ -198,10 +198,10 @@ RrImage* icons_for_client(ObClient *c)
 
     if ((e = find_entry(c->class)))
         icon = sfdo_desktop_entry_get_icon(e, NULL);
-    if ((img = icons_load(icon, 64)))
+    if ((img = icons_load(icon, ob_scaled(64))))
         return img;
     /* some apps name their icon after their app id */
     if (c->class && *c->class)
-        return icons_load(c->class, 64);
+        return icons_load(c->class, ob_scaled(64));
     return NULL;
 }

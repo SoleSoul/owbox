@@ -80,12 +80,15 @@ listed is a bug.
 - **Session management** (XSMP) is not supported: applications don't get
   their windows restored on login.
 - **HiDPI decorations** are drawn at scale 1 and scaled up on outputs with a
-  scale above 1, so they look soft. Windows' contents are sharp.
+  scale above 1, so they look soft. Windows' contents are sharp. To make
+  owbox larger on a high resolution monitor, use `<owbox><scale>` instead,
+  which draws the theme larger and sharp.
 - **`--replace`**: a Wayland compositor can't take over a running session.
 
 ## Extensions
 
 These have no Openbox equivalent and are described in
-[CONFIG.md](CONFIG.md): the `<owbox>` section, the `SnapToEdge` and `Unsnap`
-actions, `applications-menu`, the control socket, and reloading rc.xml when
-it changes.
+[CONFIG.md](CONFIG.md): the `<owbox>` section (including `<scale>`, which
+draws the theme larger), the `SnapToEdge` and `Unsnap` actions,
+`applications-menu`, the control socket, reloading rc.xml when it changes,
+and the default bindings for media keys and screenshots.

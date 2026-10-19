@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build and smoke test (Arch Linux)
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm --needed git meson ninja gcc pkgconf \
+            wayland-protocols wlroots0.20 libinput libxkbcommon pixman glib2 \
+            libxml2 pango cairo librsvg libsfdo xcb-util-wm wayland \
+            xorg-xwayland foot grim python python-cairo python-gobject gtk4 \
+            ttf-dejavu
+
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Build
+        run: |
+          meson setup build
+          ninja -C build
+
+      - name: Smoke test
+        run: |
+          export XDG_RUNTIME_DIR=$(mktemp -d)
+          chmod 700 "$XDG_RUNTIME_DIR"
+          tests/smoke.py --keep
+
+      - name: Settings test
+        run: |
+          export XDG_RUNTIME_DIR=$(mktemp -d)
+          chmod 700 "$XDG_RUNTIME_DIR"
+          tests/settings_test.py

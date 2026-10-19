@@ -41,13 +41,13 @@ static RrAppearance *prompt_a_press;
 /* we change the max width which would screw with others */
 static RrAppearance *prompt_a_msg;
 
-/* sizing stuff */
-#define OUTSIDE_MARGIN 4
-#define MSG_BUTTON_SEPARATION 4
-#define BUTTON_SEPARATION 4
-#define BUTTON_VMARGIN 4
-#define BUTTON_HMARGIN 12
-#define MAX_WIDTH 400
+/* sizing stuff, owbox: at owbox's scale */
+#define OUTSIDE_MARGIN ob_scaled(4)
+#define MSG_BUTTON_SEPARATION ob_scaled(4)
+#define BUTTON_SEPARATION ob_scaled(4)
+#define BUTTON_VMARGIN ob_scaled(4)
+#define BUTTON_HMARGIN ob_scaled(12)
+#define MAX_WIDTH ob_scaled(400)
 
 static void prompt_layout(ObPrompt *self);
 static void render_all(ObPrompt *self);

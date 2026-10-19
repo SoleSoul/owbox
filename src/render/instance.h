@@ -31,6 +31,8 @@ struct _RrInstance {
     PangoContext *pango;
     cairo_font_options_t *font_options;
     GHashTable *color_hash;
+    /* owbox: how much larger than the theme says to draw (owbox's scale) */
+    gdouble scale;
 };
 
 GHashTable* RrColorHash    (const RrInstance *inst);

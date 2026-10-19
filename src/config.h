@@ -305,6 +305,12 @@ gchar* config_desktop_setting(const gchar *key);
 
 /*! How to run X applications, read only at startup */
 extern ObXwaylandMode config_xwayland;
+/*! How much larger than the theme's sizes owbox draws its frames, menus
+  and popups, and its fonts */
+extern gdouble config_scale;
+/*! Read the scale from rc.xml's root before the rest is parsed, since fonts
+  are opened at it as they are parsed */
+void config_read_scale(xmlNodePtr root);
 /*! The layout of the desktops in a grid, rows 0 for a single row */
 extern guint config_desktops_rows;
 extern guint config_desktops_columns;

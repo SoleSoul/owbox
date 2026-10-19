@@ -42,6 +42,9 @@ void RrRender(RrAppearance *a, gint w, gint h)
     RrPixel32 current;
     guint r,g,b;
     register gint off, x;
+    /* owbox: the width of the lines, and the layer of them being drawn */
+    const gint lw = RrLineWidth(a->inst);
+    gint j;
 
     switch (a->surface.grad) {
     case RR_SURFACE_PARENTREL:
@@ -86,10 +89,13 @@ void RrRender(RrAppearance *a, gint w, gint h)
         current = (r << RrDefaultRedOffset)
             + (g << RrDefaultGreenOffset)
             + (b << RrDefaultBlueOffset);
-        p = data;
-        for (i = 0; i < h; i += 2, p += w)
+        /* owbox: lw lines every 2 * lw */
+        for (i = 0; i < h; ++i) {
+            if ((i / lw) % 2) continue;
+            p = data + i * w;
             for (x = 0; x < w; ++x, ++p)
                 *p = current;
+        }
     }
 
     if (a->surface.relief == RR_RELIEF_FLAT && a->surface.border) {
@@ -99,36 +105,32 @@ void RrRender(RrAppearance *a, gint w, gint h)
         current = (r << RrDefaultRedOffset)
             + (g << RrDefaultGreenOffset)
             + (b << RrDefaultBlueOffset);
-        for (off = 0, x = 0; x < w; ++x, off++) {
-            *(data + off) = current;
-            *(data + off + ((h-1) * w)) = current;
-        }
-        for (off = 0, x = 0; x < h; ++x, off++) {
-            *(data + (off * w)) = current;
-            *(data + (off * w) + w - 1) = current;
+        /* owbox: j is the layer of the lw wide lines, from the outside */
+        for (j = 0; j < lw && j < h && j < w; ++j) {
+            for (off = j * w, x = 0; x < w; ++x, off++) {
+                *(data + off) = current;
+                *(data + off + ((h-1-2*j) * w)) = current;
+            }
+            for (off = 0, x = 0; x < h; ++x, off++) {
+                *(data + (off * w) + j) = current;
+                *(data + (off * w) + w - 1 - j) = current;
+            }
         }
     }
 
     if (a->surface.relief != RR_RELIEF_FLAT) {
-        if (a->surface.bevel == RR_BEVEL_1) {
-            for (off = 1, x = 1; x < w - 1; ++x, off++)
-                highlight(&a->surface, data + off,
-                          data + off + (h-1) * w,
-                          a->surface.relief==RR_RELIEF_RAISED);
-            for (off = 0, x = 0; x < h; ++x, off++)
-                highlight(&a->surface, data + off * w,
-                          data + off * w + w - 1,
-                          a->surface.relief==RR_RELIEF_RAISED);
-        }
+        /* owbox: a bevel at a scale is lw lines, each one inside the one
+           before.  bevel2 is bevel1 one line further in. */
+        gint in = (a->surface.bevel == RR_BEVEL_2) ? lw : 0;
 
-        if (a->surface.bevel == RR_BEVEL_2) {
-            for (off = 2, x = 2; x < w - 2; ++x, off++)
-                highlight(&a->surface, data + off + w,
-                          data + off + (h-2) * w,
+        for (j = in; j < in + lw && 2*j < h && 2*j < w; ++j) {
+            for (off = 1 + j, x = 1 + j; x < w - 1 - j; ++x, off++)
+                highlight(&a->surface, data + off + j * w,
+                          data + off + (h-1-j) * w,
                           a->surface.relief==RR_RELIEF_RAISED);
-            for (off = 1, x = 1; x < h-1; ++x, off++)
-                highlight(&a->surface, data + off * w + 1,
-                          data + off * w + w - 2,
+            for (off = j, x = j; x < h - j; ++x, off++)
+                highlight(&a->surface, data + off * w + j,
+                          data + off * w + w - 1 - j,
                           a->surface.relief==RR_RELIEF_RAISED);
         }
     }
@@ -354,6 +356,11 @@ void RrRenderSolid(RrAppearance *l, RrPixel32 *out, gint w, gint h)
     RrPixel32 pix;
     RrSurface *sp = &l->surface;
     gint left = 0, top = 0, right = w - 1, bottom = h - 1;
+    /* owbox: the lines are lw wide at a scale, drawn as lw lines each one
+       inside the one before, and bevel2 is bevel1 one line further in */
+    const gint lw = RrLineWidth(l->inst);
+    gint j, in;
+    RrColor *c1, *c2; /* the bottom/right and the top/left colors */
 
     pix = RrColorPixel(sp->primary);
     for (i = 0; i < w * h; i++)
@@ -361,75 +368,51 @@ void RrRenderSolid(RrAppearance *l, RrPixel32 *out, gint w, gint h)
 
     switch (sp->relief) {
     case RR_RELIEF_RAISED:
+    case RR_RELIEF_SUNKEN:
         if (!sp->bevel_dark)
             create_bevel_colors(l);
+        if (sp->relief == RR_RELIEF_RAISED) {
+            c1 = sp->bevel_dark;
+            c2 = sp->bevel_light;
+        } else {
+            c1 = sp->bevel_light;
+            c2 = sp->bevel_dark;
+        }
 
+        in = 0;
         switch (sp->bevel) {
         case RR_BEVEL_1:
-            draw_line(out, w, h, sp->bevel_dark,
-                      left, bottom, right, bottom);
-            draw_line(out, w, h, sp->bevel_dark,
-                      right, bottom, right, top);
-
-            draw_line(out, w, h, sp->bevel_light,
-                      left, top, right, top);
-            draw_line(out, w, h, sp->bevel_light,
-                      left, bottom, left, top);
             break;
         case RR_BEVEL_2:
-            draw_line(out, w, h, sp->bevel_dark,
-                      left + 2, bottom - 1, right - 2, bottom - 1);
-            draw_line(out, w, h, sp->bevel_dark,
-                      right - 1, bottom - 1, right - 1, top + 1);
-
-            draw_line(out, w, h, sp->bevel_light,
-                      left + 2, top + 1, right - 2, top + 1);
-            draw_line(out, w, h, sp->bevel_light,
-                      left + 1, bottom - 1, left + 1, top + 1);
+            in = lw;
             break;
         default:
             g_assert_not_reached(); /* unhandled BevelType */
         }
-        break;
-    case RR_RELIEF_SUNKEN:
-        if (!sp->bevel_dark)
-            create_bevel_colors(l);
+        for (j = in; j < in + lw; ++j) {
+            gint L = left + j, T = top + j, R = right - j, B = bottom - j;
+            /* bevel2's horizontal lines are a pixel shorter at each end */
+            gint e = (sp->bevel == RR_BEVEL_2) ? 1 : 0;
 
-        switch (sp->bevel) {
-        case RR_BEVEL_1:
-            draw_line(out, w, h, sp->bevel_light,
-                      left, bottom, right, bottom);
-            draw_line(out, w, h, sp->bevel_light,
-                      right, bottom, right, top);
+            draw_line(out, w, h, c1, L + e, B, R - e, B);
+            draw_line(out, w, h, c1, R, B, R, T);
 
-            draw_line(out, w, h, sp->bevel_dark,
-                      left, top, right, top);
-            draw_line(out, w, h, sp->bevel_dark,
-                      left, bottom, left, top);
-            break;
-        case RR_BEVEL_2:
-            draw_line(out, w, h, sp->bevel_light,
-                      left + 2, bottom - 1, right - 2, bottom - 1);
-            draw_line(out, w, h, sp->bevel_light,
-                      right - 1, bottom - 1, right - 1, top + 1);
-
-            draw_line(out, w, h, sp->bevel_dark,
-                      left + 2, top + 1, right - 2, top + 1);
-            draw_line(out, w, h, sp->bevel_dark,
-                      left + 1, bottom - 1, left + 1, top + 1);
-            break;
-        default:
-            g_assert_not_reached(); /* unhandled BevelType */
+            draw_line(out, w, h, c2, L + e, T, R - e, T);
+            draw_line(out, w, h, c2, L, B, L, T);
         }
         break;
     case RR_RELIEF_FLAT:
         if (sp->border) {
-            draw_line(out, w, h, sp->border_color, left, top, right, top);
-            draw_line(out, w, h, sp->border_color,
-                      left, bottom, right, bottom);
-            draw_line(out, w, h, sp->border_color, left, top, left, bottom);
-            draw_line(out, w, h, sp->border_color,
-                      right, top, right, bottom);
+            for (j = 0; j < lw; ++j) {
+                draw_line(out, w, h, sp->border_color,
+                          left + j, top + j, right - j, top + j);
+                draw_line(out, w, h, sp->border_color,
+                          left + j, bottom - j, right - j, bottom - j);
+                draw_line(out, w, h, sp->border_color,
+                          left + j, top + j, left + j, bottom - j);
+                draw_line(out, w, h, sp->border_color,
+                          right - j, top + j, right - j, bottom - j);
+            }
         }
         break;
     default:

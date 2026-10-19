@@ -23,12 +23,14 @@
 #include "window.h"
 #include "fwin.h"
 #include "render/render.h"
+#include "openbox.h"
 #include <glib.h>
 
 struct _ObClientIcon;
 
-#define POPUP_WIDTH 320
-#define POPUP_HEIGHT 48
+/* owbox: at owbox's scale */
+#define POPUP_WIDTH ob_scaled(320)
+#define POPUP_HEIGHT ob_scaled(48)
 
 typedef struct _ObPopup      ObPopup;
 typedef struct _ObIconPopup  ObIconPopup;

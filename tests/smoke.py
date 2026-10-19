@@ -142,6 +142,38 @@ def test_shade_decorate(out):
           pixel(out, *title))
 
 
+def test_scale(out):
+    """<owbox><scale> makes the frame larger and keeps the window's size"""
+    rc = os.path.join(out, "rc.xml")
+    orig = open(rc).read()
+    subprocess.Popen([os.path.join(HERE, "run.sh"), out, "foot"],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    w = wait_windows(out, 1)
+    if not w:
+        check("foot maps", False)
+        return
+    w1 = w[0]
+    with open(rc, "w") as f:
+        f.write(orig.replace("<scale>1</scale>", "<scale>2</scale>"))
+    time.sleep(1.5)  # reloaded on change
+    w2 = windows(out)[0]
+    # the borders exactly, the title bar about twice (fonts are hinted)
+    check("scale 2 doubles the frame",
+          w2["frame"][0] == 2 * w1["frame"][0] and
+          w2["frame"][3] == 2 * w1["frame"][3] and
+          1.7 <= w2["frame"][1] / w1["frame"][1] <= 2.1,
+          (w1["frame"], w2["frame"]))
+    check("scale 2 keeps the window's size",
+          (w2["width"], w2["height"]) == (w1["width"], w1["height"]), w2)
+    with open(rc, "w") as f:
+        f.write(orig)
+    time.sleep(1.5)
+    check("scale 1 restores the title bar",
+          windows(out)[0]["frame"] == w1["frame"], windows(out)[0]["frame"])
+    inp(out, "key", "alt+F4")
+    wait_windows(out, 0)
+
+
 def test_menus(out):
     # the root menu at 700,200 (Clearlooks, the default font): Applications
     # is the 3rd item (y+62), Windows the 4th (y+84), the submenu opens at
@@ -208,6 +240,7 @@ def main():
     pid = int(open(os.path.join(out, "pid")).read())
     try:
         test_xdg(out)
+        test_scale(out)
         test_menus(out)
         test_x11(out)
         try:

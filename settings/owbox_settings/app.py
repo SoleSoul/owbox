@@ -219,6 +219,26 @@ class SettingsWindow(Gtk.ApplicationWindow):
             path, values[w.get_selected()]))
         return dd
 
+    def scale_dropdown(self):
+        """<owbox><scale>, as percentages"""
+        values = ["", "1.25", "1.5", "1.75", "2", "2.5", "3"]
+        cur = self.rc.get("owbox/scale", "")
+        try:
+            num = float(cur.rstrip("%")) / (100 if "%" in cur else 1)
+        except ValueError:
+            num = 1.0
+        nums = [1.0] + [float(v) for v in values[1:]]
+        if num not in nums:
+            # a scale written in rc.xml by hand
+            values.append(cur)
+            nums.append(num)
+        dd = Gtk.DropDown.new_from_strings(
+            ["%d%%" % round(n * 100) for n in nums])
+        dd.set_selected(nums.index(num))
+        dd.connect("notify::selected", lambda w, p: self.set_or_unset(
+            "owbox/scale", values[w.get_selected()]))
+        return dd
+
     def set_or_unset(self, path, value):
         if value == "":
             self.ensure_user_file()
@@ -257,6 +277,12 @@ class SettingsWindow(Gtk.ApplicationWindow):
                      lambda f, c: self.set("theme/name", c.theme_name))
         flow.connect("selected-children-changed", self.on_theme_selected)
         box.append(flow)
+
+        box.append(section(_("Size")))
+        box.append(row(_("Size of owbox"), self.scale_dropdown(),
+                       _("Window frames, menus and popups.  Applications "
+                         "keep their size, the Displays page scales "
+                         "everything.")))
 
         box.append(section(_("Title bar")))
         layout = Gtk.Entry(text=self.rc.get("theme/titleLayout", "NLIMC"))

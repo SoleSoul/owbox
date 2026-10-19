@@ -1,11 +1,11 @@
 # Builds owbox from this git checkout (the committed HEAD):
 #   cd dist/arch && makepkg -si
 pkgname=owbox-git
-pkgver=0.2.0.r9.05bcb7d
+pkgver=0.2.0.r17.42d88f7
 pkgrel=1
 pkgdesc="Openbox for Wayland: a stacking compositor with Openbox's config, themes and behavior"
 arch=('x86_64' 'aarch64')
-url="https://github.com/"
+url="https://github.com/SoleSoul/owbox"
 license=('GPL-2.0-or-later')
 depends=('wlroots0.20' 'libinput' 'libxkbcommon' 'pixman' 'glib2' 'libxml2'
          'pango' 'cairo' 'librsvg' 'libsfdo' 'xcb-util-wm' 'wayland')
@@ -19,6 +19,13 @@ optdepends=('xorg-xwayland: X applications'
             'waybar: a panel'
             'python-gobject: owbox Settings'
             'gtk4: owbox Settings'
+            'grim: screenshots (Print Screen)'
+            'slurp: screenshots of an area'
+            'wl-clipboard: screenshots copied to the clipboard'
+            'libpulse: the volume keys (pactl)'
+            'playerctl: the media keys'
+            'brightnessctl: the brightness keys'
+            'polkit-gnome: password prompts for administrator actions'
             'openbox: more themes')
 provides=('owbox')
 conflicts=('owbox')
@@ -29,8 +36,7 @@ sha256sums=('SKIP')
 
 pkgver() {
     cd owbox
-    printf "0.2.0.r%s.%s" "$(git rev-list --count HEAD)" \
-        "$(git rev-parse --short HEAD)"
+    git describe --long --tags | sed 's/^v//; s/-/.r/; s/-g/./'
 }
 
 build() {
@@ -40,4 +46,5 @@ build() {
 
 package() {
     meson install -C build --destdir "$pkgdir"
+    install -Dm644 owbox/LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

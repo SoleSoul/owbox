@@ -135,6 +135,7 @@ guchar   config_root_color[3];
 gboolean config_auto_reload;
 gboolean config_allow_shortcuts_inhibit;
 ObXwaylandMode config_xwayland;
+gdouble config_scale;
 guint    config_desktops_rows;
 guint    config_desktops_columns;
 ObOrientation config_desktops_orientation;
@@ -1445,6 +1446,23 @@ gchar* config_desktop_setting(const gchar *key)
     return value;
 }
 
+void config_read_scale(xmlNodePtr root)
+{
+    xmlNodePtr n;
+
+    if (root && (n = obt_xml_find_node(root->children, "owbox")) &&
+        (n = obt_xml_find_node(n->children, "scale")))
+    {
+        gchar *s = obt_xml_node_string(n);
+        gdouble d = g_ascii_strtod(s, NULL);
+        /* a percentage, like owbox Settings shows */
+        if (strchr(s, '%')) d /= 100.0;
+        if (d > 0)
+            config_scale = CLAMP(d, 0.5, 4.0);
+        g_free(s);
+    }
+}
+
 static void owbox_defaults(void)
 {
     const gchar *s;
@@ -1489,6 +1507,7 @@ static void owbox_defaults(void)
     config_auto_reload = TRUE;
     config_allow_shortcuts_inhibit = TRUE;
     config_xwayland = OB_XWAYLAND_LAZY;
+    config_scale = 1.0;
     config_desktops_rows = config_desktops_columns = 0;
     config_desktops_orientation = OB_ORIENTATION_HORZ;
     config_desktops_start_corner = OB_CORNER_TOPLEFT;

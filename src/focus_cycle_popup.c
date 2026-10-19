@@ -34,20 +34,22 @@
 
 #include <glib.h>
 
+/* owbox: the sizes are at owbox's scale */
+
 /* Size of the icons, which can appear inside or outside of a hilite box */
-#define ICON_SIZE (gint)config_theme_window_list_icon_size
+#define ICON_SIZE ob_scaled((gint)config_theme_window_list_icon_size)
 /* Size of the hilite box around a window's icon */
 #define HILITE_SIZE (ICON_SIZE + 2*HILITE_OFFSET)
 /* Width of the outer ring around the hilite box */
-#define HILITE_WIDTH 2
+#define HILITE_WIDTH ob_scaled(2)
 /* Space between the outer ring around the hilite box and the icon inside it */
-#define HILITE_MARGIN 1
+#define HILITE_MARGIN ob_scaled(1)
 /* Total distance from the edge of the hilite box to the icon inside it */
 #define HILITE_OFFSET (HILITE_WIDTH + HILITE_MARGIN)
 /* Margin area around the outside of the dialog */
-#define OUTSIDE_BORDER 3
+#define OUTSIDE_BORDER ob_scaled(3)
 /* Margin area around the text */
-#define TEXT_BORDER 2
+#define TEXT_BORDER ob_scaled(2)
 /* Scroll the list-mode list when the cursor gets within this many rows of the
    top or bottom */
 #define SCROLL_MARGIN 4

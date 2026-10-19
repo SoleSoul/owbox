@@ -312,7 +312,7 @@ static void parse_menu_item(xmlNodePtr node, gpointer data)
             if (config_menu_show_icons &&
                 obt_xml_attr_string(node, "icon", &icon))
             {
-                e->data.normal.icon = icons_load(icon, 48);
+                e->data.normal.icon = icons_load(icon, ob_scaled(48));
 
                 if (e->data.normal.icon)
                     e->data.normal.icon_alpha = 0xff;
@@ -375,7 +375,7 @@ static void parse_menu(xmlNodePtr node, gpointer data)
         if (config_menu_show_icons &&
             obt_xml_attr_string(node, "icon", &icon))
         {
-            e->data.submenu.icon = icons_load(icon, 48);
+            e->data.submenu.icon = icons_load(icon, ob_scaled(48));
 
             if (e->data.submenu.icon)
                 e->data.submenu.icon_alpha = 0xff;

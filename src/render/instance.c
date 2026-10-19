@@ -42,7 +42,42 @@ RrInstance* RrInstanceNew(void)
 
     inst->color_hash = g_hash_table_new_full(g_int_hash, g_int_equal,
                                              NULL, NULL);
+    inst->scale = 1.0;
     return inst;
+}
+
+/* owbox: draw everything larger by a factor: the theme's sizes, fonts (at a
+   higher resolution), masks and lines.  It applies to fonts and themes that
+   are loaded after it. */
+void RrInstanceSetScale(RrInstance *inst, gdouble scale)
+{
+    inst->scale = scale;
+    pango_cairo_font_map_set_resolution(PANGO_CAIRO_FONT_MAP(inst->fontmap),
+                                        96.0 * scale);
+    pango_context_changed(inst->pango);
+}
+
+gdouble RrScale(const RrInstance *inst)
+{
+    return inst->scale;
+}
+
+/* a size in the theme's pixels, in pixels to draw, rounded, but at least one
+   pixel when it was at least one */
+gint RrScaleInt(const RrInstance *inst, gint v)
+{
+    gint r;
+
+    if (inst->scale == 1.0 || v == 0) return v;
+    r = (gint)(ABS(v) * inst->scale + 0.5);
+    r = MAX(r, 1);
+    return v < 0 ? -r : r;
+}
+
+/* the width of the theme's 1 pixel lines (bevels, borders) */
+gint RrLineWidth(const RrInstance *inst)
+{
+    return RrScaleInt(inst, 1);
 }
 
 void RrInstanceFree(RrInstance *inst)

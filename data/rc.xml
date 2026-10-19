@@ -879,6 +879,12 @@
   <!-- the color of the desktop when no wallpaper program (like swaybg) is
        running -->
 
+  <scale>1</scale>
+  <!-- how much larger than the theme owbox draws window frames, menus and
+       popups, with their fonts: 1.5 (or 150%) is half again as large.
+       Applications keep their size, an output's <scale> makes everything
+       larger -->
+
   <snapping enabled="yes">
     <!-- windows dropped at the edges of the screen fill half of it, and in
          the corners a quarter of it -->

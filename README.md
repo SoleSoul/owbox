@@ -22,6 +22,8 @@ monitors), plus a few things most Openbox users add on top of it:
 
 - snapping windows to the screen's halves and quarters by dragging, or with
   Super+arrows
+- a scale for owbox itself: Openbox themes drawn larger and sharp on high
+  resolution screens, without making applications larger
 - a built-in applications menu generated from the installed applications
 - **owbox Settings**, one application for all of it: themes (with
   previews), windows, displays, desktops, keyboard layouts, mouse and
@@ -30,6 +32,8 @@ monitors), plus a few things most Openbox users add on top of it:
   from Openbox
 - screen sharing (of a monitor or a window) with an Openbox style menu to
   choose what to share
+- what a desktop session needs out of the box: media and brightness keys,
+  screenshots (Print Screen), a polkit agent and the SSH agent
 - a control socket for scripting (`owbox --msg`)
 - automatic reload when `rc.xml` changes, so any editor's changes apply
   immediately
@@ -37,10 +41,16 @@ monitors), plus a few things most Openbox users add on top of it:
 See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for what differs from
 Openbox, and [docs/ROADMAP.md](docs/ROADMAP.md) for what is planned.
 
-Status: version 0.2.0. It is used as a daily session on real hardware
-(an NVIDIA GPU on the DRM backend), with Wayland and X applications,
-waybar, swaybg, fuzzel and screen sharing in a browser. Multiple monitors
-and hotplugging haven't been tried yet.
+Status: version 0.3.0, early but usable. It is used as a daily session on
+real hardware (an NVIDIA GPU on the DRM backend), with Wayland and X
+applications, waybar, swaybg, fuzzel and screen sharing in a browser.
+Multiple monitors and hotplugging haven't been tried yet. Bug reports are
+welcome, especially where owbox behaves differently from Openbox.
+
+## Installing
+
+On Arch Linux, from the AUR: `yay -S owbox` (or any AUR helper), or
+`owbox-git` for the latest commit.
 
 ## Building
 
@@ -50,7 +60,7 @@ wayland-protocols meson ninja`. Install `xorg-xwayland` to run X
 applications, `python-gobject` and `gtk4` for owbox Settings, and
 `xdg-desktop-portal-wlr` with PipeWire and WirePlumber for screen sharing.
 
-On Arch, the easiest way is the package in `dist/arch`:
+On Arch, `dist/arch` has a package of the working copy's last commit:
 
     cd dist/arch && makepkg -si
 
@@ -83,8 +93,10 @@ A typical session uses a few companion programs:
 | panel, taskbar, tray | `waybar` (or any panel using wlr-layer-shell) |
 | launcher | `fuzzel`, `wofi`, `rofi` (Wayland builds) |
 | screen locker, idle | `swaylock`, `swayidle` |
-| monitor setup | `<owbox><outputs>` in rc.xml, or `wlr-randr`, `kanshi`, `wdisplays` |
-| screenshots | `grim`, `slurp` |
+| monitor setup | owbox Settings, or `wlr-randr`, `kanshi`, `wdisplays` |
+| screenshots | `grim` and `slurp`, which Print Screen runs |
+| media keys | `pactl` (libpulse), `playerctl`, `brightnessctl` |
+| password prompts | a polkit agent (`polkit-gnome`, started by owbox) |
 | notifications | `mako`, `dunst` |
 
 ## Configuration
@@ -105,8 +117,8 @@ reads `~/.config/openbox/rc.xml`. Openbox's documentation applies:
 
 owbox's own settings go in an `<owbox>` section of `rc.xml`, which Openbox
 ignores, so one file serves both. They cover the keyboard layout, touchpad
-and mouse settings, monitors, cursor and icon themes, decorations, snapping
-and Xwayland. The installed `rc.xml` documents each of them, and
+and mouse settings, monitors, owbox's scale, cursor and icon themes,
+decorations, snapping and Xwayland. The installed `rc.xml` documents each of them, and
 [docs/CONFIG.md](docs/CONFIG.md) is the reference.
 
 `owbox --reconfigure` reloads the configuration (saving rc.xml does it too),

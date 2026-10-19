@@ -25,8 +25,24 @@
   side decorated windows' position, shading, un/decorating, bindings in
   other keyboard layouts, leftover services of an earlier session
 
+## 0.3.0 (done)
+
+- `<owbox><scale>`: Openbox themes drawn larger and sharp (frames, menus,
+  popups and their fonts), without making applications larger, in owbox
+  Settings' Appearance page
+- a session that works out of the box: media, volume and brightness keys,
+  screenshots with Print Screen (`owbox-screenshot`), a polkit agent, the
+  SSH agent
+- fixes: a crash when changing a monitor's scale after a reconfigure, `~`
+  at the end of a command (the default Super+E)
+- first public release, on GitHub and the AUR
+
 ## Next
 
+- **Panels on Super**: a binding for Super pressed and released alone (so
+  Super+key shortcuts don't trigger it), and a `ShowPanels` action that
+  shows auto-hidden panels (waybar or any layer shell bar) until Esc, a
+  click elsewhere or another window is focused, like GNOME.
 - **More of owbox Settings**: mouse bindings, the menus, per-application
   rules, margins, monitor arrangement by dragging.
 - **Test more hardware**: multiple monitors, hotplug, suspend and resume,
@@ -34,8 +50,8 @@
 - **Exercise the session lock** (swaylock, swayidle) and add the layer
   shell clients to the smoke test.
 - **HiDPI decorations**: render frames, menus and popups at the output's
-  scale (obrender painting at a scale factor), so they're sharp on scale 2
-  and fractional scales.
+  scale too, with the same code as owbox's scale (obrender drawing at a
+  factor), so they're sharp on outputs at scale 2 and fractional scales.
 - **Touchpad gestures as bindings**, for example
   `<mousebind button="Swipe3Left" action="Gesture">` in rc.xml.
 - **xdg-toplevel-icon**, so Wayland clients can set their window icon.
