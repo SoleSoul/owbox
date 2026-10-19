@@ -117,6 +117,9 @@ struct _ObServer {
     struct wlr_scene_tree *stack_tree[OB_NUM_STACKING_LAYERS];
     /*! Holds client surfaces that are not in a frame (not managed) */
     struct wlr_scene_tree *unmanaged_tree;
+    /*! Xwayland's override-redirect windows (menus, tooltips), above the
+      managed windows */
+    struct wlr_scene_tree *xwayland_tree;
     /*! Popups of layer shell surfaces, above all windows */
     struct wlr_scene_tree *layer_popup_tree;
     /*! Drag and drop icons */

@@ -33,6 +33,7 @@
 #include "layers.h"
 #include "seat.h"
 #include "toplevel.h"
+#include "xwayland.h"
 #include "render/render.h"
 #include "gravity.h"
 #include "gettext.h"
@@ -1025,7 +1026,7 @@ static void get_xinerama_screens(Rect **xin_areas, guint *nxin)
 
 void screen_update_areas(void)
 {
-    guint i, old_num_monitors = screen_num_monitors;
+    guint old_num_monitors = screen_num_monitors;
     GList *it, *onscreen;
 
     /* collect the clients that are on screen */
@@ -1100,6 +1101,8 @@ void screen_update_areas(void)
                     monitor_area[screen_num_monitors].height / 2);
     VALIDATE_STRUTS(struts_bottom, bottom,
                     monitor_area[screen_num_monitors].height / 2);
+
+    xwayland_update_workareas();
 
     /* the area has changed, adjust all the windows if they need it */
     for (it = onscreen; it; it = g_list_next(it))

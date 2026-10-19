@@ -94,9 +94,12 @@ struct _ObClientImpl
     void (*get_strut)(ObClient *self, StrutPartial *strut);
     /*! Return the client's icon, or NULL; may be NULL */
     RrImage* (*get_icon)(ObClient *self);
+    /*! Fill in can_focus and focus_notify, and the urgency and initial
+      iconic state, from the ICCCM WM_HINTS and WM_PROTOCOLS; may be NULL */
+    void (*get_wmhints)(ObClient *self, gboolean *urgent, gboolean *iconic);
 
-    /*! Ask the client to take the size w x h with its window at x,y in
-      layout coordinates.  Returns TRUE if the client is going to commit a
+    /*! Ask the client to take the size w x h with its window (inside the
+      frame) at x,y in layout coordinates.  Returns TRUE if the client is going to commit a
       buffer for it (asynchronously), FALSE if nothing needs to happen. */
     gboolean (*configure)(ObClient *self, gint x, gint y, gint w, gint h);
     /*! Returns TRUE if the buffer the client just committed (of size w x h)
@@ -664,6 +667,9 @@ void client_bring_modal_windows(ObClient *self);
 
 /*! Calculates the stacking layer for the client window */
 void client_calc_layer(ObClient *self);
+
+/*! Tell the client about its states (_NET_WM_STATE) */
+void client_change_state(ObClient *self);
 
 /*! Updates the window's transient status, and any parents of it */
 void client_update_transient_for(ObClient *self);

@@ -159,6 +159,8 @@ static bool filter_global(const struct wl_client *client,
     };
     gint i;
 
+    if (!xwayland_global_allowed(client, global))
+        return false;
     if (!ctx) return true;
     iface = wl_global_get_interface(global);
     for (i = 0; privileged[i]; ++i)
@@ -215,7 +217,8 @@ void server_init(void)
     /* the scene graph, from the bottom up:
        the root color, layer shell background and bottom, Openbox's stacking
        layers up to above, layer shell top, fullscreen windows, layer shell
-       overlay, Openbox's internal windows (menus, popups), layer shell
+       overlay, X override-redirect windows (menus, tooltips), Openbox's
+       internal windows (menus, popups), layer shell
        popups, drag icons, and the lock screen */
     server.scene = wlr_scene_create();
     server.scene_layout = wlr_scene_attach_output_layout(server.scene,
@@ -240,6 +243,7 @@ void server_init(void)
         wlr_scene_tree_create(&server.scene->tree);
     server.layer_tree[OB_LAYER_SHELL_OVERLAY] =
         wlr_scene_tree_create(&server.scene->tree);
+    server.xwayland_tree = wlr_scene_tree_create(&server.scene->tree);
     server.stack_tree[OB_STACKING_LAYER_INTERNAL] =
         wlr_scene_tree_create(&server.scene->tree);
     server.layer_popup_tree = wlr_scene_tree_create(&server.scene->tree);

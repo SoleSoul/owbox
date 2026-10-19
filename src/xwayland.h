@@ -22,8 +22,21 @@
 #ifndef __ob_xwayland_h
 #define __ob_xwayland_h
 
+#include <glib.h>
+
+struct wl_client;
+struct wl_global;
+
 void xwayland_init(void);
 void xwayland_start(void);
 void xwayland_finish(void);
+
+/*! Give X windows the cursor theme's default cursor */
+void xwayland_update_cursor(void);
+/*! Set _NET_WORKAREA from the screen's areas */
+void xwayland_update_workareas(void);
+/*! Can the client see the global, Xwayland has a global of its own */
+gboolean xwayland_global_allowed(const struct wl_client *client,
+                                 const struct wl_global *global);
 
 #endif

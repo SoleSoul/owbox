@@ -85,7 +85,6 @@ static void client_set_desktop_recursive(ObClient *self,
                                          gboolean donthide,
                                          gboolean dontraise);
 static void client_change_allowed_actions(ObClient *self);
-static void client_change_state(ObClient *self);
 static void client_change_wm_state(ObClient *self);
 static void client_apply_startup_state(ObClient *self,
                                        gint x, gint y, gint w, gint h);
@@ -1421,8 +1420,27 @@ static void client_change_allowed_actions(ObClient *self)
 
 void client_update_wmhints(ObClient *self)
 {
+    gboolean ur, urgent = FALSE, iconic = self->iconic;
+
     /* assume a window takes input if it doesn't specify */
     self->can_focus = TRUE;
+    self->focus_notify = FALSE;
+
+    if (self->impl->get_wmhints) {
+        self->impl->get_wmhints(self, &urgent, &iconic);
+
+        /* only do this when first managing the window *AND* when we aren't
+           starting up! */
+        if (ob_state() != OB_STATE_STARTING && self->frame == NULL)
+            self->iconic = iconic;
+
+        ur = self->urgent;
+        self->urgent = urgent;
+        if (self->urgent && !ur)
+            client_hilite(self, TRUE);
+        else if (!self->urgent && ur && self->demands_attention)
+            client_hilite(self, FALSE);
+    }
 
     focus_cycle_addremove(self, TRUE);
 }
@@ -1575,7 +1593,7 @@ static void client_change_wm_state(ObClient *self)
         self->wmstate = NormalState;
 }
 
-static void client_change_state(ObClient *self)
+void client_change_state(ObClient *self)
 {
     if (self->impl->change_state)
         self->impl->change_state(self);
@@ -2252,12 +2270,23 @@ static void client_finish_configure(ObClient *self, gint w, gint h)
     }
 }
 
+/*! Where the client window will be in the layout when its area is at x,y
+  (the area's position is the reference point of the window's gravity) */
+static void client_root_position(ObClient *self, gint x, gint y,
+                                 gint *rx, gint *ry)
+{
+    frame_client_gravity(self->frame, &x, &y);
+    *rx = x + self->frame->size.left - self->border_width;
+    *ry = y + self->frame->size.top - self->border_width;
+}
+
 void client_configure(ObClient *self, gint x, gint y, gint w, gint h,
                       gboolean user, gboolean final, gboolean force_reply)
 {
     gboolean resized;
     gboolean send_resize_client;
     gint logicalw, logicalh;
+    gint rx, ry;
 
     /* only one resize can be in flight at a time, the newest request waits
        for it to finish */
@@ -2288,8 +2317,9 @@ void client_configure(ObClient *self, gint x, gint y, gint w, gint h,
     /* In X the window resizes right away and paints itself afterwards.  A
        Wayland client resizes when it draws, so ask it to and show the
        frame at the new size when it has done so. */
+    client_root_position(self, x, y, &rx, &ry);
     if (resized && send_resize_client && self->frame->visible &&
-        self->impl->configure(self, x, y, w, h))
+        self->impl->configure(self, rx, ry, w, h))
     {
         RECT_SET(self->pending_area, x, y, w, h);
         self->pending_old_area = self->area;
@@ -2302,7 +2332,7 @@ void client_configure(ObClient *self, gint x, gint y, gint w, gint h,
 
     if (send_resize_client || !resized)
         /* tell the client where it is (Xwayland uses root coordinates) */
-        self->impl->configure(self, x, y, w, h);
+        self->impl->configure(self, rx, ry, w, h);
 
     client_apply_configure(self, x, y, w, h, user, final);
 }
@@ -2912,7 +2942,7 @@ gboolean client_can_focus(ObClient *self)
     if (!self->frame->visible)
         return FALSE;
 
-    if (!self->can_focus)
+    if (!(self->can_focus || self->focus_notify))
         return FALSE;
 
     return TRUE;

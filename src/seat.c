@@ -18,6 +18,7 @@
 
 #include "seat.h"
 #include "server.h"
+#include "xwayland.h"
 #include "event.h"
 #include "client.h"
 #include "frame.h"
@@ -768,6 +769,7 @@ void seat_reconfigure(void)
         wlr_xcursor_manager_create(config_cursor_theme, config_cursor_size);
     seat.cursor_name = NULL;
     seat_update_cursor();
+    xwayland_update_cursor();
 }
 
 /* ---- pointer ---- */

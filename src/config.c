@@ -133,6 +133,7 @@ gboolean config_force_server_decorations;
 guchar   config_root_color[3];
 gboolean config_auto_reload;
 gboolean config_allow_shortcuts_inhibit;
+ObXwaylandMode config_xwayland;
 guint    config_desktops_rows;
 guint    config_desktops_columns;
 ObOrientation config_desktops_orientation;
@@ -1373,6 +1374,13 @@ static void parse_owbox(xmlNodePtr node, gpointer d)
         config_auto_reload = obt_xml_node_bool(n);
     if ((n = obt_xml_find_node(node, "allowShortcutsInhibit")))
         config_allow_shortcuts_inhibit = obt_xml_node_bool(n);
+    if ((n = obt_xml_find_node(node, "xwayland"))) {
+        if (obt_xml_node_contains(n, "lazy"))
+            config_xwayland = OB_XWAYLAND_LAZY;
+        else
+            config_xwayland = obt_xml_node_bool(n) ?
+                OB_XWAYLAND_ON : OB_XWAYLAND_OFF;
+    }
     if ((n = obt_xml_find_node(node, "desktopLayout"))) {
         gint rows = 0, columns = 0;
         gchar *s;
@@ -1432,6 +1440,7 @@ static void owbox_defaults(void)
     config_root_color[2] = 0x30;
     config_auto_reload = TRUE;
     config_allow_shortcuts_inhibit = TRUE;
+    config_xwayland = OB_XWAYLAND_LAZY;
     config_desktops_rows = config_desktops_columns = 0;
     config_desktops_orientation = OB_ORIENTATION_HORZ;
     config_desktops_start_corner = OB_CORNER_TOPLEFT;

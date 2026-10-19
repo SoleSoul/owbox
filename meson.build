@@ -107,6 +107,10 @@ gio_unix = dependency('gio-unix-2.0')
 sfdo_basedir = dependency('libsfdo-basedir')
 sfdo_desktop = dependency('libsfdo-desktop')
 sfdo_icon = dependency('libsfdo-icon')
+# X applications through Xwayland, wlroots' xwm uses these for the properties
+xcb = dependency('xcb')
+xcb_ewmh = dependency('xcb-ewmh')
+xcb_icccm = dependency('xcb-icccm')
 
 wayland_scanner = find_program(
 	dependency('wayland-scanner', native: true).get_variable('wayland_scanner'),
@@ -224,7 +228,7 @@ executable(
 	dependencies: [
 		obrender, obt, wayland_server, wlroots, xkbcommon, libinput, pixman,
 		libdrm, gio, gio_unix, libxml2, math, sfdo_basedir, sfdo_desktop,
-		sfdo_icon, librsvg,
+		sfdo_icon, librsvg, xcb, xcb_ewmh, xcb_icccm,
 	],
 	include_directories: [root_inc, include_directories('src/render')],
 	c_args: ['-DG_LOG_DOMAIN="owbox"'],

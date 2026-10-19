@@ -266,6 +266,15 @@ typedef enum {
     OB_DECORATION_POLICY_CLIENT
 } ObDecorationPolicy;
 
+typedef enum {
+    /*! Start Xwayland when the first X client connects */
+    OB_XWAYLAND_LAZY,
+    /*! Start Xwayland with owbox */
+    OB_XWAYLAND_ON,
+    /*! No X clients */
+    OB_XWAYLAND_OFF
+} ObXwaylandMode;
+
 /*! The XKB keyboard layout, NULL uses the XKB_DEFAULT_* variables */
 extern gchar *config_xkb_rules;
 extern gchar *config_xkb_model;
@@ -290,6 +299,8 @@ extern guchar config_root_color[3];
 extern gboolean config_auto_reload;
 /*! Let applications (like virtual machines) take over the key bindings */
 extern gboolean config_allow_shortcuts_inhibit;
+/*! How to run X applications, read only at startup */
+extern ObXwaylandMode config_xwayland;
 /*! The layout of the desktops in a grid, rows 0 for a single row */
 extern guint config_desktops_rows;
 extern guint config_desktops_columns;
