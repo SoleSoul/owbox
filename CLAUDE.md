@@ -89,6 +89,10 @@ Pitfalls seen before:
   owbox: tests/run.sh unsets it, other commands must too.  Only a DRM
   session updates the D-Bus/systemd environment, keep it that way.
 - Give `owbox-input` and `--msg` a `timeout`. If owbox hangs, they hang.
+- Clients started with `tests/run.sh $T ... &` can outlive the headless
+  owbox (waybar and foot did, and a stray waybar stays on the user's
+  session bus as a tray host). Keep their PIDs (`$!`) and kill them after
+  `tests/stop.sh`.
 - Protect `rm` of variable paths: `rm -f "${T:?}"/*.png`.
 - Coordinates in tests depend on the theme and the window's place. Read
   them from `--msg windows` instead of guessing (the frame is at x,y, and
