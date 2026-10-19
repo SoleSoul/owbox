@@ -231,7 +231,8 @@ def test_panels(out):
     time.sleep(0.5)
     check("a click ends it", pixel(out, *inside) == before,
           pixel(out, *inside))
-    inp(out, "keydown", "Super_L", "key", "Left", "keyup", "Super_L")
+    # a key that isn't bound, so nothing else changes the picture
+    inp(out, "keydown", "Super_L", "key", "F12", "keyup", "Super_L")
     time.sleep(0.5)
     check("Super with a key isn't a tap", pixel(out, *inside) == before,
           pixel(out, *inside))
