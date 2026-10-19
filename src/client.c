@@ -1784,6 +1784,19 @@ gboolean client_show(ObClient *self)
     return show;
 }
 
+static guint hide_revert_id = 0;
+
+/* X reverts the focus when the focused window is unmapped, and Openbox
+   falls back from the FocusIn that follows, after whatever hid it is done */
+static gboolean hide_revert_focus(gpointer data)
+{
+    hide_revert_id = 0;
+    if (focus_client && !focus_client->frame->visible &&
+        ob_state() == OB_STATE_RUNNING)
+        focus_fallback(FALSE, config_focus_under_mouse, TRUE, TRUE);
+    return G_SOURCE_REMOVE;
+}
+
 gboolean client_hide(ObClient *self)
 {
     gboolean hide = FALSE;
@@ -1808,6 +1821,9 @@ gboolean client_hide(ObClient *self)
 
         frame_hide(self->frame);
         hide = TRUE;
+
+        if (client_focused(self) && !hide_revert_id)
+            hide_revert_id = g_idle_add(hide_revert_focus, NULL);
 
         /* According to the ICCCM (sec 4.1.3.1) when a window is not visible,
            it needs to be in IconicState. This includes when it is on another

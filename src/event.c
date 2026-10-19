@@ -438,6 +438,10 @@ gboolean event_pointer(ObEvent *e)
     event_curtime = e->time;
     event_sourcetime = 0;
 
+    /* Openbox's event_hack_mods(), the bindings don't include the buttons
+       held (a release has its own button in the state) or the lock keys */
+    e->state = obt_keyboard_only_modmasks(e->state);
+
     if (menu_frame_visible && e->type == OB_EVENT_MOTION)
         event_handle_menu(e);
 

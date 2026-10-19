@@ -218,8 +218,6 @@ gboolean mouse_event(ObClient *client, ObEvent *e)
         context = frame_context(client, e->win, e->x, e->y);
         context = mouse_button_frame_context(context, e->button,
                                              e->state);
-        ob_debug("Button %u press in context %d (client %s)", e->button,
-                 context, client ? client->title : "none");
 
         px = e->x_root;
         py = e->y_root;
@@ -263,6 +261,7 @@ gboolean mouse_event(ObClient *client, ObEvent *e)
            way it is grabbed, so just fake one */
         if (!CLIENT_CONTEXT(context, client))
             break;
+        /* fall through */
 
     case OB_EVENT_BUTTON_RELEASE:
         /* use where the press occured in the window */
