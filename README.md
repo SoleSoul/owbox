@@ -57,7 +57,7 @@ monitors), plus a few things most Openbox users add on top of it:
 See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for what differs from
 Openbox, and [docs/ROADMAP.md](docs/ROADMAP.md) for what is planned.
 
-Status: version 0.3.0, early but usable. It is used as a daily session on
+Status: version 0.3.1, early but usable. It is used as a daily session on
 real hardware (an NVIDIA GPU on the DRM backend), with Wayland and X
 applications, waybar, swaybg, fuzzel and screen sharing in a browser.
 Multiple monitors and hotplugging haven't been tried yet. Bug reports are

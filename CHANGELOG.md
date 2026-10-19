@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 (2026-10-20)
 
 - Fixed: a panel run as a systemd service (waybar.service) didn't start
   after logging out and in. Its display went away before owbox stopped the
@@ -17,6 +17,9 @@
   space, so without `<autoHide>` they covered maximized windows' title
   bars. owbox already gives hidden panels' space to the windows. The smoke
   test now runs waybar and checks both.
+- The descriptions say that owbox is based on Openbox's code, not that it
+  is Openbox: it is an independent project, not affiliated with the Openbox
+  developers.
 
 ## 0.3.0 (2026-10-19)
 

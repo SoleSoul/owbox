@@ -43,6 +43,12 @@
   at the end of a command (the default Super+E)
 - first public release, on GitHub and the AUR
 
+## 0.3.1 (done)
+
+- fixes: bars' menus and tooltips, closing menus by clicking elsewhere,
+  panels run as services after logging in again, the example waybar's
+  bars covering maximized windows
+
 ## Next
 
 - **More of owbox Settings**: mouse bindings, the menus, per-application
