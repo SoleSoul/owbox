@@ -1,0 +1,232 @@
+# owbox configuration reference
+
+owbox reads Openbox's `rc.xml` and `menu.xml`; everything in Openbox's
+documentation (<http://openbox.org/wiki/Help:Configuration>) applies. This
+file describes only what owbox adds.
+
+## Where the files are
+
+Each file is looked for in these directories, and the first one found is
+used:
+
+1. `~/.config/owbox/`
+2. `~/.config/openbox/`
+3. `owbox/`, then `openbox/`, under each of `$XDG_CONFIG_DIRS` (by default
+   `/etc/xdg`)
+
+So an existing Openbox setup keeps working, and a `~/.config/owbox/` copy
+can diverge from it. The files are:
+
+- `rc.xml`, the configuration. It is reloaded when it changes, unless
+  `<reloadOnChange>` is off.
+- `menu.xml`, the menus, as in Openbox.
+- `autostart`, a shell script run at startup. Only the owbox directories
+  are used for it, since Openbox autostart scripts usually start X programs.
+- `environment`, shell variable assignments read by `owbox-session`.
+
+`--config-file FILE` uses FILE as rc.xml.
+
+## The `<owbox>` section
+
+All of it is optional. Openbox ignores the section, so an rc.xml with it
+still works in Openbox.
+
+```xml
+<owbox>
+  <keyboard>
+    <layout>us,il</layout>              <!-- XKB, like setxkbmap -->
+    <variant></variant>
+    <options>grp:alt_shift_toggle</options>
+    <model></model>
+    <rules></rules>
+    <repeatRate>25</repeatRate>         <!-- keys per second -->
+    <repeatDelay>600</repeatDelay>      <!-- milliseconds -->
+    <numlock>no</numlock>               <!-- turn num lock on at start -->
+  </keyboard>
+```
+
+Without a layout, the `XKB_DEFAULT_*` environment variables are used, or the
+system default.
+
+```xml
+  <libinput>
+    <device match="touchpad">
+      <tap>yes</tap>
+      <naturalScroll>yes</naturalScroll>
+      <disableWhileTyping>yes</disableWhileTyping>
+      <middleEmulation>no</middleEmulation>
+      <leftHanded>no</leftHanded>
+      <drag>yes</drag>
+      <dragLock>no</dragLock>
+      <accelSpeed>0.0</accelSpeed>          <!-- -1.0 to 1.0 -->
+      <accelProfile>adaptive</accelProfile> <!-- flat, adaptive -->
+      <scrollMethod>twofinger</scrollMethod><!-- twofinger, edge, button, none -->
+      <clickMethod>clickfinger</clickMethod><!-- clickfinger, buttonareas, none -->
+      <tapButtonMap>lrm</tapButtonMap>      <!-- lrm, lmr -->
+      <sendEvents>yes</sendEvents>          <!-- yes, no, disabledOnExternalMouse -->
+    </device>
+  </libinput>
+```
+
+`match` is `touchpad`, `pointer`, `*`, or a pattern (with `*` and `?`) for
+the device's name. Every `<device>` that matches a device applies, and later
+ones override earlier ones. Settings that are left out keep libinput's
+default.
+
+```xml
+  <outputs>
+    <output name="DP-1">
+      <enabled>yes</enabled>
+      <mode>2560x1440@144</mode>       <!-- WxH or WxH@Hz -->
+      <scale>1</scale>
+      <position x="0" y="0"/>
+      <transform>normal</transform>    <!-- normal, 90, 180, 270, flipped,
+                                            flipped-90, -180, -270 -->
+      <adaptiveSync>no</adaptiveSync>
+    </output>
+  </outputs>
+```
+
+Monitors that aren't listed use their preferred mode at scale 1, placed to
+the right of the others. Tools using wlr-output-management (`wlr-randr`,
+`kanshi`, `wdisplays`) can change monitors at run time.
+
+```xml
+  <cursor>
+    <theme>Adwaita</theme>
+    <size>24</size>
+  </cursor>
+  <icons>
+    <theme>Papirus</theme>
+  </icons>
+```
+
+The cursor theme defaults to `XCURSOR_THEME`/`XCURSOR_SIZE`, then GNOME's
+`cursor-theme` setting. The icon theme (used for window and menu icons)
+defaults to GNOME's `icon-theme` setting, then GTK 3's settings.ini, then
+Adwaita. owbox exports `XCURSOR_THEME` and `XCURSOR_SIZE` so that
+applications draw the same cursor.
+
+```xml
+  <decorations>auto</decorations>
+```
+
+- `auto` (the default): owbox decorates windows unless they insist on
+  drawing their own decorations, as GTK 4/libadwaita applications do.
+- `server`: owbox asks every window to let it decorate.
+- `client`: windows decorate themselves.
+
+```xml
+  <background>#303030</background>
+```
+
+The color of the desktop when no wallpaper program is running, any color
+Openbox themes accept.
+
+```xml
+  <snapping enabled="yes">
+    <range>10</range>          <!-- pixels from the edge -->
+    <cornerRange>60</cornerRange>
+    <topMaximize>yes</topMaximize>
+    <preview>yes</preview>
+    <dragUnmaximize>yes</dragUnmaximize>
+  </snapping>
+```
+
+Dropping a window (moved with the mouse) at the left or right edge of a
+monitor makes it fill that half, and dropping it at a corner fills that
+quarter. `cornerRange` is how far from a corner along the edge counts as the
+corner. The top edge maximizes, if `topMaximize` is on. Edges between two
+monitors don't snap. With `preview` on, owbox shows where the window will
+go. With `dragUnmaximize` on, dragging a maximized or snapped window
+restores its size under the pointer.
+
+```xml
+  <desktopLayout rows="2" columns="2" orientation="horizontal"
+                 corner="topleft"/>
+```
+
+This is how the desktops are arranged, for the desktop switching popup and
+for `GoToDesktop` with directions. In Openbox a pager sets this layout.
+
+```xml
+  <reloadOnChange>yes</reloadOnChange>
+  <allowShortcutsInhibit>yes</allowShortcutsInhibit>
+  <xwayland>lazy</xwayland>
+</owbox>
+```
+
+- `reloadOnChange` reconfigures owbox when rc.xml is saved.
+- `allowShortcutsInhibit` lets applications that ask (virtual machines,
+  remote desktops) receive all keys while focused. owbox's key bindings stop
+  working until another window is focused.
+- `xwayland` sets when X applications can run: `lazy` starts Xwayland when
+  the first one connects, `yes` starts it with owbox, `no` turns X
+  applications off. It is read only at startup.
+
+## Actions owbox adds
+
+```xml
+<action name="SnapToEdge"><direction>west</direction></action>
+<action name="Unsnap"/>
+```
+
+`SnapToEdge` takes the direction `north`, `south`, `east`, `west`,
+`northeast`, `northwest`, `southeast` or `southwest` (or `up`, `down`,
+`left`, `right`). The window fills that half or quarter of its monitor, but
+north maximizes when `topMaximize` is on, like dropping a window at the top
+edge. `Unsnap` restores a snapped window's size and position. The default rc.xml
+binds Super+Left, Super+Right, Super+Up and Super+Down to these.
+
+## Menus owbox adds
+
+`<menu id="applications-menu"/>` in menu.xml is a submenu with the installed
+applications (their desktop entries), by category. It updates when
+applications are installed or removed. Applications that run in a terminal
+are started with `owbox-terminal`, which uses `$TERMINAL` or the first
+terminal emulator it finds.
+
+Openbox's `client-list-menu` and `client-list-combined-menu` work as in
+Openbox. Pipe menus work too.
+
+## The control socket
+
+owbox listens on `$XDG_RUNTIME_DIR/owbox-$WAYLAND_DISPLAY.sock` and exports
+the path as `$OWBOX_SOCK`. `owbox --msg COMMAND` sends one command and
+prints the reply. The protocol is one line per command, and the reply ends
+with an empty line. The reply's first line is `ok` or `error <message>`.
+
+| Command | Does |
+|---|---|
+| `reconfigure` | reloads the configuration (also `owbox --reconfigure`) |
+| `restart` | the same as reconfigure |
+| `exit` | exits (also `owbox --exit`) |
+| `action <xml>` | runs actions, written as in rc.xml, on the focused window |
+| `windows` | one JSON object per window, bottom to top |
+| `desktops` | `{"current": n, "names": [...]}` |
+
+Examples:
+
+    owbox --msg 'action <action name="GoToDesktop"><to>2</to></action>'
+    owbox --msg 'action <action name="Execute"><command>foot</command></action>'
+    owbox --msg windows | jq -r .title
+
+A window object has `id`, `title`, `app_id`, `desktop` (-1 is all
+desktops), `x`, `y` (of the frame), `width`, `height` (of the client),
+`focused`, `iconic`, `maximized`, `fullscreen` and `shaded`.
+
+## Environment
+
+owbox sets these for the programs it runs, and passes them on to D-Bus and
+systemd user services:
+- `WAYLAND_DISPLAY`
+- `DISPLAY`, when Xwayland is on
+- `XDG_CURRENT_DESKTOP=owbox` and `XDG_SESSION_DESKTOP`, unless already set
+- `XDG_SESSION_TYPE=wayland`
+- `XCURSOR_THEME` and `XCURSOR_SIZE`
+- `OWBOX_SOCK`
+- `_JAVA_AWT_WM_NONREPARENTING=1`
+
+`/usr/share/xdg-desktop-portal/owbox-portals.conf` selects
+xdg-desktop-portal-wlr for screenshots and screen sharing, and the GTK
+portal for the rest.

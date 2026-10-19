@@ -3,3 +3,7 @@ ref/
 *.o
 /compile_commands.json
 .cache/
+dist/arch/*.pkg.tar.*
+dist/arch/owbox/
+dist/arch/src/
+dist/arch/pkg/

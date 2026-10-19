@@ -1,0 +1,40 @@
+# Builds owbox from this git checkout (the committed HEAD):
+#   cd dist/arch && makepkg -si
+pkgname=owbox-git
+pkgver=0.1.0.r9.05bcb7d
+pkgrel=1
+pkgdesc="Openbox for Wayland: a stacking compositor with Openbox's config, themes and behavior"
+arch=('x86_64' 'aarch64')
+url="https://github.com/"
+license=('GPL-2.0-or-later')
+depends=('wlroots0.20' 'libinput' 'libxkbcommon' 'pixman' 'glib2' 'libxml2'
+         'pango' 'cairo' 'librsvg' 'libsfdo' 'xcb-util-wm' 'wayland')
+makedepends=('git' 'meson' 'ninja' 'wayland-protocols')
+optdepends=('xorg-xwayland: X applications'
+            'xdg-desktop-portal-wlr: screenshots and screen sharing'
+            'xdg-desktop-portal-gtk: file choosers and other portals'
+            'foot: a terminal emulator for the default menu'
+            'swaybg: a wallpaper'
+            'waybar: a panel'
+            'openbox: more themes, and obconf')
+provides=('owbox')
+conflicts=('owbox')
+backup=('etc/xdg/owbox/rc.xml' 'etc/xdg/owbox/menu.xml'
+        'etc/xdg/owbox/autostart' 'etc/xdg/owbox/environment')
+source=("owbox::git+file://${startdir}/../..")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd owbox
+    printf "0.1.0.r%s.%s" "$(git rev-list --count HEAD)" \
+        "$(git rev-parse --short HEAD)"
+}
+
+build() {
+    arch-meson owbox build
+    meson compile -C build
+}
+
+package() {
+    meson install -C build --destdir "$pkgdir"
+}
