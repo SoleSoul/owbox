@@ -61,6 +61,7 @@ obt_lib = static_library(
 	files('src/obt/paths.c', 'src/obt/xml.c'),
 	include_directories: root_inc,
 	dependencies: [glib, libxml2],
+	c_args: ['-DG_LOG_DOMAIN="Obt"'],
 )
 obt = declare_dependency(
 	link_with: obt_lib,
@@ -85,12 +86,149 @@ render_lib = static_library(
 	),
 	include_directories: root_inc,
 	dependencies: [glib, cairo, pangocairo, librsvg, obt, math],
-	c_args: cc.get_supported_arguments(['-Wno-unused-but-set-variable']),
+	c_args: cc.get_supported_arguments(['-Wno-unused-but-set-variable']) +
+		['-DG_LOG_DOMAIN="ObRender"'],
 )
 obrender = declare_dependency(
 	link_with: render_lib,
 	include_directories: [root_inc, include_directories('src/render')],
 	dependencies: [glib, cairo, pangocairo, obt],
+)
+
+wayland_server = dependency('wayland-server')
+wayland_protos = dependency('wayland-protocols')
+wlroots = dependency('wlroots-0.20', version: ['>=0.20.0', '<0.21.0'])
+xkbcommon = dependency('xkbcommon')
+libinput = dependency('libinput')
+pixman = dependency('pixman-1')
+libdrm = dependency('libdrm').partial_dependency(compile_args: true, includes: true)
+gio = dependency('gio-2.0')
+gio_unix = dependency('gio-unix-2.0')
+sfdo_basedir = dependency('libsfdo-basedir')
+sfdo_desktop = dependency('libsfdo-desktop')
+sfdo_icon = dependency('libsfdo-icon')
+
+wayland_scanner = find_program(
+	dependency('wayland-scanner', native: true).get_variable('wayland_scanner'),
+	native: true,
+)
+wl_protocol_dir = wayland_protos.get_variable('pkgdatadir')
+
+protocols = [
+	wl_protocol_dir / 'stable/xdg-shell/xdg-shell.xml',
+	'protocols/wlr-layer-shell-unstable-v1.xml',
+	'protocols/wlr-output-power-management-unstable-v1.xml',
+]
+protocols_src = []
+foreach xml : protocols
+	protocols_src += custom_target(
+		xml.underscorify() + '_server_h',
+		input: xml,
+		output: '@BASENAME@-protocol.h',
+		command: [wayland_scanner, 'server-header', '@INPUT@', '@OUTPUT@'],
+	)
+endforeach
+
+owbox_sources = files(
+	'src/actions.c',
+	'src/actions/addremovedesktop.c',
+	'src/actions/all.c',
+	'src/actions/breakchroot.c',
+	'src/actions/close.c',
+	'src/actions/cyclewindows.c',
+	'src/actions/debug.c',
+	'src/actions/decorations.c',
+	'src/actions/desktop.c',
+	'src/actions/directionalwindows.c',
+	'src/actions/dock.c',
+	'src/actions/dockautohide.c',
+	'src/actions/execute.c',
+	'src/actions/exit.c',
+	'src/actions/focus.c',
+	'src/actions/focusfallback.c',
+	'src/actions/focustobottom.c',
+	'src/actions/fullscreen.c',
+	'src/actions/growtoedge.c',
+	'src/actions/iconify.c',
+	'src/actions/if.c',
+	'src/actions/kill.c',
+	'src/actions/layer.c',
+	'src/actions/lower.c',
+	'src/actions/maximize.c',
+	'src/actions/move.c',
+	'src/actions/moverelative.c',
+	'src/actions/moveresizeto.c',
+	'src/actions/movetoedge.c',
+	'src/actions/omnipresent.c',
+	'src/actions/raise.c',
+	'src/actions/raiselower.c',
+	'src/actions/reconfigure.c',
+	'src/actions/resize.c',
+	'src/actions/resizerelative.c',
+	'src/actions/restart.c',
+	'src/actions/shade.c',
+	'src/actions/shadelowerraise.c',
+	'src/actions/showdesktop.c',
+	'src/actions/showmenu.c',
+	'src/actions/snap.c',
+	'src/actions/unfocus.c',
+	'src/buffer.c',
+	'src/client.c',
+	'src/client_list_combined_menu.c',
+	'src/client_list_menu.c',
+	'src/client_menu.c',
+	'src/config.c',
+	'src/debug.c',
+	'src/event.c',
+	'src/focus.c',
+	'src/focus_cycle.c',
+	'src/focus_cycle_indicator.c',
+	'src/focus_cycle_popup.c',
+	'src/frame.c',
+	'src/framerender.c',
+	'src/fwin.c',
+	'src/grab.c',
+	'src/icons.c',
+	'src/ipc.c',
+	'src/keyboard.c',
+	'src/keytree.c',
+	'src/layers.c',
+	'src/menu.c',
+	'src/menuframe.c',
+	'src/mouse.c',
+	'src/moveresize.c',
+	'src/obt/keyboard.c',
+	'src/openbox.c',
+	'src/output.c',
+	'src/place.c',
+	'src/place_overlap.c',
+	'src/popup.c',
+	'src/prompt.c',
+	'src/resist.c',
+	'src/screen.c',
+	'src/seat.c',
+	'src/server.c',
+	'src/session.c',
+	'src/snap.c',
+	'src/stacking.c',
+	'src/toplevel.c',
+	'src/translate.c',
+	'src/window.c',
+	'src/xdg.c',
+	'src/xwayland.c',
+)
+
+executable(
+	'owbox',
+	owbox_sources + protocols_src,
+	dependencies: [
+		obrender, obt, wayland_server, wlroots, xkbcommon, libinput, pixman,
+		libdrm, gio, gio_unix, libxml2, math, sfdo_basedir, sfdo_desktop,
+		sfdo_icon, librsvg,
+	],
+	include_directories: [root_inc, include_directories('src/render')],
+	c_args: ['-DG_LOG_DOMAIN="owbox"'],
+	install: true,
 )
 
 executable(

@@ -1,0 +1,226 @@
+/* -*- indent-tabs-mode: nil; tab-width: 4; c-basic-offset: 4; -*-
+
+   session.c for owbox
+   Copyright (c) 2026        owbox contributors
+
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   See the COPYING file for a copy of the GNU General Public License.
+*/
+
+#include "session.h"
+#include "debug.h"
+#include "obt/paths.h"
+
+#include <string.h>
+
+static void spawn(gchar **argv)
+{
+    GError *e = NULL;
+
+    if (!g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH,
+                       NULL, NULL, NULL, &e))
+    {
+        g_message("Unable to run %s: %s", argv[0], e->message);
+        g_error_free(e);
+    }
+}
+
+void session_environment(void)
+{
+    gchar *exe;
+
+    if (!g_getenv("XDG_CURRENT_DESKTOP"))
+        g_setenv("XDG_CURRENT_DESKTOP", "owbox", TRUE);
+    if (!g_getenv("XDG_SESSION_DESKTOP"))
+        g_setenv("XDG_SESSION_DESKTOP", "owbox", TRUE);
+    g_setenv("XDG_SESSION_TYPE", "wayland", TRUE);
+    /* Java's toolkit needs this with window managers that don't reparent,
+       which Xwayland's window manager doesn't */
+    g_setenv("_JAVA_AWT_WM_NONREPARENTING", "1", FALSE);
+
+    /* let D-Bus activated services (portals, notification daemons) and
+       systemd user services find the session */
+    if ((exe = g_find_program_in_path("dbus-update-activation-environment")))
+    {
+        gchar *argv[] = { exe, "--systemd", "WAYLAND_DISPLAY", "DISPLAY",
+                          "XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE",
+                          "XDG_SESSION_DESKTOP", NULL };
+        spawn(argv);
+        g_free(exe);
+    }
+}
+
+/* ---- the autostart script ---- */
+
+static void run_autostart_script(const gchar *path)
+{
+    gchar *argv[] = { "/bin/sh", (gchar*)path, NULL };
+
+    if (!g_file_test(path, G_FILE_TEST_IS_REGULAR)) return;
+    ob_debug("Running autostart script %s", path);
+    spawn(argv);
+}
+
+/* ---- XDG autostart (the freedesktop.org Desktop Application Autostart
+   Specification), what openbox-xdg-autostart does ---- */
+
+static gboolean desktop_matches(gchar **list)
+{
+    const gchar *cur = g_getenv("XDG_CURRENT_DESKTOP");
+    gchar **mine, **it, **jt;
+    gboolean found = FALSE;
+
+    if (!cur) return FALSE;
+    mine = g_strsplit(cur, ":", -1);
+    for (it = list; *it && !found; ++it)
+        for (jt = mine; *jt && !found; ++jt)
+            if (!g_ascii_strcasecmp(*it, *jt))
+                found = TRUE;
+    g_strfreev(mine);
+    return found;
+}
+
+/* Remove the field codes from an Exec line */
+static gchar* strip_field_codes(const gchar *exec)
+{
+    GString *s = g_string_new(NULL);
+    const gchar *p;
+
+    for (p = exec; *p; ++p) {
+        if (*p == '%' && p[1]) {
+            if (p[1] == '%')
+                g_string_append_c(s, '%');
+            ++p;
+            continue;
+        }
+        g_string_append_c(s, *p);
+    }
+    return g_string_free(s, FALSE);
+}
+
+static void run_autostart_entry(const gchar *path)
+{
+    GKeyFile *kf = g_key_file_new();
+    const gchar *grp = G_KEY_FILE_DESKTOP_GROUP;
+    gchar **list, *s, *exec;
+    gsize n;
+
+    if (!g_key_file_load_from_file(kf, path, G_KEY_FILE_NONE, NULL))
+        goto done;
+
+    if (g_key_file_get_boolean(kf, grp, G_KEY_FILE_DESKTOP_KEY_HIDDEN, NULL))
+        goto done;
+    if ((list = g_key_file_get_string_list(
+             kf, grp, G_KEY_FILE_DESKTOP_KEY_ONLY_SHOW_IN, &n, NULL)))
+    {
+        gboolean ok = desktop_matches(list);
+        g_strfreev(list);
+        if (!ok) goto done;
+    }
+    if ((list = g_key_file_get_string_list(
+             kf, grp, G_KEY_FILE_DESKTOP_KEY_NOT_SHOW_IN, &n, NULL)))
+    {
+        gboolean ok = !desktop_matches(list);
+        g_strfreev(list);
+        if (!ok) goto done;
+    }
+    if ((s = g_key_file_get_string(kf, grp,
+                                   G_KEY_FILE_DESKTOP_KEY_TRY_EXEC, NULL)))
+    {
+        gchar *found = g_path_is_absolute(s) ?
+            (g_file_test(s, G_FILE_TEST_IS_EXECUTABLE) ? g_strdup(s) : NULL) :
+            g_find_program_in_path(s);
+        g_free(s);
+        if (!found) goto done;
+        g_free(found);
+    }
+
+    if ((s = g_key_file_get_string(kf, grp, G_KEY_FILE_DESKTOP_KEY_EXEC,
+                                   NULL)))
+    {
+        gchar **argv = NULL;
+        GError *e = NULL;
+
+        exec = strip_field_codes(s);
+        g_free(s);
+        if (g_shell_parse_argv(exec, NULL, &argv, &e)) {
+            ob_debug("Autostarting %s", path);
+            spawn(argv);
+            g_strfreev(argv);
+        } else {
+            g_message("Invalid Exec in %s: %s", path, e->message);
+            g_error_free(e);
+        }
+        g_free(exec);
+    }
+
+done:
+    g_key_file_unref(kf);
+}
+
+static void run_xdg_autostart(ObtPaths *paths)
+{
+    GHashTable *seen = g_hash_table_new_full(g_str_hash, g_str_equal,
+                                             g_free, NULL);
+    GSList *it;
+
+    /* the autostart dirs are in order of importance, a file in an earlier
+       directory replaces one with the same name in a later one */
+    for (it = obt_paths_autostart_dirs(paths); it; it = g_slist_next(it)) {
+        GDir *d = g_dir_open(it->data, 0, NULL);
+        const gchar *name;
+
+        if (!d) continue;
+        while ((name = g_dir_read_name(d))) {
+            gchar *path;
+            if (!g_str_has_suffix(name, ".desktop")) continue;
+            if (g_hash_table_contains(seen, name)) continue;
+            g_hash_table_add(seen, g_strdup(name));
+            path = g_build_filename(it->data, name, NULL);
+            run_autostart_entry(path);
+            g_free(path);
+        }
+        g_dir_close(d);
+    }
+    g_hash_table_destroy(seen);
+}
+
+void session_autostart(void)
+{
+    ObtPaths *paths = obt_paths_new();
+    GSList *it, *dirs = NULL;
+    gchar *user;
+
+    /* the system's autostart, then the user's, like openbox-autostart */
+    for (it = obt_paths_config_dirs(paths); it; it = g_slist_next(it))
+        if (strcmp(it->data, obt_paths_config_home(paths)))
+            dirs = g_slist_prepend(dirs, it->data);
+    for (it = dirs; it; it = g_slist_next(it)) {
+        gchar *path = g_build_filename(it->data, "owbox", "autostart", NULL);
+        run_autostart_script(path);
+        g_free(path);
+    }
+    g_slist_free(dirs);
+
+    user = g_build_filename(obt_paths_config_home(paths), "owbox",
+                            "autostart", NULL);
+    run_autostart_script(user);
+    g_free(user);
+
+    run_xdg_autostart(paths);
+
+    obt_paths_unref(paths);
+}
+
+void session_shutdown(void)
+{
+}

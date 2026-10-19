@@ -93,6 +93,11 @@ void obt_xml_instance_unref(ObtXmlInst *i)
     }
 }
 
+gchar* obt_xml_last_loaded_file(ObtXmlInst *i)
+{
+    return g_strdup(i->path);
+}
+
 xmlDocPtr obt_xml_doc(ObtXmlInst *i)
 {
     g_assert(i->doc); /* a doc is open? */

@@ -61,6 +61,9 @@ gboolean obt_xml_save_file(ObtXmlInst *inst,
                            const gchar *path,
                            gboolean pretty);
 
+/*! The path of the file that was loaded, newly allocated */
+gchar* obt_xml_last_loaded_file(ObtXmlInst *inst);
+
 xmlDocPtr obt_xml_doc(ObtXmlInst *inst);
 xmlNodePtr obt_xml_root(ObtXmlInst *inst);
 
