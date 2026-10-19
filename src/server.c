@@ -23,6 +23,7 @@
 #include "layers.h"
 #include "toplevel.h"
 #include "xwayland.h"
+#include "capture.h"
 #include "config.h"
 #include "openbox.h"
 #include "debug.h"
@@ -272,8 +273,7 @@ void server_init(void)
                                                   server.backend, 2);
     wlr_screencopy_manager_v1_create(server.display);
     wlr_export_dmabuf_manager_v1_create(server.display);
-    wlr_ext_output_image_capture_source_manager_v1_create(server.display, 1);
-    wlr_ext_image_copy_capture_manager_v1_create(server.display, 1);
+    capture_init();
     wlr_alpha_modifier_v1_create(server.display);
     wlr_content_type_manager_v1_create(server.display, 1);
     server.tearing_control =
@@ -331,6 +331,7 @@ void server_finish(void)
 {
     xwayland_finish();
     wl_display_destroy_clients(server.display);
+    capture_finish();
     toplevel_finish();
     layers_finish();
     xdg_finish();

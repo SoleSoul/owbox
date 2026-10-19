@@ -579,6 +579,9 @@ static void handle_request_show_window_menu(struct wl_listener *l,
     struct wlr_xdg_toplevel_show_window_menu_event *ev = data;
     gint px, py;
 
+    ob_debug("Window menu requested by %s at %d,%d (button held %d)",
+             x->client->title, ev->x, ev->y, seat_pointer_button_held());
+
     if (!x->client->managed) return;
     /* client side decorations ask for the window menu, show Openbox's */
     px = x->client->frame->area.x + x->client->frame->size.left -

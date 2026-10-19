@@ -456,6 +456,8 @@ static void print_help(void)
     g_print(_("  --exit              Exit owbox\n"));
     g_print(_("  --msg COMMAND       Send a command (see owbox(1)): an action's\n"
               "                      XML, windows, desktops\n"));
+    g_print(_("  --choose-share      Ask which screen or window to share (for\n"
+              "                      xdg-desktop-portal-wlr)\n"));
     g_print(_("\nDebugging options:\n"));
     g_print(_("  --startup CMD       Run CMD after starting\n"));
     g_print(_("  --no-autostart      Don't run the autostart programs\n"));
@@ -556,6 +558,9 @@ static void parse_args(gint *argc, gchar **argv)
         }
         else if (!strcmp(argv[i], "--exit")) {
             remote = "exit";
+        }
+        else if (!strcmp(argv[i], "--choose-share")) {
+            remote = "choose-share";
         }
         else if (!strcmp(argv[i], "--msg")) {
             if (i == *argc - 1) /* no args left */

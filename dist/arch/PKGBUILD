@@ -12,6 +12,7 @@ depends=('wlroots0.20' 'libinput' 'libxkbcommon' 'pixman' 'glib2' 'libxml2'
 makedepends=('git' 'meson' 'ninja' 'wayland-protocols')
 optdepends=('xorg-xwayland: X applications'
             'xdg-desktop-portal-wlr: screenshots and screen sharing'
+            'wireplumber: screen sharing (connects the streams)'
             'xdg-desktop-portal-gtk: file choosers and other portals'
             'foot: a terminal emulator for the default menu'
             'swaybg: a wallpaper'

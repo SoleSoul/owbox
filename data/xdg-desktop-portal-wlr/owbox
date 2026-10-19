@@ -1,0 +1,7 @@
+# xdg-desktop-portal-wlr's settings for owbox sessions
+# (XDG_CURRENT_DESKTOP=owbox), a user's ~/.config/xdg-desktop-portal-wlr/
+# files take precedence.
+[screencast]
+# owbox's own menu asks which screen or window to share
+chooser_type=simple
+chooser_cmd=owbox --choose-share

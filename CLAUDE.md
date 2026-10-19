@@ -67,6 +67,14 @@ screen):
   xterm/xeyes; run.sh sets DISPLAY.
 - Nested: run `build/owbox` with WAYLAND_DISPLAY set to the headless
   owbox's display, to test the Wayland backend.
+- Screen sharing: `tools/screencast-test.py 1 5` runs a portal session
+  (1 monitors, 2 windows) and counts the frames with build/owbox-pwcount.
+  It needs WirePlumber running (nothing links the streams without it).  To
+  test a headless owbox, start `WAYLAND_DISPLAY=<its display>
+  /usr/lib/xdg-desktop-portal-wlr -r` (it replaces the session's portal,
+  restart xdg-desktop-portal-wlr.service afterwards), use
+  `WLR_RENDERER=gles2` to test the GPU's formats, and keep something
+  changing on the screen.
 - Logs: `--debug` (the test scripts use it) and `--debug-wlroots`. The last
   run's log is in `~/.cache/owbox/owbox.log`.
 - Tests use `--no-autostart`, so the user's real XDG autostart applications

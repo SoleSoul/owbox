@@ -136,6 +136,7 @@ endforeach
 owbox_sources = files(
 	'src/actions.c',
 	'src/app_menu.c',
+	'src/share_menu.c',
 	'src/actions/addremovedesktop.c',
 	'src/actions/all.c',
 	'src/actions/breakchroot.c',
@@ -178,6 +179,7 @@ owbox_sources = files(
 	'src/actions/snap.c',
 	'src/actions/unfocus.c',
 	'src/buffer.c',
+	'src/capture.c',
 	'src/client.c',
 	'src/client_list_combined_menu.c',
 	'src/client_list_menu.c',
@@ -269,6 +271,13 @@ executable(
 	install: false,
 )
 
+# a PipeWire consumer for tools/screencast-test.py
+pipewire = dependency('libpipewire-0.3', required: false)
+if pipewire.found()
+	executable('owbox-pwcount', 'tools/pwcount.c',
+		dependencies: [pipewire], install: false)
+endif
+
 # ---- data ----
 
 bindir = prefix / get_option('bindir')
@@ -299,6 +308,10 @@ configure_file(
 )
 install_data('data/owbox-portals.conf',
 	install_dir: datadir / 'xdg-desktop-portal')
+# owbox's menu for choosing what to share (xdg-desktop-portal-wlr reads its
+# settings for each desktop from here)
+install_data('data/xdg-desktop-portal-wlr/owbox',
+	install_dir: sysconfdir / 'xdg' / 'xdg-desktop-portal-wlr')
 # Openbox's themes, for when Openbox isn't installed
 install_subdir('data/themes', install_dir: owbox_datadir,
 	strip_directory: false)

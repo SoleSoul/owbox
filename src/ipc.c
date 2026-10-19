@@ -25,7 +25,10 @@
      reconfigure | restart | exit
      action <action xml>   eg: action <action name="GoToDesktop"><to>2</to></action>
      windows               one JSON object per window, in stacking order
-     desktops              a JSON object with the desktops */
+     desktops              a JSON object with the desktops
+     choose-share          show the menu of what to share, the reply is
+                           "Monitor: <output>" or "Window: <identifier>", or
+                           nothing when the user didn't choose */
 
 #include "ipc.h"
 #include "openbox.h"
@@ -36,6 +39,7 @@
 #include "screen.h"
 #include "stacking.h"
 #include "toplevel.h"
+#include "share_menu.h"
 #include "debug.h"
 
 #include <errno.h>
@@ -190,6 +194,27 @@ static gchar* handle_command(const gchar *line)
     return g_string_free(out, FALSE);
 }
 
+static void client_read(GObject *src, GAsyncResult *res, gpointer data);
+
+static void reply_and_continue(GDataInputStream *in, GSocketConnection *conn,
+                               const gchar *reply)
+{
+    GOutputStream *os = g_io_stream_get_output_stream(G_IO_STREAM(conn));
+    g_output_stream_write_all(os, reply, strlen(reply), NULL, NULL, NULL);
+    g_data_input_stream_read_line_async(in, G_PRIORITY_DEFAULT, NULL,
+                                        client_read, conn);
+}
+
+static void share_chosen(const gchar *choice, gpointer data)
+{
+    GDataInputStream *in = data;
+    GSocketConnection *conn = g_object_get_data(G_OBJECT(in), "conn");
+    gchar *reply = g_strdup_printf("ok\n%s%s\n", choice ? choice : "",
+                                   choice ? "\n" : "");
+    reply_and_continue(in, conn, reply);
+    g_free(reply);
+}
+
 static void client_read(GObject *src, GAsyncResult *res, gpointer data)
 {
     GDataInputStream *in = G_DATA_INPUT_STREAM(src);
@@ -203,16 +228,16 @@ static void client_read(GObject *src, GAsyncResult *res, gpointer data)
         g_object_unref(conn);
         return;
     }
-    {
-        gchar *reply = handle_command(g_strstrip(line));
-        GOutputStream *os =
-            g_io_stream_get_output_stream(G_IO_STREAM(conn));
-        g_output_stream_write_all(os, reply, strlen(reply), NULL, NULL, NULL);
+    if (!strcmp(g_strstrip(line), "choose-share")) {
+        /* answered when the user has chosen */
+        g_object_set_data(G_OBJECT(in), "conn", conn);
+        share_menu_choose(share_chosen, in);
+    } else {
+        gchar *reply = handle_command(line);
+        reply_and_continue(in, conn, reply);
         g_free(reply);
     }
     g_free(line);
-    g_data_input_stream_read_line_async(in, G_PRIORITY_DEFAULT, NULL,
-                                        client_read, conn);
 }
 
 static gboolean incoming(GSocketService *s, GSocketConnection *conn,

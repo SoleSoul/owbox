@@ -36,6 +36,7 @@
 #include "seat.h"
 #include "client_list_combined_menu.h"
 #include "app_menu.h"
+#include "share_menu.h"
 #include "gettext.h"
 #include "obt/xml.h"
 #include "obt/paths.h"
@@ -73,6 +74,7 @@ void menu_startup(gboolean reconfig)
     client_list_menu_startup(reconfig);
     client_list_combined_menu_startup(reconfig);
     app_menu_startup(reconfig);
+    share_menu_startup(reconfig);
     client_menu_startup();
 
     menu_parse_inst = obt_xml_instance_new();
@@ -132,6 +134,7 @@ void menu_shutdown(gboolean reconfig)
 
     client_list_combined_menu_shutdown(reconfig);
     app_menu_shutdown(reconfig);
+    share_menu_shutdown(reconfig);
     client_list_menu_shutdown(reconfig);
 
     g_hash_table_destroy(menu_hash);
