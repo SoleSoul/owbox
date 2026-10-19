@@ -18,6 +18,7 @@
 */
 
 #include "client.h"
+#include "ping.h"
 #include "debug.h"
 #include "screen.h"
 #include "moveresize.h"
@@ -2706,6 +2707,10 @@ void client_close(ObClient *self)
 
     /* request the client to close */
     self->impl->close(self);
+
+    /* we're trying to close the window, so see if it is responding. if it
+       is not, then we will let them kill the window */
+    ping_start(self, client_ping_event);
 
     /* if we already know the window isn't responding (maybe they clicked
        no in the kill dialog but it hasn't come back to life), then show

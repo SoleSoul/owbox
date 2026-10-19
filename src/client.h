@@ -120,6 +120,11 @@ struct _ObClientImpl
     void (*restack)(ObClient *self);
     /*! The process id of the client, or 0 */
     pid_t (*get_pid)(ObClient *self);
+    /*! Send a ping, returns FALSE if the client doesn't answer pings; may
+      be NULL */
+    gboolean (*ping)(ObClient *self);
+    /*! Is the last ping unanswered */
+    gboolean (*ping_pending)(ObClient *self);
 };
 
 struct _ObClient

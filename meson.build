@@ -203,6 +203,7 @@ owbox_sources = files(
 	'src/moveresize.c',
 	'src/obt/keyboard.c',
 	'src/openbox.c',
+	'src/ping.c',
 	'src/output.c',
 	'src/place.c',
 	'src/place_overlap.c',

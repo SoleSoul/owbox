@@ -376,6 +376,18 @@ static void xdg_set_visible(ObClient *self, gboolean visible)
         wlr_xdg_toplevel_set_suspended(t, !visible);
 }
 
+static gboolean xdg_ping(ObClient *self)
+{
+    /* this does nothing while a ping is unanswered */
+    wlr_xdg_surface_ping(XDG(self)->toplevel->base);
+    return TRUE;
+}
+
+static gboolean xdg_ping_pending(ObClient *self)
+{
+    return XDG(self)->toplevel->base->client->ping_serial != 0;
+}
+
 static pid_t xdg_get_pid(ObClient *self)
 {
     pid_t pid = 0;
@@ -405,6 +417,8 @@ const ObClientImpl xdg_client_impl = {
     .set_visible = xdg_set_visible,
     .restack = NULL,
     .get_pid = xdg_get_pid,
+    .ping = xdg_ping,
+    .ping_pending = xdg_ping_pending,
 };
 
 /* ---- toplevel events ---- */
@@ -723,6 +737,9 @@ static void handle_new_popup(struct wl_listener *l, void *data)
 void xdg_init(void)
 {
     server.xdg_shell = wlr_xdg_shell_create(server.display, 7);
+    /* ping.c decides when a client isn't responding, keep wlroots from
+       giving up on the ping before that */
+    server.xdg_shell->ping_timeout = 10 * 60 * 1000;
     new_toplevel.notify = handle_new_toplevel;
     wl_signal_add(&server.xdg_shell->events.new_toplevel, &new_toplevel);
     new_popup.notify = handle_new_popup;

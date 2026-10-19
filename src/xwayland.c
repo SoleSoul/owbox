@@ -40,6 +40,8 @@
 #include "gravity.h"
 #include "debug.h"
 
+#include <stdlib.h>
+
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_xcursor_manager.h>
@@ -102,6 +104,8 @@ typedef struct {
 
 static struct wl_listener new_surface;
 static struct wl_listener ready;
+/*! The _NET_WM_PING atom, which wlroots doesn't share */
+static xcb_atom_t net_wm_ping = XCB_ATOM_NONE;
 
 #define XW(c) ((ObXwSurface*)(c)->impl_data)
 
@@ -382,6 +386,26 @@ static pid_t xw_get_pid(ObClient *self)
     return XW(self)->xs->pid;
 }
 
+static gboolean xw_ping(ObClient *self)
+{
+    struct wlr_xwayland_surface *xs = XW(self)->xs;
+    size_t i;
+
+    /* only if it has _NET_WM_PING in WM_PROTOCOLS */
+    if (!net_wm_ping) return FALSE;
+    for (i = 0; i < xs->protocols_len; ++i)
+        if (xs->protocols[i] == net_wm_ping) {
+            wlr_xwayland_surface_ping(xs);
+            return TRUE;
+        }
+    return FALSE;
+}
+
+static gboolean xw_ping_pending(ObClient *self)
+{
+    return XW(self)->xs->pinging;
+}
+
 static const ObClientImpl xwayland_client_impl = {
     .get_type = xw_get_type,
     .get_normal_hints = xw_get_normal_hints,
@@ -403,6 +427,8 @@ static const ObClientImpl xwayland_client_impl = {
     .set_visible = xw_set_visible,
     .restack = xw_restack,
     .get_pid = xw_get_pid,
+    .ping = xw_ping,
+    .ping_pending = xw_ping_pending,
 };
 
 /* ---- override-redirect windows ---- */
@@ -1023,6 +1049,16 @@ static void handle_ready(struct wl_listener *l, void *data)
 {
     ob_debug("Xwayland is ready on DISPLAY=%s", server.xwayland->display_name);
     wlr_xwayland_set_seat(server.xwayland, server.seat);
+    {
+        xcb_connection_t *conn =
+            wlr_xwayland_get_xwm_connection(server.xwayland);
+        xcb_intern_atom_reply_t *r = xcb_intern_atom_reply(
+            conn, xcb_intern_atom(conn, 0, 12, "_NET_WM_PING"), NULL);
+        if (r) {
+            net_wm_ping = r->atom;
+            free(r);
+        }
+    }
     xwayland_update_cursor();
     xwayland_update_workareas();
 }
