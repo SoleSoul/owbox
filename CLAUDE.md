@@ -81,14 +81,28 @@ screen):
   don't start in test sessions.
 
 Pitfalls seen before:
-- Never `pkill -f` or `pgrep -f` with a pattern that's also in your own
-  command line: it matches the shell running it. Kill by the PID
-  (`$!`, `$T/pid`).
+- Never `pkill -f`, `pgrep -f` or `ps | grep` + kill with a pattern that
+  is anywhere in your own command line, including in a variable's value or
+  a path: it matches the shell running it. Kill by the PID (`$!`,
+  `$T/pid`), and list candidates before killing anything.
+- When testing inside the user's owbox session, OWBOX_SOCK points at their
+  owbox: tests/run.sh unsets it, other commands must too.  Only a DRM
+  session updates the D-Bus/systemd environment, keep it that way.
 - Give `owbox-input` and `--msg` a `timeout`. If owbox hangs, they hang.
 - Protect `rm` of variable paths: `rm -f "${T:?}"/*.png`.
 - Coordinates in tests depend on the theme and the window's place. Read
   them from `--msg windows` instead of guessing (the frame is at x,y, and
   the titlebar's middle is about y+10).
+
+## owbox Settings
+
+`settings/` is a Python and GTK 4 application (`settings/owbox-settings`
+runs it from the source tree).  `rcxml.py` edits rc.xml in place, keeping
+comments and everything it doesn't know; `tests/settings_test.py` checks
+that, and that owbox loads the result.  When trying the app, give owbox
+and the app a scratch config (`XDG_CONFIG_HOME=$T/cfg`, with
+`$T/cfg/owbox/rc.xml`): the app saves changes to the system's file in the
+user's `~/.config/owbox`.
 
 ## Where things are
 

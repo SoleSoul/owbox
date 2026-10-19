@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=owbox Settings
+Comment=Themes, windows, keyboard, mouse, displays and key bindings of owbox
+Exec=owbox-settings
+Icon=preferences-desktop
+Terminal=false
+Type=Application
+Categories=Settings;DesktopSettings;
+OnlyShowIn=owbox;
+Keywords=openbox;obconf;theme;keyboard;layout;shortcuts;keybindings;

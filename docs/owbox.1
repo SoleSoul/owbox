@@ -1,4 +1,4 @@
-.TH OWBOX 1 "2026" "owbox 0.1.0" "User Commands"
+.TH OWBOX 1 "2026" "owbox 0.2.0" "User Commands"
 .SH NAME
 owbox \- Openbox for Wayland, a stacking window manager and compositor
 .SH SYNOPSIS
@@ -43,6 +43,10 @@ closing its windows.
 .B \-\-exit
 Tell the running owbox to exit.
 .TP
+.B \-\-choose\-share
+Show the menu of monitors and windows to share and print the choice, for
+xdg\-desktop\-portal\-wlr.
+.TP
 .BI \-\-msg " COMMAND"
 Send a command to the running owbox and print the reply, see
 \fBCOMMANDS\fR.
@@ -56,6 +60,7 @@ Print debugging messages about focus.
 .B \-\-debug\-wlroots
 Print wlroots' debugging messages.
 .SH CONFIGURATION
+\fBowbox\-settings\fR changes the settings in a window.
 owbox reads Openbox's files.  Each is looked for in
 \fI~/.config/owbox\fR, then \fI~/.config/openbox\fR, then the same
 directories under each of \fB$XDG_CONFIG_DIRS\fR (\fI/etc/xdg\fR):
@@ -99,6 +104,12 @@ The windows, one JSON object per line, bottom to top.
 .TP
 .B desktops
 The desktops and the current one, as JSON.
+.TP
+.B outputs
+The monitors, one JSON object per line.
+.TP
+.B config\-file
+The path of the rc.xml owbox loaded.
 .SH ENVIRONMENT
 owbox sets \fBWAYLAND_DISPLAY\fR, \fBDISPLAY\fR (for X applications),
 \fBXDG_CURRENT_DESKTOP\fR=owbox (if not set), \fBXDG_SESSION_TYPE\fR and

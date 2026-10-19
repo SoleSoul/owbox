@@ -57,6 +57,10 @@ listed is a bug.
   layouts and input device settings go in `<owbox>` instead of
   setxkbmap/xinput, and monitors in `<owbox><outputs>` or wlr-randr instead
   of xrandr.
+- **ObConf** is replaced by owbox Settings, which also covers what Openbox
+  left to X tools (keyboard layouts, mouse and touchpad, monitors) and key
+  bindings. obconf-qt still works through Xwayland, if pointed at the file
+  owbox uses.
 - **Scripting** with xdotool and wmctrl doesn't work for Wayland windows:
   use `owbox --msg` (actions, window and desktop lists). Taskbars and pagers
   use the foreign-toplevel and ext-workspace protocols.

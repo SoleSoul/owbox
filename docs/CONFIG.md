@@ -1,5 +1,8 @@
 # owbox configuration reference
 
+Most of this can be set in **owbox Settings** (`owbox-settings`); this is
+the reference for the file it edits.
+
 owbox reads Openbox's `rc.xml` and `menu.xml`; everything in Openbox's
 documentation (<http://openbox.org/wiki/Help:Configuration>) applies. This
 file describes only what owbox adds.
@@ -204,6 +207,9 @@ with an empty line. The reply's first line is `ok` or `error <message>`.
 | `action <xml>` | runs actions, written as in rc.xml, on the focused window |
 | `windows` | one JSON object per window, bottom to top |
 | `desktops` | `{"current": n, "names": [...]}` |
+| `outputs` | one JSON object per monitor: name, make, model, enabled, x, y, width, height, refresh (mHz), scale, transform, modes |
+| `config-file` | the path of the rc.xml in use |
+| `choose-share` | shows the menu of monitors and windows to share, and replies with `Monitor: <name>` or `Window: <identifier>`, or nothing when cancelled (also `owbox --choose-share`) |
 
 Examples:
 
@@ -211,7 +217,8 @@ Examples:
     owbox --msg 'action <action name="Execute"><command>foot</command></action>'
     owbox --msg windows | jq -r .title
 
-A window object has `id`, `title`, `app_id`, `desktop` (-1 is all
+A window object has `id`, `title`, `app_id`, `identifier` (its
+ext-foreign-toplevel identifier, for `grim -T`), `desktop` (-1 is all
 desktops), `x`, `y` (of the frame), `width`, `height` (of the client),
 `focused`, `iconic`, `maximized`, `fullscreen` and `shaded`.
 
@@ -229,4 +236,7 @@ systemd user services:
 
 `/usr/share/xdg-desktop-portal/owbox-portals.conf` selects
 xdg-desktop-portal-wlr for screenshots and screen sharing, and the GTK
-portal for the rest.
+portal for the rest. `/etc/xdg/xdg-desktop-portal-wlr/owbox` makes
+xdg-desktop-portal-wlr ask with owbox's menu (`owbox --choose-share`) what
+to share. Screen sharing also needs PipeWire's session manager
+(WirePlumber) running.

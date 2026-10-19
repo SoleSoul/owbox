@@ -23,25 +23,32 @@ monitors), plus a few things most Openbox users add on top of it:
 - snapping windows to the screen's halves and quarters by dragging, or with
   Super+arrows
 - a built-in applications menu generated from the installed applications
+- **owbox Settings**, one application for all of it: themes (with
+  previews), windows, displays, desktops, keyboard layouts, mouse and
+  touchpad, key bindings (press the keys, pick the action) and autostart.
+  It edits the same rc.xml, keeps what it doesn't show, and helps moving
+  from Openbox
+- screen sharing (of a monitor or a window) with an Openbox style menu to
+  choose what to share
 - a control socket for scripting (`owbox --msg`)
-- automatic reload when `rc.xml` changes, so ObConf and text editors apply
-  changes immediately
+- automatic reload when `rc.xml` changes, so any editor's changes apply
+  immediately
 
 See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for what differs from
 Openbox, and [docs/ROADMAP.md](docs/ROADMAP.md) for what is planned.
 
-Status: version 0.1.0, the first version. It was tested on wlroots'
-headless backend and nested in another compositor, with foot, GTK
-applications (native and through Xwayland) and mpv. It hasn't been run on
-real hardware (a TTY or a display manager session) yet, and panels,
-wallpapers and screen lockers haven't been tried either.
+Status: version 0.2.0. It is used as a daily session on real hardware
+(an NVIDIA GPU on the DRM backend), with Wayland and X applications,
+waybar, swaybg, fuzzel and screen sharing in a browser. Multiple monitors
+and hotplugging haven't been tried yet.
 
 ## Building
 
 Dependencies (Arch package names): `wlroots0.20 libinput libxkbcommon pixman
 glib2 libxml2 pango cairo librsvg libsfdo xcb-util-wm wayland
 wayland-protocols meson ninja`. Install `xorg-xwayland` to run X
-applications.
+applications, `python-gobject` and `gtk4` for owbox Settings, and
+`xdg-desktop-portal-wlr` with PipeWire and WirePlumber for screen sharing.
 
 On Arch, the easiest way is the package in `dist/arch`:
 
@@ -82,7 +89,12 @@ A typical session uses a few companion programs:
 
 ## Configuration
 
-Copy the defaults and edit them:
+Run **owbox Settings** (`owbox-settings`, also in owbox's menu). Changes
+apply as they are made. If you come from Openbox, it uses your Openbox
+rc.xml and offers to keep a separate copy for owbox, and its Autostart page
+shows what your Openbox autostart ran and what replaces the X programs.
+
+Or copy the defaults and edit them:
 
     mkdir -p ~/.config/owbox
     cp /etc/xdg/owbox/{rc.xml,menu.xml,autostart,environment} ~/.config/owbox/

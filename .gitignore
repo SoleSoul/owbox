@@ -7,3 +7,4 @@ dist/arch/*.pkg.tar.*
 dist/arch/owbox/
 dist/arch/src/
 dist/arch/pkg/
+__pycache__/

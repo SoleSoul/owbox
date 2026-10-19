@@ -26,6 +26,8 @@ src/
   window.c          ObWindow/ObNode: what is at a point in the scene
   snap.c            edge snapping (an owbox addition)
   app_menu.c        applications-menu (an owbox addition)
+  share_menu.c      the menu choosing what to share (owbox --choose-share)
+  capture.c         screen capture formats for screenshots and sharing
   icons.c           desktop entries and icon themes (libsfdo)
   ipc.c             the control socket (owbox --msg)
   ping.c            pinging windows being closed
@@ -39,6 +41,9 @@ src/
                     keyboard.c, mouse.c, screen.c, prompt.c, popup.c,
                     focus_cycle*.c, resist.c, config.c, translate.c ...)
 data/               default rc.xml, menu.xml, session files, themes
+settings/           owbox Settings (Python, GTK 4): rcxml.py edits rc.xml
+                    keeping what it doesn't know, keybinds.py the key
+                    bindings, app.py the window
 tools/              theme renderer, test input tool, helper scripts
 tests/              headless test scripts and the smoke test
 ref/                (gitignored) Openbox and wlroots sources for reference

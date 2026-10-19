@@ -13,12 +13,26 @@
 - snapping, `applications-menu`, the control socket, reload on change
 - default config, session files, man page, Arch package, smoke test
 
+## 0.2.0 (done)
+
+- runs as a daily session on real hardware (NVIDIA, DRM backend, VT
+  switching), with waybar, swaybg and fuzzel
+- owbox Settings: appearance, windows, displays, desktops, keyboard,
+  mouse and touchpad, key bindings, autostart (with Openbox migration)
+- screen sharing of monitors and windows, with owbox's own chooser menu;
+  32 bit capture formats on GPUs that prefer 24 bit (NVIDIA)
+- fixes from daily use: submenus, menus closed with the keyboard, client
+  side decorated windows' position, shading, un/decorating, bindings in
+  other keyboard layouts, leftover services of an earlier session
+
 ## Next
 
-- **Test on real hardware**: the DRM backend on a TTY (NVIDIA and others),
-  multiple monitors, hotplug, VT switching, suspend and resume.
-- **Exercise the layer shell and session lock** with real clients (waybar,
-  swaybg, fuzzel, swaylock) and add them to the smoke test.
+- **More of owbox Settings**: mouse bindings, the menus, per-application
+  rules, margins, monitor arrangement by dragging.
+- **Test more hardware**: multiple monitors, hotplug, suspend and resume,
+  other GPUs.
+- **Exercise the session lock** (swaylock, swayidle) and add the layer
+  shell clients to the smoke test.
 - **HiDPI decorations**: render frames, menus and popups at the output's
   scale (obrender painting at a scale factor), so they're sharp on scale 2
   and fractional scales.

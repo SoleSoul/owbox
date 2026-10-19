@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+# owbox Settings: owbox's (and Openbox's) settings in a window.
+#   owbox-settings [RC.XML]
+import os
+import sys
+
+here = os.path.dirname(os.path.realpath(__file__))
+for d in ("@settingsdir@", here):
+    if os.path.isdir(os.path.join(d, "owbox_settings")):
+        sys.path.insert(0, d)
+        break
+
+from owbox_settings.app import main  # noqa: E402
+
+sys.exit(main())

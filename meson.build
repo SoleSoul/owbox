@@ -1,7 +1,7 @@
 project(
 	'owbox',
 	'c',
-	version: '0.1.0',
+	version: '0.2.0',
 	license: 'GPL-2.0-or-later',
 	meson_version: '>=1.3.0',
 	default_options: [
@@ -243,7 +243,8 @@ executable(
 	'owbox-theme-render',
 	files('tools/theme-render.c'),
 	dependencies: [obrender],
-	install: false,
+	# owbox-settings shows theme previews with it
+	install: true,
 )
 
 # the test tool for sending synthetic input
@@ -316,3 +317,19 @@ install_data('data/xdg-desktop-portal-wlr/owbox',
 install_subdir('data/themes', install_dir: owbox_datadir,
 	strip_directory: false)
 install_man('docs/owbox.1')
+
+# owbox Settings (Python and GTK 4)
+settings_dir = owbox_datadir / 'settings'
+install_subdir('settings/owbox_settings', install_dir: settings_dir,
+	exclude_directories: ['__pycache__'])
+settings_conf = configuration_data()
+settings_conf.set('settingsdir', settings_dir)
+configure_file(
+	input: 'settings/owbox-settings',
+	output: 'owbox-settings',
+	configuration: settings_conf,
+	install_dir: bindir,
+	install_mode: 'rwxr-xr-x',
+)
+install_data('data/owbox-settings.desktop',
+	install_dir: datadir / 'applications')

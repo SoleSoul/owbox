@@ -26,6 +26,8 @@
      action <action xml>   eg: action <action name="GoToDesktop"><to>2</to></action>
      windows               one JSON object per window, in stacking order
      desktops              a JSON object with the desktops
+     config-file           the path of the rc.xml in use
+     outputs               one JSON object per monitor
      choose-share          show the menu of what to share, the reply is
                            "Monitor: <output>" or "Window: <identifier>", or
                            nothing when the user didn't choose */
@@ -40,6 +42,10 @@
 #include "stacking.h"
 #include "toplevel.h"
 #include "share_menu.h"
+#include "output.h"
+#include "server.h"
+
+#include <wlr/types/wlr_output.h>
 #include "debug.h"
 
 #include <errno.h>
@@ -123,6 +129,44 @@ static void list_desktops(GString *out)
     g_string_append(out, "]}\n");
 }
 
+static void list_outputs(GString *out)
+{
+    static const gchar *transforms[] = {
+        "normal", "90", "180", "270", "flipped", "flipped-90",
+        "flipped-180", "flipped-270"
+    };
+    ObOutput *o;
+
+    wl_list_for_each(o, &server.outputs, link) {
+        struct wlr_output *w = o->wlr_output;
+        struct wlr_output_mode *m;
+        gboolean first = TRUE;
+
+        g_string_append(out, "{\"name\":");
+        json_string(out, w->name);
+        g_string_append(out, ",\"make\":");
+        json_string(out, w->make);
+        g_string_append(out, ",\"model\":");
+        json_string(out, w->model);
+        g_string_append_printf(out,
+            ",\"enabled\":%s,\"x\":%d,\"y\":%d,\"width\":%d,"
+            "\"height\":%d,\"refresh\":%d,\"scale\":%g,\"transform\":",
+            w->enabled ? "true" : "false", o->area.x, o->area.y,
+            w->width, w->height, w->refresh, w->scale);
+        json_string(out, transforms[w->transform & 7]);
+        g_string_append(out, ",\"modes\":[");
+        wl_list_for_each(m, &w->modes, link) {
+            g_string_append_printf(out, "%s{\"width\":%d,\"height\":%d,"
+                                   "\"refresh\":%d,\"preferred\":%s}",
+                                   first ? "" : ",", m->width, m->height,
+                                   m->refresh,
+                                   m->preferred ? "true" : "false");
+            first = FALSE;
+        }
+        g_string_append(out, "]}\n");
+    }
+}
+
 static gboolean run_action_xml(const gchar *xml, gchar **err)
 {
     xmlDocPtr doc;
@@ -175,6 +219,12 @@ static gchar* handle_command(const gchar *line)
         list_windows(out);
     else if (!strcmp(line, "desktops"))
         list_desktops(out);
+    else if (!strcmp(line, "outputs"))
+        list_outputs(out);
+    else if (!strcmp(line, "config-file")) {
+        if (ob_config_file())
+            g_string_append_printf(out, "%s\n", ob_config_file());
+    }
     else if (!strncmp(line, "action ", 7)) {
         if (ob_state() != OB_STATE_RUNNING)
             err = g_strdup("not running");
