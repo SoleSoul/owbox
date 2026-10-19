@@ -58,7 +58,7 @@ void session_environment(void)
         gchar *script = g_strdup_printf(
             "%s --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP "
             "XDG_SESSION_TYPE XDG_SESSION_DESKTOP XCURSOR_THEME XCURSOR_SIZE "
-            "OWBOX_SOCK; "
+            "OWBOX_SOCK SSH_AUTH_SOCK; "
             /* portals left running by an earlier session (the systemd user
                instance outlives it) serve that session's desktop, restart
                them for this one */

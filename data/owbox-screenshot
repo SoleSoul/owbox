@@ -1,0 +1,45 @@
+#!/bin/sh
+# Take a screenshot with grim and save it in Pictures/Screenshots.
+#
+#   owbox-screenshot [screen|area|window]
+#
+# screen is every monitor, area is one chosen with the mouse (slurp), window
+# is the focused window.  The default Print Screen bindings run this.  The
+# picture is also copied to the clipboard when wl-copy is installed.
+
+what=${1:-screen}
+
+if ! command -v grim >/dev/null 2>&1; then
+    echo "owbox-screenshot: grim is not installed" >&2
+    exit 1
+fi
+
+# the Pictures folder, from xdg-user-dirs' file
+dirs=${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs
+[ -r "$dirs" ] && . "$dirs"
+dir=${XDG_PICTURES_DIR:-$HOME/Pictures}
+[ "$dir" = "$HOME" ] && dir=$HOME/Pictures
+dir=$dir/Screenshots
+mkdir -p "$dir" || exit 1
+file=$dir/Screenshot-$(date +%Y-%m-%d-%H%M%S).png
+
+case $what in
+    screen)
+        grim "$file" || exit 1 ;;
+    area)
+        geometry=$(slurp) || exit 0
+        grim -g "$geometry" "$file" || exit 1 ;;
+    window)
+        id=$(owbox --msg windows |
+             sed -n 's/.*"identifier":"\([^"]*\)".*"focused":true.*/\1/p')
+        [ -n "$id" ] || exit 1
+        grim -T "$id" "$file" || exit 1 ;;
+    *)
+        echo "usage: owbox-screenshot [screen|area|window]" >&2
+        exit 2 ;;
+esac
+
+command -v wl-copy >/dev/null 2>&1 && wl-copy -t image/png < "$file"
+command -v notify-send >/dev/null 2>&1 &&
+    notify-send -a owbox -i "$file" "Screenshot saved" "$file"
+exit 0

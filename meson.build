@@ -291,7 +291,7 @@ install_data(
 	'data/rc.xml', 'data/menu.xml', 'data/environment', 'data/autostart',
 	install_dir: sysconfdir / 'xdg' / 'owbox',
 )
-install_data('data/owbox-terminal', install_dir: bindir,
+install_data('data/owbox-terminal', 'data/owbox-screenshot', install_dir: bindir,
 	install_mode: 'rwxr-xr-x')
 configure_file(
 	input: 'data/owbox-session',

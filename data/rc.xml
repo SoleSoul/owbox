@@ -327,6 +327,50 @@
       <command>xdg-open ~</command>
     </action>
   </keybind>
+
+  <!-- Keybindings for the keyboard's media keys, and screenshots.  These run
+       pactl (PulseAudio and PipeWire), playerctl and brightnessctl, which
+       need to be installed -->
+  <keybind key="XF86AudioRaiseVolume">
+    <action name="Execute"><command>pactl set-sink-volume @DEFAULT_SINK@ +5%</command></action>
+  </keybind>
+  <keybind key="XF86AudioLowerVolume">
+    <action name="Execute"><command>pactl set-sink-volume @DEFAULT_SINK@ -5%</command></action>
+  </keybind>
+  <keybind key="XF86AudioMute">
+    <action name="Execute"><command>pactl set-sink-mute @DEFAULT_SINK@ toggle</command></action>
+  </keybind>
+  <keybind key="XF86AudioMicMute">
+    <action name="Execute"><command>pactl set-source-mute @DEFAULT_SOURCE@ toggle</command></action>
+  </keybind>
+  <keybind key="XF86AudioPlay">
+    <action name="Execute"><command>playerctl play-pause</command></action>
+  </keybind>
+  <keybind key="XF86AudioPause">
+    <action name="Execute"><command>playerctl pause</command></action>
+  </keybind>
+  <keybind key="XF86AudioNext">
+    <action name="Execute"><command>playerctl next</command></action>
+  </keybind>
+  <keybind key="XF86AudioPrev">
+    <action name="Execute"><command>playerctl previous</command></action>
+  </keybind>
+  <keybind key="XF86MonBrightnessUp">
+    <action name="Execute"><command>brightnessctl set +5%</command></action>
+  </keybind>
+  <keybind key="XF86MonBrightnessDown">
+    <action name="Execute"><command>brightnessctl set 5%-</command></action>
+  </keybind>
+  <!-- owbox-screenshot saves screenshots in Pictures/Screenshots -->
+  <keybind key="Print">
+    <action name="Execute"><command>owbox-screenshot screen</command></action>
+  </keybind>
+  <keybind key="A-Print">
+    <action name="Execute"><command>owbox-screenshot window</command></action>
+  </keybind>
+  <keybind key="S-Print">
+    <action name="Execute"><command>owbox-screenshot area</command></action>
+  </keybind>
 </keyboard>
 
 <mouse>

@@ -14,4 +14,16 @@ sys=@sysconfdir@/xdg/owbox/environment
 user=${XDG_CONFIG_HOME:-$HOME/.config}/owbox/environment
 [ -r "$user" ] && . "$user"
 
+# the SSH agent that systemd started (GNOME's, from gcr, or OpenSSH's), which
+# other desktops' sessions point SSH_AUTH_SOCK at
+if [ -z "$SSH_AUTH_SOCK" ] && [ -n "$XDG_RUNTIME_DIR" ]; then
+    for sock in "$XDG_RUNTIME_DIR/gcr/ssh" "$XDG_RUNTIME_DIR/ssh-agent.socket"
+    do
+        if [ -S "$sock" ]; then
+            export SSH_AUTH_SOCK="$sock"
+            break
+        fi
+    done
+fi
+
 exec @bindir@/owbox "$@"

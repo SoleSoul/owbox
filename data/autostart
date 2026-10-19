@@ -5,3 +5,22 @@
 # A wallpaper and a panel, for example:
 #swaybg -i ~/Pictures/wallpaper.png -m fill &
 #waybar &
+
+# This file, in /etc/xdg/owbox, runs before your own.  It starts a polkit
+# agent, which asks for your password when an application needs to do
+# something as administrator.  Other desktops start their own, and their
+# autostart entries are only for them.
+for agent in \
+    /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 \
+    /usr/libexec/polkit-gnome-authentication-agent-1 \
+    /usr/lib/polkit-kde-authentication-agent-1 \
+    /usr/libexec/polkit-kde-authentication-agent-1 \
+    /usr/lib/mate-polkit/polkit-mate-authentication-agent-1 \
+    /usr/libexec/polkit-mate-authentication-agent-1 \
+    /usr/bin/lxqt-policykit-agent
+do
+    if [ -x "$agent" ]; then
+        "$agent" &
+        break
+    fi
+done
