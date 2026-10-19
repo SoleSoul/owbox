@@ -237,3 +237,28 @@ executable(
 	dependencies: [obrender],
 	install: false,
 )
+
+# the test tool for sending synthetic input
+wayland_client = dependency('wayland-client')
+input_protocols = []
+foreach xml : ['protocols/virtual-keyboard-unstable-v1.xml',
+               'protocols/wlr-virtual-pointer-unstable-v1.xml']
+	input_protocols += custom_target(
+		xml.underscorify() + '_client_h',
+		input: xml,
+		output: '@BASENAME@-client-protocol.h',
+		command: [wayland_scanner, 'client-header', '@INPUT@', '@OUTPUT@'],
+	)
+	input_protocols += custom_target(
+		xml.underscorify() + '_client_c',
+		input: xml,
+		output: '@BASENAME@-protocol.c',
+		command: [wayland_scanner, 'private-code', '@INPUT@', '@OUTPUT@'],
+	)
+endforeach
+executable(
+	'owbox-input',
+	files('tools/owbox-input.c') + input_protocols,
+	dependencies: [wayland_client, xkbcommon],
+	install: false,
+)

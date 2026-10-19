@@ -50,6 +50,12 @@ struct _ObFWin {
     gboolean mapped;
     /*! The cursor shown while the pointer is over the window */
     ObCursor cursor;
+
+    /*! X clips windows to their parents, these are for doing the same */
+    ObFWin *parent;
+    GList *children;
+    /*! The size of the painted background */
+    gint buf_width, buf_height;
 };
 
 /*! Create a window.  parent is the parent window, or NULL to put it in the

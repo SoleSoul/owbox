@@ -48,7 +48,9 @@ static gboolean prepare(RrAppearance *a, gint w, gint h)
 
     if (a->w != w || a->h != h) {
         g_free(a->surface.pixel_data);
-        a->surface.pixel_data = g_new(RrPixel32, w * h);
+        /* zeroed so that nothing random shows where a ParentRelative
+           texture is bigger than its parent */
+        a->surface.pixel_data = g_new0(RrPixel32, w * h);
     }
     a->w = w;
     a->h = h;

@@ -33,6 +33,7 @@
 #include "client_menu.h"
 #include "client_list_menu.h"
 #include "icons.h"
+#include "seat.h"
 #include "client_list_combined_menu.h"
 #include "gettext.h"
 #include "obt/xml.h"
@@ -823,10 +824,12 @@ void menu_sort_entries(ObMenu *self)
 void menu_show_client_menu(ObClient *client, gint x, gint y)
 {
     GravityPoint pos;
+    const Rect *allmon = screen_physical_area_all_monitors();
 
-    GRAVITY_COORD_SET(pos.x, x, FALSE, FALSE);
-    GRAVITY_COORD_SET(pos.y, y, FALSE, FALSE);
+    /* like ShowMenu does for a mouse binding */
+    GRAVITY_COORD_SET(pos.x, x - allmon->x, FALSE, FALSE);
+    GRAVITY_COORD_SET(pos.y, y - allmon->y, FALSE, FALSE);
     pos.x.denom = pos.y.denom = 0;
-    menu_show("client-menu", &pos, screen_find_monitor_point(x, y), FALSE,
-              TRUE, client);
+    menu_show("client-menu", &pos, screen_num_monitors,
+              seat_pointer_button_held(), FALSE, client);
 }

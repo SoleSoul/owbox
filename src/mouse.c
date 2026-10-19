@@ -28,6 +28,7 @@
 #include "mouse.h"
 #include "gettext.h"
 #include "seat.h"
+#include "debug.h"
 #include "screen.h"
 
 #include <glib.h>
@@ -217,6 +218,8 @@ gboolean mouse_event(ObClient *client, ObEvent *e)
         context = frame_context(client, e->win, e->x, e->y);
         context = mouse_button_frame_context(context, e->button,
                                              e->state);
+        ob_debug("Button %u press in context %d (client %s)", e->button,
+                 context, client ? client->title : "none");
 
         px = e->x_root;
         py = e->y_root;

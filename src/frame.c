@@ -755,7 +755,8 @@ void frame_adjust_area(ObFrame *self, gboolean moved,
                but don't do this during an iconify animation. it will be
                reflected afterwards.
             */
-            fwin_move(self->window, self->area.x, self->area.y);
+            fwin_move_resize(self->window, self->area.x, self->area.y,
+                             self->area.width, self->area.height);
 
         /* when the client has StaticGravity, it likes to move around.
            also this correctly positions the client when it maps.
