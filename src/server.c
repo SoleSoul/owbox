@@ -78,6 +78,10 @@ typedef struct {
 
 static gboolean wl_source_prepare(GSource *source, gint *timeout)
 {
+    /* run the wayland loop's idle callbacks that glib's sources (Openbox's
+       timeouts) caused, like scheduling a frame to show a submenu.  they
+       run in wl_event_loop_dispatch() only, which waits for the fd */
+    wl_event_loop_dispatch_idle(server.loop);
     /* send out everything queued for the clients before sleeping */
     wl_display_flush_clients(server.display);
     *timeout = -1;
