@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Fixed: a panel run as a systemd service (waybar.service) didn't start
+  after logging out and in. Its display went away before owbox stopped the
+  session's services, so it failed until systemd stopped restarting it.
+  owbox now stops them while the display is still there, and clears failed
+  services when the session starts.
 - Fixed: menus and tooltips of bars (a tray icon's menu in waybar) never
   showed. Their popups get their parent from the layer surface after they
   are made, and owbox ignored them.

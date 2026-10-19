@@ -69,7 +69,9 @@ void session_environment(void)
             "xdg-desktop-portal-wlr.service xdg-desktop-portal-gtk.service "
             ">/dev/null 2>&1; "
             /* graphical-session.target, for the services that come and go
-               with the session */
+               with the session.  Ones that failed before (when an earlier
+               owbox crashed) start again. */
+            "systemctl --user reset-failed >/dev/null 2>&1; "
             "systemctl --user start owbox-session.target >/dev/null 2>&1",
             exe);
         gchar *argv[] = { "/bin/sh", "-c", script, NULL };
@@ -242,13 +244,15 @@ void session_autostart(void)
     obt_paths_unref(paths);
 }
 
-void session_shutdown(void)
+void session_stop_services(void)
 {
-    /* the session's services stop, and later ones don't get this session's
-       display */
+    /* the session's services stop while the display is still there, and
+       later ones don't get this session's display.  A service (a panel)
+       that lost its display would fail, and systemd would restart it into
+       a session that is gone until it gives up on it. */
     if (in_session) {
         gchar *argv[] = { "/bin/sh", "-c",
-            "systemctl --user --no-block stop owbox-session.target; "
+            "timeout 5 systemctl --user stop owbox-session.target; "
             "systemctl --user unset-environment WAYLAND_DISPLAY DISPLAY "
             "OWBOX_SOCK", NULL };
         g_spawn_sync(NULL, argv, NULL,
@@ -256,4 +260,8 @@ void session_shutdown(void)
                      NULL, NULL, NULL, NULL, NULL, NULL);
         in_session = FALSE;
     }
+}
+
+void session_shutdown(void)
+{
 }

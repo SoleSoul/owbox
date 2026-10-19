@@ -29,6 +29,8 @@
 void session_environment(void);
 /*! Run ~/.config/owbox/autostart and the XDG autostart programs */
 void session_autostart(void);
+/*! Stop the session's systemd services, while the display is there */
+void session_stop_services(void);
 void session_shutdown(void);
 
 /*! There is no session manager to talk to */

@@ -373,6 +373,7 @@ gint main(gint argc, gchar **argv)
         actions_shutdown(reconfigure);
     } while (reconfigure);
 
+    session_stop_services();
     idle_shutdown();
     ipc_shutdown();
     if (config_monitor)
