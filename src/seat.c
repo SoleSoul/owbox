@@ -497,6 +497,9 @@ static void keyboard_handle_key(struct wl_listener *listener, void *data)
         if (xkb_keymap_key_get_syms_by_level(keymap, e.keycode, layout, 0,
                                              &syms) > 0)
             e.raw_sym = syms[0];
+        if (xkb_keymap_key_get_syms_by_level(keymap, e.keycode, 0, 0,
+                                             &syms) > 0)
+            e.first_sym = syms[0];
         e.consumed_mods = xkb_mask_to_wlr(
             keymap, xkb_state_key_get_consumed_mods2(xstate, e.keycode,
                                                      XKB_CONSUMED_MODE_XKB));

@@ -67,6 +67,10 @@ static gboolean key_matches(KeyBindingTree *p, const ObEvent *e, guint mods,
        (eg S-a is Shift + the a key) */
     if (p->key == xkb_keysym_to_lower(e->raw_sym) && p->state == mods)
         return TRUE;
+    /* bindings work in every layout, like Openbox's which grab keycodes
+       (W-d is still W-d when typing in Hebrew) */
+    if (p->key == xkb_keysym_to_lower(e->first_sym) && p->state == mods)
+        return TRUE;
     /* also match the symbol the key produces, without the modifiers that
        were used to produce it (eg C-plus on a layout with plus on shift) */
     if (p->key == xkb_keysym_to_lower(e->sym) &&

@@ -63,6 +63,10 @@ typedef struct _ObEvent {
     xkb_keysym_t sym;
     /*! Key events: the keysym of the key at shift level 0 */
     xkb_keysym_t raw_sym;
+    /*! Key events: the keysym of the key at shift level 0 in the first
+      keyboard layout, which bindings also match like Openbox's do (they
+      are keycodes from the first layout's keysyms) */
+    xkb_keysym_t first_sym;
     /*! Key events: the modifiers that were used up to produce sym */
     guint consumed_mods;
     /*! Key events: the modifier mask of the key, if it is a modifier key */
