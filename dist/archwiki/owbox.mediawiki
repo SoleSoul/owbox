@@ -1,0 +1,147 @@
+[[Category:Stacking window managers]]
+[[Category:Wayland compositors]]
+{{Related articles start}}
+{{Related|Openbox}}
+{{Related|Wayland}}
+{{Related|Waybar}}
+{{Related|Xwayland}}
+{{Related articles end}}
+[https://github.com/SoleSoul/owbox owbox] is a stacking [[Wayland]] compositor based on the code of [[Openbox]]. It reads Openbox's configuration files ({{ic|rc.xml}}, {{ic|menu.xml}}) and themes, and keeps Openbox's window management behavior, on top of wlroots. It is an independent project, not Openbox, and is not affiliated with the Openbox developers.
+
+== Installation ==
+
+[[Install]] the {{AUR|owbox}} package, or {{AUR|owbox-git}} for the development version.
+
+Optional dependencies add the parts of a desktop that owbox does not draw itself, see [[#A complete desktop]]. For X applications install {{Pkg|xorg-xwayland}}. For the settings application, ''owbox Settings'', install {{Pkg|python-gobject}} and {{Pkg|gtk4}}.
+
+== Starting ==
+
+Choose the ''owbox'' session in a [[display manager]] that supports Wayland sessions, or run {{ic|owbox-session}} from a [[Linux console|virtual console]]. {{ic|owbox-session}} reads {{ic|~/.config/owbox/environment}} first, like ''openbox-session'' does, and points {{ic|SSH_AUTH_SOCK}} at the [[SSH keys#SSH agents|SSH agent]] started by systemd.
+
+Running {{ic|owbox}} inside another Wayland or X session opens it in a window, which is useful for trying it out.
+
+owbox starts the [[systemd/User|user]] unit {{ic|owbox-session.target}}, which is bound to {{ic|graphical-session.target}}, so user services that belong to the graphical session (for example {{ic|waybar.service}}) start and stop with it.
+
+== Configuration ==
+
+=== owbox Settings ===
+
+Run {{ic|owbox-settings}} (also in owbox's root menu). It covers the theme, window behavior, monitors, desktops, keyboard layouts, mouse and touchpad, key bindings, idle and locking, and autostart. Changes are saved to {{ic|rc.xml}} and applied immediately.
+
+=== Configuration files ===
+
+owbox looks for each file in {{ic|~/.config/owbox/}}, then {{ic|~/.config/openbox/}}, then {{ic|/etc/xdg/owbox/}}, so an existing Openbox configuration is used as it is. To give owbox its own copy:
+
+ $ mkdir -p ~/.config/owbox
+ $ cp /etc/xdg/owbox/{rc.xml,menu.xml,autostart,environment} ~/.config/owbox/
+
+{{ic|rc.xml}} is reloaded when it is saved. Settings that Openbox does not have go in an {{ic|<owbox>}} section, which Openbox ignores: keyboard layouts, input devices, monitors, cursor and icon themes, snapping, idle and locking, the size of owbox's decorations ({{ic|<scale>}}), and panels. The installed {{ic|/etc/xdg/owbox/rc.xml}} documents each of them, and the {{ic|owbox(1)}} man page describes the rest.
+
+=== Autostart ===
+
+Programs to run at login go in {{ic|~/.config/owbox/autostart}}, a shell script. Applications in the [[XDG Autostart]] directories are started too. owbox does not run {{ic|~/.config/openbox/autostart}}, because it usually starts X programs that have Wayland replacements; owbox Settings' ''Autostart'' page lists its commands with what replaces each one.
+
+=== Migrating from Openbox ===
+
+* Key bindings, mouse bindings, menus, per-application settings and themes keep working.
+* X tools in an Openbox setup need Wayland replacements: a panel such as ''tint2'' becomes [[Waybar]], ''nitrogen'' or ''feh'' becomes {{Pkg|swaybg}}, ''setxkbmap'' and ''xinput'' become owbox Settings' keyboard and mouse pages, ''xrandr'' its displays page, ''xscreensaver'' and ''xset'' are replaced by owbox's idle settings with {{Pkg|swaylock}}.
+* owbox's own default key bindings (media keys, Print Screen, tapping Super) are not in an Openbox {{ic|rc.xml}}; owbox Settings' ''Key Bindings'' page offers to add them.
+* ''obconf'' is replaced by owbox Settings.
+
+== A complete desktop ==
+
+owbox manages windows, draws their frames, menus and the Alt+Tab switcher, turns the monitors off when idle, and binds the media keys and Print Screen. The rest of a desktop is up to other programs. These fit owbox best; owbox also works with any alternative that supports the same Wayland protocols.
+
+{| class="wikitable"
+! Purpose !! Recommended !! Alternatives !! Notes
+|-
+| Panel, taskbar, tray || {{Pkg|waybar}} || || {{ic|/usr/share/owbox/examples/waybar}} has a configuration made for owbox. Enable {{ic|waybar.service}} to start it with the session.
+|-
+| Launcher || {{Pkg|fuzzel}} || {{Pkg|wofi}}, {{Pkg|rofi}} || Tapping Super shows it, see [[#Panels on Super]]. {{ic|/usr/share/owbox/examples/fuzzel}} has a matching configuration.
+|-
+| Terminal || {{Pkg|foot}} || {{Pkg|alacritty}} || The menu's ''Terminal'' runs {{ic|$TERMINAL}} or the first one installed.
+|-
+| Wallpaper || {{Pkg|swaybg}} || || Without one, owbox fills the desktop with {{ic|<owbox><background>}}.
+|-
+| Notifications || {{Pkg|mako}} || {{Pkg|swaync}}, {{Pkg|dunst}} || Any daemon that provides {{ic|org.freedesktop.Notifications}} works. The volume and brightness keys show their level through it.
+|-
+| Screen locker || {{Pkg|swaylock}} || {{Pkg|gtklock}} || owbox runs it when the monitors turn off, before suspending, and from the menu's ''Lock Screen''. No ''swayidle'' is needed.
+|-
+| Authentication agent || {{Pkg|polkit-gnome}} || {{Pkg|lxqt-policykit}} || owbox starts an installed one, see [[Polkit#Authentication agents]].
+|-
+| Screenshots || {{Pkg|grim}}, {{Pkg|slurp}} || || Print Screen, Alt+Print Screen (the window) and Shift+Print Screen (an area) run {{ic|owbox-screenshot}}, which uses them.
+|-
+| Clipboard || {{Pkg|wl-clipboard}}, {{Pkg|wl-clip-persist}} || {{Pkg|cliphist}} || ''wl-clip-persist'' keeps copied text after the program it came from closes.
+|-
+| Volume, media and brightness keys || {{Pkg|libpulse}} (''pactl''), {{Pkg|playerctl}}, {{Pkg|brightnessctl}} || || The default bindings use them.
+|-
+| Audio settings || {{Pkg|pavucontrol}} || ||
+|-
+| Network || {{Pkg|network-manager-applet}} || {{AUR|iwgtk}} || For [[NetworkManager]] or [[iwd]].
+|-
+| Bluetooth || {{Pkg|blueman}} || ||
+|-
+| Night light || {{Pkg|wlsunset}} || {{Pkg|gammastep}} ||
+|-
+| Monitor profiles || {{Pkg|kanshi}} || {{Pkg|wdisplays}} || owbox Settings sets the monitors; ''kanshi'' switches between setups automatically.
+|-
+| File manager || {{Pkg|thunar}} || {{Pkg|pcmanfm-qt}}, {{Pkg|nautilus}} || Super+E opens the home folder with the default one.
+|-
+| Screen sharing || {{Pkg|xdg-desktop-portal-wlr}}, {{Pkg|wireplumber}} || || owbox shows its own menu to choose a monitor or a window. ''WirePlumber'' is needed even when [[PulseAudio]] handles the sound.
+|-
+| Other portals (file choosers) || {{Pkg|xdg-desktop-portal-gtk}} || ||
+|-
+| Keyring || {{Pkg|gnome-keyring}} || || See [[GNOME/Keyring]].
+|}
+
+== Tips and tricks ==
+
+=== Panels on Super ===
+
+Tapping Super (pressing and releasing it alone) shows the panels and the launcher over the dimmed windows, until Escape, a click elsewhere, or switching to a window. To keep the panels hidden the rest of the time, so windows have the whole screen:
+
+{{hc|~/.config/owbox/rc.xml|2=
+<owbox>
+  <panels>
+    <autoHide>yes</autoHide>
+    <dim>40</dim>
+  </panels>
+</owbox>
+}}
+
+The binding is an ordinary key binding with the {{ic|tap}} attribute:
+
+ <keybind key="Super_L" tap="yes">
+   <action name="TogglePanels"><launcher>owbox-launcher</launcher></action>
+ </keybind>
+
+=== Larger decorations ===
+
+{{ic|<owbox><scale>}} draws window frames, menus and popups larger than the theme without making applications larger, which suits Openbox themes on high resolution monitors. owbox Settings sets it under ''Appearance''.
+
+=== Scripting ===
+
+{{ic|owbox --msg}} sends commands to the running owbox: Openbox actions, and lists of the windows, desktops and monitors as JSON. For example:
+
+ $ owbox --msg 'action <action name="GoToDesktop"><to>2</to></action>'
+ $ owbox --msg windows
+
+== Troubleshooting ==
+
+=== Screen sharing shows nothing ===
+
+Make sure [[WirePlumber]] is running; without a session manager, PipeWire does not connect the streams.
+
+=== X panels and pagers show no windows ===
+
+X programs such as ''tint2'' cannot see Wayland windows. Use a Wayland panel such as [[Waybar]].
+
+=== Logging out leaves services failed ===
+
+owbox stops {{ic|owbox-session.target}} when it exits and clears failed user units when it starts. If owbox crashed, run {{ic|systemctl --user reset-failed}}.
+
+== See also ==
+
+* [https://github.com/SoleSoul/owbox owbox on GitHub], with the documentation of the {{ic|<owbox>}} settings ({{ic|docs/CONFIG.md}}) and the differences from Openbox ({{ic|docs/COMPATIBILITY.md}})
+* [[Openbox]]
+* [http://openbox.org/wiki/Help:Configuration Openbox configuration documentation], which applies to owbox
