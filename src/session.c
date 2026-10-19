@@ -53,7 +53,8 @@ void session_environment(void)
     {
         gchar *argv[] = { exe, "--systemd", "WAYLAND_DISPLAY", "DISPLAY",
                           "XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE",
-                          "XDG_SESSION_DESKTOP", NULL };
+                          "XDG_SESSION_DESKTOP", "XCURSOR_THEME",
+                          "XCURSOR_SIZE", NULL };
         spawn(argv);
         g_free(exe);
     }

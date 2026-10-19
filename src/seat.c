@@ -753,6 +753,18 @@ static void handle_new_virtual_pointer(struct wl_listener *listener,
     seat_update_capabilities();
 }
 
+/* Applications draw the cursor over their windows with the same theme */
+static void export_cursor_theme(void)
+{
+    gchar *size = g_strdup_printf("%d", config_cursor_size);
+    if (config_cursor_theme)
+        g_setenv("XCURSOR_THEME", config_cursor_theme, TRUE);
+    else
+        g_unsetenv("XCURSOR_THEME");
+    g_setenv("XCURSOR_SIZE", size, TRUE);
+    g_free(size);
+}
+
 void seat_reconfigure(void)
 {
     ObKeyboard *kb;
@@ -767,6 +779,7 @@ void seat_reconfigure(void)
         wlr_xcursor_manager_destroy(server.xcursor_manager);
     server.xcursor_manager =
         wlr_xcursor_manager_create(config_cursor_theme, config_cursor_size);
+    export_cursor_theme();
     seat.cursor_name = NULL;
     seat_update_cursor();
     xwayland_update_cursor();
@@ -1677,6 +1690,7 @@ void seat_init(void)
     wlr_cursor_attach_output_layout(server.cursor, server.output_layout);
     server.xcursor_manager =
         wlr_xcursor_manager_create(config_cursor_theme, config_cursor_size);
+    export_cursor_theme();
 
     LISTEN(&server.backend->events.new_input, seat.new_input,
            handle_new_input);

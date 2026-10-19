@@ -28,7 +28,6 @@
 #include <string.h>
 #include <locale.h>
 #include <glib/gstdio.h>
-#include <gio/gio.h>
 
 static struct sfdo_basedir_ctx *basedir = NULL;
 static struct sfdo_desktop_ctx *desktop_ctx = NULL;
@@ -83,21 +82,11 @@ struct sfdo_desktop_db* icons_desktop_db(void)
    use on Wayland (GSettings), or GTK's settings file, or Adwaita */
 static gchar* default_icon_theme(void)
 {
-    GSettingsSchemaSource *src = g_settings_schema_source_get_default();
-    GSettingsSchema *schema = src ?
-        g_settings_schema_source_lookup(src, "org.gnome.desktop.interface",
-                                        TRUE) : NULL;
-    gchar *name = NULL, *path;
+    gchar *name, *path;
     GKeyFile *kf;
 
-    if (schema) {
-        GSettings *gs = g_settings_new("org.gnome.desktop.interface");
-        name = g_settings_get_string(gs, "icon-theme");
-        g_object_unref(gs);
-        g_settings_schema_unref(schema);
-        if (name && *name) return name;
-        g_free(name);
-    }
+    if ((name = config_desktop_setting("icon-theme")))
+        return name;
 
     kf = g_key_file_new();
     path = g_build_filename(g_get_user_config_dir(), "gtk-3.0",

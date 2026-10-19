@@ -18,6 +18,7 @@
 */
 
 #include "config.h"
+#include <gio/gio.h>
 #include "keyboard.h"
 #include "mouse.h"
 #include "actions.h"
@@ -1416,6 +1417,34 @@ static void parse_owbox(xmlNodePtr node, gpointer d)
     }
 }
 
+gchar* config_desktop_setting(const gchar *key)
+{
+    GSettingsSchemaSource *src = g_settings_schema_source_get_default();
+    GSettingsSchema *schema = src ?
+        g_settings_schema_source_lookup(src, "org.gnome.desktop.interface",
+                                        TRUE) : NULL;
+    gchar *value = NULL;
+
+    if (schema) {
+        if (g_settings_schema_has_key(schema, key)) {
+            GSettings *gs = g_settings_new("org.gnome.desktop.interface");
+            GVariant *v = g_settings_get_value(gs, key);
+            if (g_variant_is_of_type(v, G_VARIANT_TYPE_STRING))
+                value = g_variant_dup_string(v, NULL);
+            else if (g_variant_is_of_type(v, G_VARIANT_TYPE_INT32))
+                value = g_strdup_printf("%d", g_variant_get_int32(v));
+            g_variant_unref(v);
+            g_object_unref(gs);
+        }
+        g_settings_schema_unref(schema);
+    }
+    if (value && !*value) {
+        g_free(value);
+        value = NULL;
+    }
+    return value;
+}
+
 static void owbox_defaults(void)
 {
     const gchar *s;
@@ -1427,10 +1456,29 @@ static void owbox_defaults(void)
     config_kb_numlock = FALSE;
     config_libinput = NULL;
     config_outputs = NULL;
-    config_cursor_theme = g_strdup(g_getenv("XCURSOR_THEME"));
-    config_cursor_size = 24;
-    if ((s = g_getenv("XCURSOR_SIZE")) && atoi(s) > 0)
-        config_cursor_size = atoi(s);
+    {
+        /* what the session had before owbox exported its own */
+        static gchar *env_theme = NULL;
+        static gint env_size = 0;
+        static gboolean env_read = FALSE;
+        if (!env_read) {
+            env_theme = g_strdup(g_getenv("XCURSOR_THEME"));
+            if ((s = g_getenv("XCURSOR_SIZE")))
+                env_size = atoi(s);
+            env_read = TRUE;
+        }
+        /* or the one GTK applications use */
+        config_cursor_theme = env_theme ? g_strdup(env_theme) :
+            config_desktop_setting("cursor-theme");
+        config_cursor_size = env_size;
+        if (config_cursor_size <= 0) {
+            gchar *gs = config_desktop_setting("cursor-size");
+            config_cursor_size = gs ? atoi(gs) : 0;
+            g_free(gs);
+        }
+        if (config_cursor_size <= 0)
+            config_cursor_size = 24;
+    }
     config_icon_theme = NULL;
     config_decoration_policy = OB_DECORATION_POLICY_AUTO;
     config_force_server_decorations = FALSE;

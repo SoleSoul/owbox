@@ -299,6 +299,10 @@ extern guchar config_root_color[3];
 extern gboolean config_auto_reload;
 /*! Let applications (like virtual machines) take over the key bindings */
 extern gboolean config_allow_shortcuts_inhibit;
+/*! A setting of the desktop's look (org.gnome.desktop.interface in
+  GSettings, which GTK applications follow on Wayland), or NULL */
+gchar* config_desktop_setting(const gchar *key);
+
 /*! How to run X applications, read only at startup */
 extern ObXwaylandMode config_xwayland;
 /*! The layout of the desktops in a grid, rows 0 for a single row */
