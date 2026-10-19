@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: the example waybar configuration kept its bars from reserving
+  space, so without `<autoHide>` they covered maximized windows' title
+  bars. owbox already gives hidden panels' space to the windows. The smoke
+  test now runs waybar and checks both.
+
 ## 0.3.0 (2026-10-19)
 
 The first public release.

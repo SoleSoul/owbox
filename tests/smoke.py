@@ -240,6 +240,51 @@ def test_panels(out):
     wait_windows(out, 0)
 
 
+def test_bars(out):
+    """The example waybar's bars take their space from maximized windows,
+    and auto-hidden ones don't"""
+    if not shutil.which("waybar"):
+        print("skip bars: no waybar")
+        return
+    ex = os.path.join(ROOT, "data", "examples", "waybar")
+    bar = subprocess.Popen([os.path.join(HERE, "run.sh"), out, "waybar",
+                            "-c", os.path.join(ex, "config.jsonc"),
+                            "-s", os.path.join(ex, "style.css")],
+                           stdout=subprocess.DEVNULL,
+                           stderr=subprocess.DEVNULL)
+    subprocess.Popen([os.path.join(HERE, "run.sh"), out, "foot"],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    w = wait_windows(out, 1)
+    time.sleep(2)  # waybar's bars
+    if not w:
+        check("foot maps", False)
+        bar.terminate()
+        return
+    action(out, '<action name="Maximize"/>')
+    screen = outputs(out)[0]
+    w = windows(out)[0]
+    bottom = w["y"] + w["frame"][1] + w["height"] + w["frame"][3]
+    check("a maximized window fits between the bars",
+          w["y"] > 0 and bottom < screen["height"], (w, bottom))
+
+    rc = os.path.join(out, "rc.xml")
+    orig = open(rc).read()
+    with open(rc, "w") as f:
+        f.write(orig.replace("<autoHide>no</autoHide>",
+                             "<autoHide>yes</autoHide>"))
+    time.sleep(1.5)  # reloaded on change
+    w = windows(out)[0]
+    bottom = w["y"] + w["frame"][1] + w["height"] + w["frame"][3]
+    check("with autoHide it has the whole screen",
+          w["y"] == 0 and bottom == screen["height"], (w, bottom))
+    with open(rc, "w") as f:
+        f.write(orig)
+    time.sleep(1.5)
+    inp(out, "key", "alt+F4")
+    wait_windows(out, 0)
+    bar.terminate()
+
+
 def test_menus(out):
     # the root menu at 700,200 (Clearlooks, the default font): Applications
     # is the 3rd item (y+62), Windows the 4th (y+84), the submenu opens at
@@ -310,6 +355,7 @@ def main():
         test_scale(out)
         test_idle(out)
         test_panels(out)
+        test_bars(out)
         test_menus(out)
         test_x11(out)
         try:

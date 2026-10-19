@@ -17,7 +17,7 @@ jobs:
           pacman -Syu --noconfirm --needed git meson ninja gcc pkgconf \
             wayland-protocols wlroots0.20 libinput libxkbcommon pixman glib2 \
             libxml2 pango cairo librsvg libsfdo xcb-util-wm wayland \
-            xorg-xwayland xterm foot grim python python-cairo python-gobject gtk4 \
+            xorg-xwayland xterm foot grim waybar python python-cairo python-gobject gtk4 \
             ttf-dejavu
 
       - name: Check out repository

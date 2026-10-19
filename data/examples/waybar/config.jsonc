@@ -5,17 +5,17 @@
 // session: "systemctl --user enable waybar.service", or "waybar &" in
 // ~/.config/owbox/autostart.
 //
-// With <owbox><panels><autoHide>yes</autoHide></panels> in rc.xml both stay
-// hidden until Super is tapped (a <keybind key="Super_L" tap="yes"> running
-// TogglePanels), and go away with Escape, a click elsewhere, or switching
-// to a window.
+// The bars reserve their space, so maximized windows fit between them.
+// With <owbox><panels><autoHide>yes</autoHide></panels> in rc.xml they stay
+// hidden, and windows have the whole screen, until Super is tapped (a
+// <keybind key="Super_L" tap="yes"> running TogglePanels); they go away
+// with Escape, a click elsewhere, or switching to a window.
 [
   {
     "name": "top",
     "layer": "top",
     "position": "top",
     "height": 28,
-    "exclusive": false,
     "spacing": 4,
     "modules-left": ["ext/workspaces"],
     "modules-center": ["clock"],
@@ -120,7 +120,6 @@
     "layer": "top",
     "position": "bottom",
     "height": 58,
-    "exclusive": false,
     "modules-center": ["wlr/taskbar"],
 
     "wlr/taskbar": {
