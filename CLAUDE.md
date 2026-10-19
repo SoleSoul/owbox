@@ -1,6 +1,7 @@
 # Working on owbox
 
-owbox is Openbox ported to Wayland on wlroots. Read README.md for what it
+owbox is a Wayland compositor on wlroots built from Openbox's code (an
+independent project, not Openbox). Read README.md for what it
 is, docs/ARCHITECTURE.md for how it's built (read it before changing code),
 docs/DECISIONS.md for why, and docs/ROADMAP.md for what's next.
 

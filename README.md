@@ -1,19 +1,28 @@
-# owbox — Openbox for Wayland
+# owbox — a Wayland compositor based on Openbox
 
-owbox is [Openbox](http://openbox.org) as a Wayland compositor. It aims for
-the same goals as Openbox: standards compliant, complete, light, and with
-sane defaults. It is a drop-in replacement where that makes sense:
+owbox is a stacking Wayland compositor built from
+[Openbox](http://openbox.org)'s window management code, for people who like
+Openbox and want to use Wayland. It aims for Openbox's goals (standards
+compliant, complete, light, sane defaults), and to make moving from Openbox
+easy:
 
-- **The same configuration.** owbox reads `rc.xml` and `menu.xml` from
+> **owbox is not Openbox.** It is an independent project that reuses
+> Openbox's source code under the GPL. It isn't made, endorsed or supported
+> by the Openbox developers: please report problems with owbox here, not to
+> Openbox.
+
+- **Openbox's configuration.** owbox reads `rc.xml` and `menu.xml` from
   `~/.config/owbox/`, or from `~/.config/openbox/` if there is no owbox one.
   Key and mouse bindings, actions, per-application rules, margins, desktops,
-  placement and focus settings all work as in Openbox.
-- **The same themes.** Openbox themes (`openbox-3/themerc`) render pixel for
-  pixel the same, using Openbox's own theme engine ported to cairo and pango.
-- **The same behavior.** Most of the code *is* Openbox's: window management,
-  focus, stacking, placement, menus, Alt-Tab, the desktop switcher, move and
-  resize with resistance. It runs on [wlroots](https://gitlab.freedesktop.org/wlroots/wlroots)
-  in place of Xlib.
+  placement and focus settings are meant to work as in Openbox.
+- **Openbox's themes.** Openbox themes (`openbox-3/themerc`) are drawn by
+  Openbox's own theme engine, ported to cairo and pango.
+- **Openbox's behavior.** Window management, focus, stacking, placement,
+  menus, Alt-Tab, the desktop switcher, move and resize with resistance are
+  Openbox's code, adapted to run on
+  [wlroots](https://gitlab.freedesktop.org/wlroots/wlroots) in place of
+  Xlib. Where owbox differs, [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
+  says so.
 - **X applications** run through Xwayland and are managed like in Openbox,
   ICCCM and EWMH hints included.
 
@@ -145,6 +154,8 @@ decorations, snapping and Xwayland. The installed `rc.xml` documents each of the
 
 ## License
 
-GPL-2.0-or-later, like Openbox, whose code most of this is. Copyright Dana
+GPL-2.0-or-later, like Openbox, whose code much of this is. Copyright Dana
 Jansens, Mikael Magnusson and the Openbox contributors, and the owbox
-contributors.
+contributors. owbox is not affiliated with the Openbox project; the
+Openbox name is used only to say what owbox is based on and compatible
+with.

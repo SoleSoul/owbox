@@ -1,6 +1,6 @@
 .TH OWBOX 1 "2026" "owbox 0.3.0" "User Commands"
 .SH NAME
-owbox \- Openbox for Wayland, a stacking window manager and compositor
+owbox \- a stacking Wayland compositor based on Openbox
 .SH SYNOPSIS
 .B owbox
 [\fIOPTION\fR]...
@@ -18,9 +18,11 @@ owbox \- Openbox for Wayland, a stacking window manager and compositor
 \fBup\fR|\fBdown\fR
 .SH DESCRIPTION
 .B owbox
-is a Wayland compositor that is Openbox: the same window management, the
-same configuration files, themes and menus, the same key and mouse bindings.
-X applications run through Xwayland.
+is a Wayland compositor built from Openbox's window management code.  It
+reads Openbox's configuration files, themes and menus, and behaves like
+Openbox, key and mouse bindings included.  X applications run through
+Xwayland.  owbox is an independent project, not Openbox, and isn't
+affiliated with the Openbox developers: report problems with it to owbox.
 .PP
 Start it from a display manager (the \fBowbox\fR session) or from a text
 console with \fBowbox-session\fR, which reads the environment files first.

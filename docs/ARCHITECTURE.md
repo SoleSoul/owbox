@@ -1,6 +1,7 @@
 # owbox architecture
 
-owbox is Openbox 3.6 (the git master of github.com/Mikachu/openbox) with
+owbox is built from the code of Openbox 3.6 (the git master of
+github.com/Mikachu/openbox), with
 its X11 layer replaced by wlroots. The window management modules (client,
 focus, stacking, placement, menus, actions, moveresize, keyboard and mouse
 bindings, config) are Openbox's files, changed as little as possible. New

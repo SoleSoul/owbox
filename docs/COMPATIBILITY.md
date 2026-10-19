@@ -1,8 +1,8 @@
 # Compatibility with Openbox
 
-owbox runs Openbox 3.6's window management code, so behavior that isn't
-listed here should be the same as in Openbox. A difference that isn't
-listed is a bug.
+owbox runs Openbox 3.6's window management code, adapted, so behavior that
+isn't listed here should be the same as in Openbox. A difference that isn't
+listed is a bug in owbox: please report it to owbox, not to Openbox.
 
 ## Works the same
 
