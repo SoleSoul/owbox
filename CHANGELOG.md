@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: owbox Settings was laid out right to left in a right-to-left
+  language like Hebrew, with its English text. Until it is translated it
+  keeps the left-to-right layout.
+
 ## 0.3.1 (2026-10-20)
 
 - Fixed: a panel run as a systemd service (waybar.service) didn't start

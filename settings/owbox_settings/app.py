@@ -1312,4 +1312,10 @@ class SettingsApp(Gtk.Application):
 
 def main():
     path = sys.argv[1] if len(sys.argv) > 1 else None
+    # GTK lays windows out right to left in a right-to-left language (like
+    # Hebrew) even when the text isn't translated; without a translation of
+    # owbox Settings the text is English, so keep English's direction
+    import gettext
+    if gettext.find("owbox-settings") is None:
+        Gtk.Widget.set_default_direction(Gtk.TextDirection.LTR)
     return SettingsApp(path).run([sys.argv[0]])
