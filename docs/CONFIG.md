@@ -134,9 +134,10 @@ How much larger than the theme says owbox draws window frames, menus,
 Alt-Tab and the other popups, with their fonts: `1.5` or `150%` is half
 again as large, from 0.5 to 4. Applications keep their size, while an
 output's `<scale>` makes everything on that monitor larger. The theme's
-bevels and borders get thicker by whole pixels, and its bitmap buttons are
-exact at whole number scales and smoothed between them; SVG and PNG
-buttons, gradients and text are sharp at any scale.
+bevels and borders get thicker by whole pixels, and its buttons (bitmaps,
+pixel art) are drawn at the nearest whole number of times their size, so
+they stay crisp: at 125% they keep their size, from 150% they double.
+Gradients and text are sharp at any scale.
 
 ```xml
   <snapping enabled="yes">

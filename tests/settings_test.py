@@ -81,6 +81,41 @@ def main():
           "Run a command: foot", kb2.find("W-Return").description())
     check("Alt-Tab with finalactions is editable",
           kb2.find("A-Tab").is_simple())
+    check("media key labels", key_label("XF86AudioMute") == "Mute" and
+          key_label("S-Print") == "Shift+Print Screen",
+          key_label("S-Print"))
+
+    # an older rc.xml, without some of owbox's default bindings, gets them
+    # from the system's (XDG_CONFIG_DIRS)
+    sysdir = os.path.join(tmp, "sys")
+    os.makedirs(os.path.join(sysdir, "owbox"))
+    shutil.copy(os.path.join(ROOT, "data", "rc.xml"),
+                os.path.join(sysdir, "owbox", "rc.xml"))
+    os.environ["XDG_CONFIG_DIRS"] = sysdir
+    old = os.path.join(tmp, "old.xml")
+    shutil.copy(os.path.join(ROOT, "data", "rc.xml"), old)
+    rc3 = RcXml(old)
+    kb3 = KeyBindings(rc3)
+    for key in ("Print", "XF86AudioMute"):
+        kb3.remove(kb3.find(key))
+    kb3.find("W-e").set_action("Execute", "thunar")
+    rc3.save()
+    rc3 = RcXml(old)
+    kb3 = KeyBindings(rc3)
+    missing = [b.key for b in kb3.missing_defaults()]
+    check("missing default bindings are found",
+          missing == ["XF86AudioMute", "Print"], missing)
+    for b in kb3.missing_defaults():
+        kb3.add_copy(b)
+    rc3.save()
+    kb3 = KeyBindings(RcXml(old))
+    check("and added, keeping the user's own",
+          kb3.find("Print") is not None and not kb3.missing_defaults() and
+          kb3.find("W-e").option() == "thunar")
+    check("an added binding is written like the others",
+          '\n  <keybind key="Print">\n    <action name="Execute">' in
+          open(old).read())
+    del os.environ["XDG_CONFIG_DIRS"]
 
     # owbox reads the result without complaints
     owbox = os.path.join(ROOT, "build", "owbox")

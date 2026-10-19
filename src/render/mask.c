@@ -21,54 +21,34 @@
 #include "color.h"
 #include "mask.h"
 
-/* owbox: how much of the drawn pixel (x, y) the XBM's set bits cover, when
-   it is drawn at a scale */
-static guchar coverage(const gchar *data, gint w, gint h, gdouble scale,
-                       gint x, gint y)
-{
-    const gint stride = (w + 7) / 8;
-    const gdouble x0 = x / scale, x1 = (x + 1) / scale;
-    const gdouble y0 = y / scale, y1 = (y + 1) / scale;
-    gdouble sum = 0;
-    gint mx, my;
-
-    for (my = (gint)y0; my < h && my < y1; ++my) {
-        const guchar *row = (const guchar*)data + my * stride;
-        gdouble dy = MIN(y1, my + 1) - MAX(y0, my);
-        for (mx = (gint)x0; mx < w && mx < x1; ++mx)
-            if (row[mx / 8] & (1 << (mx % 8)))
-                sum += dy * (MIN(x1, mx + 1) - MAX(x0, mx));
-    }
-    /* the drawn pixel is 1/scale^2 of the XBM's pixels */
-    sum *= scale * scale;
-    return (guchar)(MIN(sum, 1.0) * 255 + 0.5);
-}
-
 RrPixmapMask *RrPixmapMaskNew(const RrInstance *inst,
                               gint w, gint h, const gchar *data)
 {
     RrPixmapMask *m = g_slice_new(RrPixmapMask);
-    const gdouble scale = RrScale(inst);
+    /* owbox: at owbox's scale, masks (pixel art) are drawn at a whole
+       number of times their size (as lines are), so they stay crisp */
+    const gint f = RrLineWidth(inst);
     m->inst = inst;
     m->width = w;
     m->height = h;
     /* round up to nearest byte */
     m->data = g_memdup2(data, (w + 7) / 8 * h);
 
-    /* owbox: draw it larger at a scale, smoothed unless the scale is a whole
-       number */
     m->xbm_width = w;
     m->xbm_height = h;
     m->alpha = NULL;
-    if (scale != 1.0 && w > 0 && h > 0) {
+    if (f > 1 && w > 0 && h > 0) {
+        const gint stride = (w + 7) / 8;
         gint x, y;
-        m->width = MAX((gint)(w * scale + 0.5), 1);
-        m->height = MAX((gint)(h * scale + 0.5), 1);
+        m->width = w * f;
+        m->height = h * f;
         m->alpha = g_new(guchar, m->width * m->height);
-        for (y = 0; y < m->height; ++y)
+        for (y = 0; y < m->height; ++y) {
+            const guchar *row = (const guchar*)data + (y / f) * stride;
             for (x = 0; x < m->width; ++x)
                 m->alpha[y * m->width + x] =
-                    coverage(data, w, h, (gdouble)m->width / w, x, y);
+                    (row[(x / f) / 8] & (1 << ((x / f) % 8))) ? 255 : 0;
+        }
     }
     return m;
 }
@@ -80,19 +60,6 @@ void RrPixmapMaskFree(RrPixmapMask *m)
         g_free(m->alpha);
         g_slice_free(RrPixmapMask, m);
     }
-}
-
-/* owbox: c over the pixel p, a of 255 of it */
-static RrPixel32 blend(RrPixel32 p, RrPixel32 c, guint a)
-{
-    RrPixel32 out = p & (0xff << RrDefaultAlphaOffset);
-    gint off;
-
-    for (off = 0; off < 24; off += 8) {
-        guint pc = (p >> off) & 0xff, cc = (c >> off) & 0xff;
-        out |= ((pc * (255 - a) + cc * a + 127) / 255) << off;
-    }
-    return out;
 }
 
 void RrPixmapMaskDraw(RrPixel32 *target, gint tw, gint th,
@@ -116,10 +83,8 @@ void RrPixmapMaskDraw(RrPixel32 *target, gint tw, gint th,
             const guchar *row = m->mask->alpha + my * m->mask->width;
             RrPixel32 *out = target + (y + my) * tw + x;
             for (mx = 0; mx < m->mask->width && x + mx < tw; ++mx)
-                if (row[mx] == 255)
+                if (row[mx])
                     out[mx] = pix;
-                else if (row[mx])
-                    out[mx] = blend(out[mx], pix, row[mx]);
         }
         return;
     }

@@ -11,10 +11,12 @@ rc.xml.  A binding the settings can show and edit is a key with one action
 that has at most one option; others (chains, several actions, actions with
 finalactions) are kept as they are and shown as advanced."""
 
+import copy
+import os
 import xml.etree.ElementTree as ET
 from gettext import gettext as _
 
-from .rcxml import q
+from .rcxml import q, config_dirs, RcXml
 
 # Openbox's modifier letters, in the order they're written
 MODIFIERS = [("C", _("Ctrl")), ("A", _("Alt")), ("S", _("Shift")),
@@ -74,6 +76,26 @@ ACTIONS = [
 ACTION_INFO = {a[0].lower(): a for a in ACTIONS}
 
 
+# keys whose X names aren't words people use
+KEY_NAMES = {
+    "XF86AudioRaiseVolume": _("Volume Up"),
+    "XF86AudioLowerVolume": _("Volume Down"),
+    "XF86AudioMute": _("Mute"),
+    "XF86AudioMicMute": _("Microphone Mute"),
+    "XF86AudioPlay": _("Play"),
+    "XF86AudioPause": _("Pause"),
+    "XF86AudioStop": _("Stop"),
+    "XF86AudioNext": _("Next Track"),
+    "XF86AudioPrev": _("Previous Track"),
+    "XF86MonBrightnessUp": _("Brightness Up"),
+    "XF86MonBrightnessDown": _("Brightness Down"),
+    "Print": _("Print Screen"),
+    "Return": _("Enter"),
+    "Prior": _("Page Up"),
+    "Next": _("Page Down"),
+}
+
+
 def key_label(key):
     """'W-A-Left' -> 'Super+Alt+Left'"""
     parts = key.split("-")
@@ -85,6 +107,7 @@ def key_label(key):
     k = parts[-1]
     if len(k) == 1:
         k = k.upper()
+    k = KEY_NAMES.get(k, k)
     return "+".join(out + [k])
 
 
@@ -201,9 +224,59 @@ def _indent(elem, depth):
                 o.tail = None
 
 
+# the bindings owbox's default rc.xml has besides Openbox's, which an Openbox
+# rc.xml, or a copy of an older owbox's, doesn't have
+OWBOX_DEFAULT_KEYS = [
+    "W-Left", "W-Right", "W-Up", "W-Down", "W-e",
+    "XF86AudioRaiseVolume", "XF86AudioLowerVolume", "XF86AudioMute",
+    "XF86AudioMicMute", "XF86AudioPlay", "XF86AudioPause", "XF86AudioNext",
+    "XF86AudioPrev", "XF86MonBrightnessUp", "XF86MonBrightnessDown",
+    "Print", "A-Print", "S-Print",
+]
+
+
+def system_rc():
+    """owbox's default rc.xml (in /etc/xdg/owbox), or None"""
+    for d in config_dirs()[1:]:
+        path = os.path.join(d, "owbox", "rc.xml")
+        if os.path.isfile(path):
+            return path
+    return None
+
+
 class KeyBindings:
     def __init__(self, rc):
         self.rc = rc
+
+    def missing_defaults(self):
+        """owbox's default bindings for keys this file doesn't bind, as
+        bindings of the default rc.xml"""
+        path = system_rc()
+        if path is None or \
+                os.path.realpath(path) == os.path.realpath(self.rc.path):
+            return []
+        try:
+            defaults = KeyBindings(RcXml(path))
+        except (OSError, ET.ParseError):
+            return []
+        out = []
+        for key in OWBOX_DEFAULT_KEYS:
+            b = defaults.find(key)
+            if b is not None and self.find(key) is None:
+                out.append(b)
+        return out
+
+    def add_copy(self, binding):
+        """Add a copy of another file's binding, as it is written there"""
+        kb = self.keyboard()
+        e = copy.deepcopy(binding.elem)
+        # take the place (and the indentation) of a new binding
+        new = self.rc.append(kb, "keybind")
+        e.tail = new.tail
+        i = list(kb).index(new)
+        kb.remove(new)
+        kb.insert(i, e)
+        return Binding(e)
 
     def keyboard(self):
         return self.rc.ensure("keyboard")

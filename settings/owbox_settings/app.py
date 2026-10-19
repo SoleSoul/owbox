@@ -102,7 +102,8 @@ class SettingsWindow(Gtk.ApplicationWindow):
         self.stack.set_hexpand(True)
         body.append(self.stack)
 
-        pages = [("appearance", _("Appearance"), self.page_appearance),
+        pages = [("theme", _("Theme"), self.page_theme),
+                 ("appearance", _("Appearance"), self.page_appearance),
                  ("windows", _("Windows"), self.page_windows),
                  ("displays", _("Displays"), self.page_displays),
                  ("desktops", _("Desktops"), self.page_desktops),
@@ -176,6 +177,7 @@ class SettingsWindow(Gtk.ApplicationWindow):
         self.rc.copy_to_owbox()
         reconfigure()
         self.update_notice()
+        self.fill_defaults()
 
     def ensure_user_file(self):
         """The first change to the system's file is saved as the user's"""
@@ -221,7 +223,8 @@ class SettingsWindow(Gtk.ApplicationWindow):
 
     def scale_dropdown(self):
         """<owbox><scale>, as percentages"""
-        values = ["", "1.25", "1.5", "1.75", "2", "2.5", "3"]
+        values = ["", "1.1", "1.15", "1.2", "1.25", "1.35", "1.5", "1.75",
+                  "2", "2.5", "3"]
         cur = self.rc.get("owbox/scale", "")
         try:
             num = float(cur.rstrip("%")) / (100 if "%" in cur else 1)
@@ -249,9 +252,11 @@ class SettingsWindow(Gtk.ApplicationWindow):
 
     # ---- Appearance ----
 
-    def page_appearance(self):
+    def page_theme(self):
         scroll, box = page_box()
-        box.append(section(_("Theme")))
+        box.append(label(_("The look of window frames, menus and popups.  "
+                           "Openbox themes work as they are."),
+                         css="dim-label"))
         flow = Gtk.FlowBox()
         flow.set_selection_mode(Gtk.SelectionMode.SINGLE)
         flow.set_min_children_per_line(2)
@@ -277,7 +282,10 @@ class SettingsWindow(Gtk.ApplicationWindow):
                      lambda f, c: self.set("theme/name", c.theme_name))
         flow.connect("selected-children-changed", self.on_theme_selected)
         box.append(flow)
+        return scroll
 
+    def page_appearance(self):
+        scroll, box = page_box()
         box.append(section(_("Size")))
         box.append(row(_("Size of owbox"), self.scale_dropdown(),
                        _("Window frames, menus and popups.  Applications "
@@ -784,6 +792,9 @@ class SettingsWindow(Gtk.ApplicationWindow):
         outer.set_margin_top(12)
         outer.append(label(_("Double click a binding to change it."),
                            css="dim-label"))
+        self.defaults_box = Gtk.Box(spacing=12)
+        outer.append(self.defaults_box)
+        self.fill_defaults()
         self.keys_list = Gtk.ListBox()
         self.keys_list.add_css_class("boxed-list")
         scroll = Gtk.ScrolledWindow(vexpand=True)
@@ -825,6 +836,44 @@ class SettingsWindow(Gtk.ApplicationWindow):
             r.set_child(box)
             r.binding = b
             self.keys_list.append(r)
+
+    def fill_defaults(self):
+        """An offer of owbox's default bindings the file doesn't have, which
+        an Openbox rc.xml or a copy of an older owbox's lacks"""
+        box = self.defaults_box
+        child = box.get_first_child()
+        while child:
+            box.remove(child)
+            child = box.get_first_child()
+        missing = self.keys.missing_defaults()
+        box.set_visible(bool(missing))
+        if not missing:
+            return
+        keys = ", ".join(key_label(b.key) for b in missing)
+        if self.rc.is_openbox_file():
+            text = _("owbox has default bindings this Openbox file doesn't: "
+                     "%s.  Use separate settings for owbox (above) to add "
+                     "them.") % keys
+            box.append(label(text))
+            box.get_first_child().set_wrap(True)
+            return
+        lab = label(_("owbox has default bindings your settings don't: %s.")
+                    % keys)
+        lab.set_wrap(True)
+        lab.set_hexpand(True)
+        box.append(lab)
+        add = Gtk.Button(label=_("Add Them"))
+        add.set_valign(Gtk.Align.CENTER)
+        add.connect("clicked", self.on_add_defaults)
+        box.append(add)
+
+    def on_add_defaults(self, *args):
+        self.ensure_user_file()
+        for b in self.keys.missing_defaults():
+            self.keys.add_copy(b)
+        self.changed()
+        self.fill_keys()
+        self.fill_defaults()
 
     def selected_binding(self):
         r = self.keys_list.get_selected_row()

@@ -7,8 +7,12 @@ The first public release.
 - **owbox's scale** (`<owbox><scale>`, and Settings → Appearance → Size of
   owbox): window frames, menus, Alt-Tab and the other popups drawn larger
   than the theme, with their fonts, while applications keep their size.
-  Themes stay sharp: bevels and borders get thicker by whole pixels, bitmap
-  buttons are exact at whole number scales and smoothed between them.
+  Themes stay sharp: bevels, borders and button bitmaps grow by whole
+  numbers of pixels.
+- owbox Settings: themes have their own page, finer sizes, readable names
+  for media keys, and Key Bindings offers owbox's default bindings that an
+  Openbox rc.xml (or a copy of an older owbox's) doesn't have, like Print
+  Screen and the volume keys.
 - **A session that works out of the box**: the default rc.xml binds the
   volume, media and brightness keys, and Print Screen to the new
   `owbox-screenshot` (the screen, Alt for the focused window, Shift for an

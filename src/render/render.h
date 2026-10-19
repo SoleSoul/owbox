@@ -164,8 +164,7 @@ struct _RrPixmapMask {
     gint height;
     gchar *data;
     /* owbox: the XBM's size when it is drawn larger than its data (width and
-       height are the size drawn), and how much of each pixel drawn it
-       covers, 0 to 255 */
+       height are the size drawn), and the pixels drawn then, 0 or 255 */
     gint xbm_width;
     gint xbm_height;
     guchar *alpha;

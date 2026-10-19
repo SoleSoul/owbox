@@ -18,7 +18,7 @@ listed is a bug.
 - menu.xml: menus, separators, icons, pipe menus, `client-list-menu`,
   `client-list-combined-menu`, `client-menu`.
 - Themes: the full themerc format (gradients, borders, bevels, masks from
-  XBM files, PNG and SVG buttons, shadows on text, ParentRelative), so
+  XBM files, shadows on text, ParentRelative), so
   everything in `/usr/share/themes/*/openbox-3` works.
 - Alt-Tab (window list dialog and focus cycle indicator), directional focus,
   the desktop switching popup, move and resize popups, edge resistance,
