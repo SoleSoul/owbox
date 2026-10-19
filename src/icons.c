@@ -26,24 +26,108 @@
 #include <sfdo-desktop.h>
 #include <sfdo-icon.h>
 #include <string.h>
+#include <locale.h>
+#include <glib/gstdio.h>
+#include <gio/gio.h>
 
 static struct sfdo_basedir_ctx *basedir = NULL;
 static struct sfdo_desktop_ctx *desktop_ctx = NULL;
 static struct sfdo_desktop_db *desktop_db = NULL;
 static struct sfdo_icon_ctx *icon_ctx = NULL;
 static struct sfdo_icon_theme *icon_theme = NULL;
+/*! When the applications directories last changed, as far as the loaded
+  desktop entries know */
+static gint64 desktop_db_stamp = 0;
+
+/* The newest modification time of the directories with desktop entries */
+static gint64 applications_stamp(void)
+{
+    const gchar *const *dirs = g_get_system_data_dirs();
+    gint64 newest = 0;
+    gint i;
+
+    for (i = -1; i < 0 || dirs[i]; ++i) {
+        gchar *path = g_build_filename(i < 0 ? g_get_user_data_dir() :
+                                       dirs[i], "applications", NULL);
+        GStatBuf st;
+        if (g_stat(path, &st) == 0)
+            newest = MAX(newest, (gint64)st.st_mtime);
+        g_free(path);
+    }
+    return newest;
+}
+
+static void load_desktop_db(void)
+{
+    const gchar *locale = setlocale(LC_MESSAGES, NULL);
+
+    sfdo_desktop_db_destroy(desktop_db);
+    desktop_db = NULL;
+    desktop_db_stamp = applications_stamp();
+    if (desktop_ctx)
+        /* names are translated for the locale */
+        desktop_db = sfdo_desktop_db_load(desktop_ctx,
+                                          locale && strcmp(locale, "C") &&
+                                          strcmp(locale, "POSIX") ?
+                                          locale : NULL);
+}
+
+struct sfdo_desktop_db* icons_desktop_db(void)
+{
+    if (applications_stamp() != desktop_db_stamp)
+        load_desktop_db();
+    return desktop_db;
+}
+
+/* The icon theme when rc.xml doesn't name one: the one GTK applications
+   use on Wayland (GSettings), or GTK's settings file, or Adwaita */
+static gchar* default_icon_theme(void)
+{
+    GSettingsSchemaSource *src = g_settings_schema_source_get_default();
+    GSettingsSchema *schema = src ?
+        g_settings_schema_source_lookup(src, "org.gnome.desktop.interface",
+                                        TRUE) : NULL;
+    gchar *name = NULL, *path;
+    GKeyFile *kf;
+
+    if (schema) {
+        GSettings *gs = g_settings_new("org.gnome.desktop.interface");
+        name = g_settings_get_string(gs, "icon-theme");
+        g_object_unref(gs);
+        g_settings_schema_unref(schema);
+        if (name && *name) return name;
+        g_free(name);
+    }
+
+    kf = g_key_file_new();
+    path = g_build_filename(g_get_user_config_dir(), "gtk-3.0",
+                            "settings.ini", NULL);
+    if (g_key_file_load_from_file(kf, path, G_KEY_FILE_NONE, NULL))
+        name = g_key_file_get_string(kf, "Settings", "gtk-icon-theme-name",
+                                     NULL);
+    g_free(path);
+    g_key_file_unref(kf);
+    if (name && *name) return name;
+    g_free(name);
+    return g_strdup("Adwaita");
+}
 
 void icons_startup(gboolean reconfig)
 {
+    gchar *theme;
+
     basedir = sfdo_basedir_ctx_create();
     desktop_ctx = sfdo_desktop_ctx_create(basedir);
-    if (desktop_ctx)
-        desktop_db = sfdo_desktop_db_load(desktop_ctx, NULL);
+    load_desktop_db();
     icon_ctx = sfdo_icon_ctx_create(basedir);
+    theme = config_icon_theme ? g_strdup(config_icon_theme) :
+        default_icon_theme();
+    ob_debug("Icon theme %s", theme);
     if (icon_ctx)
-        icon_theme = sfdo_icon_theme_load(icon_ctx, config_icon_theme,
+        icon_theme = sfdo_icon_theme_load(icon_ctx, theme,
             SFDO_ICON_THEME_LOAD_OPTION_ALLOW_MISSING |
             SFDO_ICON_THEME_LOAD_OPTION_RELAXED);
+    g_free(theme);
     if (!icon_theme)
         ob_debug("Unable to load the icon theme");
 }
@@ -91,7 +175,7 @@ static struct sfdo_desktop_entry* find_entry(const gchar *app_id)
     size_t n, i;
     gchar *lower;
 
-    if (!desktop_db || !app_id || !*app_id) return NULL;
+    if (!icons_desktop_db() || !app_id || !*app_id) return NULL;
 
     if ((e = sfdo_desktop_db_get_entry_by_id(desktop_db, app_id, SFDO_NT)))
         return e;

@@ -35,6 +35,7 @@
 #include "icons.h"
 #include "seat.h"
 #include "client_list_combined_menu.h"
+#include "app_menu.h"
 #include "gettext.h"
 #include "obt/xml.h"
 #include "obt/paths.h"
@@ -71,6 +72,7 @@ void menu_startup(gboolean reconfig)
 
     client_list_menu_startup(reconfig);
     client_list_combined_menu_startup(reconfig);
+    app_menu_startup(reconfig);
     client_menu_startup();
 
     menu_parse_inst = obt_xml_instance_new();
@@ -84,10 +86,10 @@ void menu_startup(gboolean reconfig)
                        parse_menu_separator, &menu_parse_state);
 
     for (it = config_menu_files; it; it = g_slist_next(it)) {
-        if (obt_xml_load_config_file(menu_parse_inst,
-                                     "openbox",
-                                     it->data,
-                                     "openbox_menu"))
+        if (obt_xml_load_config_file_domains(menu_parse_inst,
+                                             ob_config_domains,
+                                             it->data,
+                                             "openbox_menu"))
         {
             loaded = TRUE;
             obt_xml_tree_from_root(menu_parse_inst);
@@ -106,10 +108,10 @@ void menu_startup(gboolean reconfig)
                       (const gchar*)it->data);
     }
     if (!loaded) {
-        if (obt_xml_load_config_file(menu_parse_inst,
-                                     "openbox",
-                                     "menu.xml",
-                                     "openbox_menu"))
+        if (obt_xml_load_config_file_domains(menu_parse_inst,
+                                             ob_config_domains,
+                                             "menu.xml",
+                                             "openbox_menu"))
         {
             obt_xml_tree_from_root(menu_parse_inst);
             obt_xml_close(menu_parse_inst);
@@ -129,6 +131,7 @@ void menu_shutdown(gboolean reconfig)
     menu_frame_hide_all();
 
     client_list_combined_menu_shutdown(reconfig);
+    app_menu_shutdown(reconfig);
     client_list_menu_shutdown(reconfig);
 
     g_hash_table_destroy(menu_hash);

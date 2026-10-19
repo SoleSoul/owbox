@@ -1,0 +1,11 @@
+# Environment variables for owbox sessions, read by owbox-session.  Copy
+# this to ~/.config/owbox/environment to set your own.
+#
+# Run applications natively on Wayland where they can.
+#export MOZ_ENABLE_WAYLAND=1
+#export QT_QPA_PLATFORM="wayland;xcb"
+#export SDL_VIDEODRIVER="wayland,x11"
+#export ELECTRON_OZONE_PLATFORM_HINT=auto
+#
+# The keyboard layout can also be set in rc.xml's <owbox><keyboard>.
+#export XKB_DEFAULT_LAYOUT=us

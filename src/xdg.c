@@ -348,6 +348,8 @@ static void xdg_change_state(ObClient *self)
 
     wlr_xdg_toplevel_set_maximized(t, self->max_horz && self->max_vert);
     wlr_xdg_toplevel_set_fullscreen(t, self->fullscreen);
+    /* clients can draw resizes differently (or more cheaply) */
+    wlr_xdg_toplevel_set_resizing(t, moveresize_resizing(self));
     if (self->max_horz) tiled |= WLR_EDGE_LEFT | WLR_EDGE_RIGHT;
     if (self->max_vert) tiled |= WLR_EDGE_TOP | WLR_EDGE_BOTTOM;
     tiled |= self->snap_edges;

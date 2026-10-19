@@ -39,6 +39,14 @@ gboolean obt_xml_load_config_file(ObtXmlInst *inst,
                                   const gchar *domain,
                                   const gchar *filename,
                                   const gchar *root_node);
+/*! Like obt_xml_load_config_file, but any of the domains will do.  Each
+  config directory is tried with all the domains before the next one, so a
+  user's file in a later domain is found before a system file in an earlier
+  one. */
+gboolean obt_xml_load_config_file_domains(ObtXmlInst *inst,
+                                          const gchar *const *domains,
+                                          const gchar *filename,
+                                          const gchar *root_node);
 gboolean obt_xml_load_data_file(ObtXmlInst *inst,
                                 const gchar *domain,
                                 const gchar *filename,

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=owbox
+Comment=Openbox for Wayland
+Exec=@bindir@/owbox-session
+TryExec=@bindir@/owbox
+Type=Application
+DesktopNames=owbox

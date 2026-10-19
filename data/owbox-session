@@ -1,0 +1,17 @@
+#!/bin/sh
+# Start an owbox session, like openbox-session does for Openbox: set up the
+# environment and run owbox.  owbox runs the autostart itself.
+#
+# The environment comes from the system's and then the user's environment
+# file (shell variable assignments, eg "export LANG=en_US.UTF-8"):
+#   /etc/xdg/owbox/environment
+#   ~/.config/owbox/environment
+
+sys=@sysconfdir@/xdg/owbox/environment
+[ -r "$sys" ] && . "$sys"
+[ "$sys" != /etc/xdg/owbox/environment ] && [ -r /etc/xdg/owbox/environment ] &&
+    . /etc/xdg/owbox/environment
+user=${XDG_CONFIG_HOME:-$HOME/.config}/owbox/environment
+[ -r "$user" ] && . "$user"
+
+exec @bindir@/owbox "$@"

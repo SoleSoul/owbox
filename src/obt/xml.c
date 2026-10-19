@@ -229,6 +229,29 @@ gboolean obt_xml_load_config_file(ObtXmlInst *i,
     return r;
 }
 
+gboolean obt_xml_load_config_file_domains(ObtXmlInst *i,
+                                          const gchar *const *domains,
+                                          const gchar *filename,
+                                          const gchar *root_node)
+{
+    GSList *it, *paths = NULL;
+    const gchar *const *d;
+    gboolean r;
+
+    for (it = obt_paths_config_dirs(i->xdg_paths); it; it = g_slist_next(it))
+        for (d = domains; *d; ++d)
+            paths = g_slist_append(paths,
+                                   g_build_filename(it->data, *d, NULL));
+
+    r = load_file(i, "", filename, root_node, paths);
+
+    while (paths) {
+        g_free(paths->data);
+        paths = g_slist_delete_link(paths, paths);
+    }
+    return r;
+}
+
 gboolean obt_xml_load_data_file(ObtXmlInst *i,
                                 const gchar *domain,
                                 const gchar *filename,

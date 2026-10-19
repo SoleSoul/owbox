@@ -135,6 +135,7 @@ endforeach
 
 owbox_sources = files(
 	'src/actions.c',
+	'src/app_menu.c',
 	'src/actions/addremovedesktop.c',
 	'src/actions/all.c',
 	'src/actions/breakchroot.c',
@@ -267,3 +268,38 @@ executable(
 	dependencies: [wayland_client, xkbcommon],
 	install: false,
 )
+
+# ---- data ----
+
+bindir = prefix / get_option('bindir')
+data_conf = configuration_data()
+data_conf.set('bindir', bindir)
+data_conf.set('sysconfdir', sysconfdir)
+
+# the default configuration, in the same place as Openbox's
+install_data(
+	'data/rc.xml', 'data/menu.xml', 'data/environment', 'data/autostart',
+	install_dir: sysconfdir / 'xdg' / 'owbox',
+)
+install_data('data/owbox-terminal', install_dir: bindir,
+	install_mode: 'rwxr-xr-x')
+configure_file(
+	input: 'data/owbox-session',
+	output: 'owbox-session',
+	configuration: data_conf,
+	install_dir: bindir,
+	install_mode: 'rwxr-xr-x',
+)
+# a session for display managers
+configure_file(
+	input: 'data/owbox.desktop',
+	output: 'owbox.desktop',
+	configuration: data_conf,
+	install_dir: datadir / 'wayland-sessions',
+)
+install_data('data/owbox-portals.conf',
+	install_dir: datadir / 'xdg-desktop-portal')
+# Openbox's themes, for when Openbox isn't installed
+install_subdir('data/themes', install_dir: owbox_datadir,
+	strip_directory: false)
+install_man('docs/owbox.1')

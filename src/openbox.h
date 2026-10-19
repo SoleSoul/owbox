@@ -30,6 +30,10 @@
 
 extern RrInstance *ob_rr_inst;
 extern RrImageCache *ob_rr_icons;
+
+/*! The config directories' subdirectories looked in for rc.xml and the
+  menus, ~/.config/owbox before ~/.config/openbox, and so on */
+extern const gchar *const ob_config_domains[];
 extern RrTheme    *ob_rr_theme;
 
 extern GMainLoop *ob_main_loop;

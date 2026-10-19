@@ -78,6 +78,8 @@ static gchar    *config_file = NULL;
 static gchar    *startup_cmd = NULL;
 static gboolean  no_autostart = FALSE;
 /*! The config file that was loaded, watched for changes */
+const gchar *const ob_config_domains[] = { "owbox", "openbox", NULL };
+
 static gchar    *loaded_config_file = NULL;
 static GFileMonitor *config_monitor = NULL;
 static guint     config_reload_timer = 0;
@@ -134,24 +136,12 @@ static void load_config(gchar **xml_error_string)
             loaded_config_file = g_strdup(config_file);
         }
     } else {
-        static const gchar *domains[] = { "owbox", "openbox", NULL };
-        gint d;
-        for (d = 0; !loaded && domains[d]; ++d)
-            if (obt_xml_load_config_file(i, domains[d], "rc.xml",
-                                         "openbox_config"))
-            {
-                loaded = TRUE;
-                loaded_config_file = obt_xml_last_loaded_file(i);
-            }
-        /* the defaults that come with owbox */
-        if (!loaded) {
-            gchar *def = g_build_filename(OWBOX_DATADIR, "rc.xml", NULL);
-            if (obt_xml_load_file(i, def, "openbox_config")) {
-                loaded = TRUE;
-                loaded_config_file = def;
-                def = NULL;
-            }
-            g_free(def);
+        /* owbox's own config, or Openbox's */
+        if (obt_xml_load_config_file_domains(i, ob_config_domains, "rc.xml",
+                                             "openbox_config"))
+        {
+            loaded = TRUE;
+            loaded_config_file = obt_xml_last_loaded_file(i);
         }
     }
 

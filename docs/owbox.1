@@ -1,0 +1,112 @@
+.TH OWBOX 1 "2026" "owbox 0.1.0" "User Commands"
+.SH NAME
+owbox \- Openbox for Wayland, a stacking window manager and compositor
+.SH SYNOPSIS
+.B owbox
+[\fIOPTION\fR]...
+.br
+.B owbox-session
+[\fIOPTION\fR]...
+.SH DESCRIPTION
+.B owbox
+is a Wayland compositor that is Openbox: the same window management, the
+same configuration files, themes and menus, the same key and mouse bindings.
+X applications run through Xwayland.
+.PP
+Start it from a display manager (the \fBowbox\fR session) or from a text
+console with \fBowbox-session\fR, which reads the environment files first.
+Run inside another Wayland or X session, it opens a window of its own.
+.SH OPTIONS
+.TP
+.B \-\-help
+Display the help and exit.
+.TP
+.B \-\-version
+Display the version and exit.
+.TP
+.BI \-\-config\-file " FILE"
+Use FILE as rc.xml.
+.TP
+.BI \-\-startup " CMD"
+Run CMD after starting.
+.TP
+.B \-\-no\-autostart
+Don't run the autostart script and the XDG autostart applications.
+.TP
+.B \-\-reconfigure
+Tell the running owbox to reload its configuration.
+.TP
+.B \-\-restart
+The same as \-\-reconfigure: a Wayland compositor can't restart without
+closing its windows.
+.TP
+.B \-\-exit
+Tell the running owbox to exit.
+.TP
+.BI \-\-msg " COMMAND"
+Send a command to the running owbox and print the reply, see
+\fBCOMMANDS\fR.
+.TP
+.B \-\-debug
+Print debugging messages.
+.TP
+.B \-\-debug\-focus
+Print debugging messages about focus.
+.TP
+.B \-\-debug\-wlroots
+Print wlroots' debugging messages.
+.SH CONFIGURATION
+owbox reads Openbox's files.  Each is looked for in
+\fI~/.config/owbox\fR, then \fI~/.config/openbox\fR, then the same
+directories under each of \fB$XDG_CONFIG_DIRS\fR (\fI/etc/xdg\fR):
+.TP
+.I rc.xml
+The configuration, see
+.UR http://openbox.org/wiki/Help:Configuration
+.UE .
+owbox's additions are in an \fB<owbox>\fR section, which Openbox ignores;
+the installed rc.xml describes them.  The file is reloaded when it changes.
+.TP
+.I menu.xml
+The menus.  owbox's built\-in \fBapplications\-menu\fR lists the installed
+applications by category.
+.TP
+.I autostart
+A shell script run when owbox starts (only from the owbox directories,
+Openbox's autostart usually starts X programs).  Applications in the XDG
+autostart directories are started too.
+.TP
+.I environment
+Shell variable assignments read by \fBowbox\-session\fR.
+.PP
+Themes are Openbox themes, found in \fI~/.local/share/themes\fR,
+\fI~/.themes\fR and \fI/usr/share/themes\fR (\fINAME/openbox\-3/themerc\fR).
+.SH COMMANDS
+\fBowbox \-\-msg\fR sends a command over owbox's socket
+(\fB$OWBOX_SOCK\fR, set for programs owbox runs).  The reply starts with
+\fBok\fR or \fBerror\fR.
+.TP
+.B reconfigure\fR, \fBexit
+As the options.
+.TP
+.BI action " XML"
+Run Openbox actions, written like in rc.xml, for example:
+.br
+owbox \-\-msg 'action <action name="GoToDesktop"><to>2</to></action>'
+.TP
+.B windows
+The windows, one JSON object per line, bottom to top.
+.TP
+.B desktops
+The desktops and the current one, as JSON.
+.SH ENVIRONMENT
+owbox sets \fBWAYLAND_DISPLAY\fR, \fBDISPLAY\fR (for X applications),
+\fBXDG_CURRENT_DESKTOP\fR=owbox (if not set), \fBXDG_SESSION_TYPE\fR and
+\fBOWBOX_SOCK\fR for the programs it runs, and passes them to D\-Bus and
+systemd.
+.SH FILES
+.TP
+.I ~/.cache/owbox/owbox.log
+The log of the last run.
+.SH SEE ALSO
+.BR openbox (1)

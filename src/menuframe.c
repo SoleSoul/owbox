@@ -1261,10 +1261,13 @@ void menu_entry_frame_execute(ObMenuEntryFrame *self, guint state)
         ObMenuEntry *entry = self->entry;
         ObMenuExecuteFunc func = self->frame->menu->execute_func;
         gpointer data = self->frame->menu->data;
-        GSList *acts = self->entry->data.normal.actions;
+        GSList *acts = g_slist_copy(self->entry->data.normal.actions);
         ObClient *client = self->frame->client;
         ObMenuFrame *frame = self->frame;
         guint mods = obt_keyboard_only_modmasks(state);
+
+        /* hiding the menu can free a dynamic menu's entries */
+        g_slist_foreach(acts, (GFunc)actions_act_ref, NULL);
 
         /* release grabs before executing the shit */
         if (!(mods & obt_keyboard_modkey_to_modmask(OBT_KEYBOARD_MODKEY_CONTROL))) {
@@ -1277,6 +1280,7 @@ void menu_entry_frame_execute(ObMenuEntryFrame *self, guint state)
         else
             actions_run_acts(acts, OB_USER_ACTION_MENU_SELECTION,
                              state, -1, -1, 0, OB_FRAME_CONTEXT_NONE, client);
+        g_slist_free_full(acts, (GDestroyNotify)actions_act_unref);
     }
 }
 

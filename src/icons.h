@@ -35,4 +35,9 @@ RrImage* icons_for_client(struct _ObClient *c);
   NULL */
 RrImage* icons_load(const gchar *name_or_path, gint size);
 
+struct sfdo_desktop_db;
+
+/*! The installed applications' desktop entries, reloaded when they change */
+struct sfdo_desktop_db* icons_desktop_db(void);
+
 #endif

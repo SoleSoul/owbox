@@ -1,0 +1,26 @@
+#!/bin/sh
+# Run a terminal emulator, the one in $TERMINAL or the first one installed.
+#
+#   owbox-terminal [-e COMMAND [ARGS...]]
+#
+# owbox's menu runs this, and the applications menu runs applications that
+# want a terminal (Terminal=true) with it.
+
+[ "$1" = "-e" ] && shift
+
+for t in "$TERMINAL" xdg-terminal-exec foot alacritty kitty wezterm ghostty \
+         xfce4-terminal gnome-terminal konsole lxterminal qterminal \
+         urxvt st xterm; do
+    [ -n "$t" ] || continue
+    command -v "${t%% *}" >/dev/null 2>&1 || continue
+    [ $# -eq 0 ] && exec $t
+    case ${t##*/} in
+        xdg-terminal-exec|foot|kitty) exec $t "$@" ;;
+        gnome-terminal)               exec $t -- "$@" ;;
+        wezterm)                      exec $t start -- "$@" ;;
+        xfce4-terminal)               exec $t -x "$@" ;;
+        *)                            exec $t -e "$@" ;;
+    esac
+done
+echo "owbox-terminal: no terminal emulator found, set TERMINAL" >&2
+exit 1
