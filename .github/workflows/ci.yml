@@ -32,7 +32,9 @@ jobs:
         run: |
           export XDG_RUNTIME_DIR=$(mktemp -d)
           chmod 700 "$XDG_RUNTIME_DIR"
-          tests/smoke.py --keep
+          # a session bus, which waybar needs (for its tray)
+          dbus-uuidgen --ensure=/etc/machine-id
+          dbus-run-session -- tests/smoke.py --keep
 
       - name: Settings test
         run: |

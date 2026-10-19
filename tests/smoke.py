@@ -247,21 +247,29 @@ def test_bars(out):
         print("skip bars: no waybar")
         return
     ex = os.path.join(ROOT, "data", "examples", "waybar")
+    log = open(os.path.join(out, "waybar.log"), "w")
     bar = subprocess.Popen([os.path.join(HERE, "run.sh"), out, "waybar",
                             "-c", os.path.join(ex, "config.jsonc"),
                             "-s", os.path.join(ex, "style.css")],
-                           stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL)
+                           stdout=log, stderr=subprocess.STDOUT)
     subprocess.Popen([os.path.join(HERE, "run.sh"), out, "foot"],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     w = wait_windows(out, 1)
-    time.sleep(2)  # waybar's bars
     if not w:
         check("foot maps", False)
         bar.terminate()
         return
     action(out, '<action name="Maximize"/>')
     screen = outputs(out)[0]
+    # the bars come when waybar is ready, and the window makes room
+    deadline = time.time() + 8
+    while time.time() < deadline and bar.poll() is None and \
+            windows(out)[0]["y"] == 0:
+        time.sleep(0.5)
+    if bar.poll() is not None:
+        check("waybar runs", False,
+              open(os.path.join(out, "waybar.log")).read()[-300:])
+        return
     w = windows(out)[0]
     bottom = w["y"] + w["frame"][1] + w["height"] + w["frame"][3]
     check("a maximized window fits between the bars",
