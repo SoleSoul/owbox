@@ -18,6 +18,7 @@
 
 #include "session.h"
 #include "debug.h"
+#include "server.h"
 #include "obt/paths.h"
 
 #include <string.h>
@@ -48,14 +49,25 @@ void session_environment(void)
     g_setenv("_JAVA_AWT_WM_NONREPARENTING", "1", FALSE);
 
     /* let D-Bus activated services (portals, notification daemons) and
-       systemd user services find the session */
+       systemd user services find the session.  Not for an owbox running
+       nested or headless, the services belong to the real session. */
+    if (!server_is_session())
+        return;
     if ((exe = g_find_program_in_path("dbus-update-activation-environment")))
     {
-        gchar *argv[] = { exe, "--systemd", "WAYLAND_DISPLAY", "DISPLAY",
-                          "XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE",
-                          "XDG_SESSION_DESKTOP", "XCURSOR_THEME",
-                          "XCURSOR_SIZE", NULL };
+        gchar *script = g_strdup_printf(
+            "%s --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP "
+            "XDG_SESSION_TYPE XDG_SESSION_DESKTOP XCURSOR_THEME XCURSOR_SIZE "
+            "OWBOX_SOCK; "
+            /* portals left running by an earlier session (the systemd user
+               instance outlives it) serve that session's desktop, restart
+               them for this one */
+            "systemctl --user try-restart xdg-desktop-portal.service "
+            "xdg-desktop-portal-wlr.service xdg-desktop-portal-gtk.service "
+            ">/dev/null 2>&1", exe);
+        gchar *argv[] = { "/bin/sh", "-c", script, NULL };
         spawn(argv);
+        g_free(script);
         g_free(exe);
     }
 }

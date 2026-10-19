@@ -588,7 +588,6 @@ void client_unmanage(ObClient *self)
         gpointer impl_data = self->impl_data;
         struct wlr_scene_tree *tree = self->surface_tree;
         Size committed = self->committed_size;
-        gint gx = self->geometry_x, gy = self->geometry_y;
 
         memset(self, 0, sizeof(ObClient));
         self->obwin.type = OB_WINDOW_CLASS_CLIENT;
@@ -598,8 +597,6 @@ void client_unmanage(ObClient *self)
         self->impl_data = impl_data;
         self->surface_tree = tree;
         self->committed_size = committed;
-        self->geometry_x = gx;
-        self->geometry_y = gy;
     }
 
     /* the focused window is gone, pick something else */
@@ -2372,10 +2369,12 @@ static void client_apply_configure(ObClient *self, gint x, gint y,
     Rect oldframe, oldclient;
     gboolean moved = FALSE, resized = FALSE;
     gboolean fmoved, fresized;
-    guint fdecor = self->frame->decorations;
-    gboolean fhorz = self->frame->max_horz;
-    gboolean fvert = self->frame->max_vert;
-    gboolean fshaded = self->frame->shaded;
+    /* Openbox reads these from the frame before client_try_configure()
+       updates them, the configure is applied later here */
+    guint fdecor = self->frame_decorations;
+    gboolean fhorz = self->frame_max_horz;
+    gboolean fvert = self->frame_max_vert;
+    gboolean fshaded = self->frame_shaded;
 
     /* figure out if we moved or resized or what */
     moved = (x != self->area.x || y != self->area.y);
@@ -2411,6 +2410,11 @@ static void client_apply_configure(ObClient *self, gint x, gint y,
 
     if (resized)
         frame_adjust_client_area(self->frame);
+
+    self->frame_decorations = self->decorations;
+    self->frame_max_horz = self->max_horz;
+    self->frame_max_vert = self->max_vert;
+    self->frame_shaded = self->shaded;
 
     if (!user || final) {
         /* we have reset the client to 0 border width, so don't include
@@ -3661,16 +3665,6 @@ ObClient* client_from_surface(struct wlr_surface *surface)
     return NULL;
 }
 
-void client_set_geometry_offset(ObClient *self, gint x, gint y)
-{
-    if (x == self->geometry_x && y == self->geometry_y)
-        return;
-    self->geometry_x = x;
-    self->geometry_y = y;
-    if (self->frame)
-        frame_adjust_client_position(self->frame);
-}
-
 void client_reparent_surfaces(ObClient *self, struct wlr_scene_tree *parent)
 {
     if (parent) {
@@ -3685,8 +3679,9 @@ void client_reparent_surfaces(ObClient *self, struct wlr_scene_tree *parent)
 
 void client_set_surface_position(ObClient *self, gint x, gint y)
 {
-    wlr_scene_node_set_position(&self->surface_tree->node,
-                                x - self->geometry_x, y - self->geometry_y);
+    /* the surface tree's origin is the window geometry's (wlroots' xdg
+       scene tree moves the surfaces by the geometry's offset) */
+    wlr_scene_node_set_position(&self->surface_tree->node, x, y);
 }
 
 void client_set_surface_visible(ObClient *self, gboolean visible)

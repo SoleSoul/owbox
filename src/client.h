@@ -141,9 +141,6 @@ struct _ObClient
     /*! The scene tree holding the client's surfaces (the "client window"),
       reparented into the frame while managed */
     struct wlr_scene_tree *surface_tree;
-    /*! Offset of the client's window geometry inside its surface tree
-      (client side shadows, the xdg_surface window geometry) */
-    gint geometry_x, geometry_y;
 
     /*! A configure (resize) sent to the client that it hasn't committed
       a buffer for yet */
@@ -159,6 +156,9 @@ struct _ObClient
     gboolean queued_user;
     gboolean queued_final;
     guint configure_timeout;
+    /*! The decorations and states the frame was last adjusted for */
+    guint frame_decorations;
+    gboolean frame_max_horz, frame_max_vert, frame_shaded;
     /*! The size of the buffer the client last committed */
     Size committed_size;
 
@@ -715,8 +715,6 @@ void client_get_type_and_transientness(ObClient *self);
 /*! The client committed a new buffer of the given size.  This finishes a
   pending resize or follows the client resizing itself. */
 void client_committed(ObClient *self, gint width, gint height);
-/*! The client's window geometry offset in its surfaces changed */
-void client_set_geometry_offset(ObClient *self, gint x, gint y);
 /*! Put the client's surfaces in the given tree (NULL to take them out) */
 void client_reparent_surfaces(ObClient *self, struct wlr_scene_tree *parent);
 /*! Position the client's surfaces inside the frame */

@@ -166,6 +166,8 @@ extern ObServer server;
 void server_init(void);
 /*! Start the backend (outputs and input devices appear) and listen on a
   Wayland socket */
+/*! Is owbox the session, running on the hardware (not nested or headless) */
+gboolean server_is_session(void);
 void server_start(void);
 void server_finish(void);
 

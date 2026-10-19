@@ -102,8 +102,9 @@ From the bottom up (server.c):
 10. layer shell popups, drag icons, the lock screen
 
 A managed client's surface tree is reparented into its frame's ObFWin, under
-the frame's decorations, at the client's offset (the frame's size, minus the
-client's geometry offset for client-side shadows).
+the frame's decorations, at the client's offset (the frame's size). The tree's
+origin is the client's window geometry: wlroots' xdg scene tree moves the
+surfaces by the geometry's offset, so client-side shadows hang outside it.
 
 ## Input
 

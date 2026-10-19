@@ -464,8 +464,6 @@ static void handle_commit(struct wl_listener *l, void *data)
     if (!base->surface->mapped)
         return;
 
-    client_set_geometry_offset(c, base->geometry.x, base->geometry.y);
-
     if (c->managed) {
         struct wlr_xdg_toplevel_state *s = &x->toplevel->current;
         if (s->min_width != x->min_w || s->min_height != x->min_h ||
@@ -495,8 +493,6 @@ static void handle_map(struct wl_listener *l, void *data)
 
     x->client->committed_size.width = x->toplevel->base->geometry.width;
     x->client->committed_size.height = x->toplevel->base->geometry.height;
-    client_set_geometry_offset(x->client, x->toplevel->base->geometry.x,
-                               x->toplevel->base->geometry.y);
     if (ob_state() == OB_STATE_RUNNING)
         client_manage(x->client);
 }
@@ -586,9 +582,9 @@ static void handle_request_show_window_menu(struct wl_listener *l,
     if (!x->client->managed) return;
     /* client side decorations ask for the window menu, show Openbox's */
     px = x->client->frame->area.x + x->client->frame->size.left -
-        x->client->geometry_x + ev->x;
+        x->toplevel->base->geometry.x + ev->x;
     py = x->client->frame->area.y + x->client->frame->size.top -
-        x->client->geometry_y + ev->y;
+        x->toplevel->base->geometry.y + ev->y;
     menu_show_client_menu(x->client, px, py);
 }
 

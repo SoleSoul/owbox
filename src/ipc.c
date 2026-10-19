@@ -35,6 +35,7 @@
 #include "focus.h"
 #include "screen.h"
 #include "stacking.h"
+#include "toplevel.h"
 #include "debug.h"
 
 #include <errno.h>
@@ -89,6 +90,8 @@ static void list_windows(GString *out)
         json_string(out, c->title);
         g_string_append(out, ",\"app_id\":");
         json_string(out, c->class);
+        g_string_append(out, ",\"identifier\":");
+        json_string(out, toplevel_identifier(c));
         g_string_append_printf(out,
             ",\"desktop\":%d,\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d",
             c->desktop == DESKTOP_ALL ? -1 : (gint)c->desktop,

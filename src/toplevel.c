@@ -30,6 +30,7 @@
 #include "debug.h"
 
 #include <wlr/types/wlr_ext_foreign_toplevel_list_v1.h>
+#include <wlr/types/wlr_ext_image_capture_source_v1.h>
 #include <wlr/types/wlr_ext_workspace_v1.h>
 #include <wlr/types/wlr_foreign_toplevel_management_v1.h>
 #include <wlr/types/wlr_output.h>
@@ -51,6 +52,10 @@ typedef struct {
     struct wlr_ext_foreign_toplevel_handle_v1 *ext;
     /*! The outputs the window is on, for output_enter/leave */
     GSList *outputs;
+    /*! The window's contents for screen sharing (ext-image-capture-source),
+      made when a client asks for it */
+    struct wlr_ext_image_capture_source_v1 *capture;
+    struct wl_listener capture_destroy;
 
     struct wl_listener request_maximize;
     struct wl_listener request_minimize;
@@ -68,6 +73,7 @@ static GPtrArray *workspaces = NULL; /* wlr_ext_workspace_handle_v1* */
 static struct wl_listener ws_commit;
 static struct wl_listener activation_request;
 static struct wl_listener new_dialog;
+static struct wl_listener new_capture_request;
 
 static struct wlr_xdg_wm_dialog_v1 *wm_dialog;
 
@@ -158,6 +164,7 @@ void toplevel_new(ObClient *c)
     h->wlr = wlr_foreign_toplevel_handle_v1_create(server.foreign_toplevel);
     h->ext = wlr_ext_foreign_toplevel_handle_v1_create(
         server.ext_foreign_toplevel, &state);
+    h->ext->data = h;
     g_hash_table_insert(handles, c, h);
 
 #define LISTEN(sig, l, f) do { h->l.notify = (f); wl_signal_add((sig), &h->l); } while (0)
@@ -191,6 +198,8 @@ void toplevel_destroy(ObClient *c)
     wl_list_remove(&h->request_fullscreen.link);
     wl_list_remove(&h->request_close.link);
     wl_list_remove(&h->set_rectangle.link);
+    if (h->capture)
+        wl_list_remove(&h->capture_destroy.link);
     wlr_foreign_toplevel_handle_v1_destroy(h->wlr);
     wlr_ext_foreign_toplevel_handle_v1_destroy(h->ext);
     g_slist_free(h->outputs);
@@ -492,8 +501,46 @@ RrImage* toplevel_find_icon(ObClient *c)
 
 /* ---- setup ---- */
 
+const gchar* toplevel_identifier(ObClient *c)
+{
+    ObToplevelHandles *h = g_hash_table_lookup(handles, c);
+    return h ? h->ext->identifier : NULL;
+}
+
+/* ---- window capture (screen sharing a window) ---- */
+
+static void handle_capture_destroy(struct wl_listener *l, void *data)
+{
+    ObToplevelHandles *h = wl_container_of(l, h, capture_destroy);
+    wl_list_remove(&h->capture_destroy.link);
+    h->capture = NULL;
+}
+
+static void handle_new_capture_request(struct wl_listener *l, void *data)
+{
+    struct wlr_ext_foreign_toplevel_image_capture_source_manager_v1_request
+        *req = data;
+    ObToplevelHandles *h = req->toplevel_handle->data;
+
+    if (!h) return;
+    if (!h->capture) {
+        /* the client's surfaces with their popups, without the frame */
+        h->capture = wlr_ext_image_capture_source_v1_create_with_scene_node(
+            &h->client->surface_tree->node,
+            wl_display_get_event_loop(server.display),
+            server.allocator, server.renderer);
+        if (!h->capture) return;
+        h->capture_destroy.notify = handle_capture_destroy;
+        wl_signal_add(&h->capture->events.destroy, &h->capture_destroy);
+    }
+    wlr_ext_foreign_toplevel_image_capture_source_manager_v1_request_accept(
+        req, h->capture);
+}
+
 void toplevel_init(void)
 {
+    struct wlr_ext_foreign_toplevel_image_capture_source_manager_v1 *capture;
+
     handles = g_hash_table_new(g_direct_hash, g_direct_equal);
 
     server.foreign_toplevel =
@@ -518,6 +565,11 @@ void toplevel_init(void)
     wm_dialog = wlr_xdg_wm_dialog_v1_create(server.display, 1);
     new_dialog.notify = handle_new_dialog;
     wl_signal_add(&wm_dialog->events.new_dialog, &new_dialog);
+
+    capture = wlr_ext_foreign_toplevel_image_capture_source_manager_v1_create(
+        server.display, 1);
+    new_capture_request.notify = handle_new_capture_request;
+    wl_signal_add(&capture->events.new_request, &new_capture_request);
 }
 
 void toplevel_finish(void)
@@ -525,6 +577,7 @@ void toplevel_finish(void)
     wl_list_remove(&ws_commit.link);
     wl_list_remove(&activation_request.link);
     wl_list_remove(&new_dialog.link);
+    wl_list_remove(&new_capture_request.link);
     g_ptr_array_free(workspaces, TRUE);
     workspaces = NULL;
     g_hash_table_destroy(handles);

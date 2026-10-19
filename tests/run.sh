@@ -8,4 +8,7 @@ if [ -f "$out/xdisplay" ]; then
 else
     unset DISPLAY
 fi
+# owbox --msg would talk to the owbox this runs in (when testing inside an
+# owbox session) instead of the test one
+unset OWBOX_SOCK
 WAYLAND_DISPLAY=$(cat "$out/display") exec "$@"

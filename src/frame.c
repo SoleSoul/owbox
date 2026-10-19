@@ -216,12 +216,20 @@ void frame_free(ObFrame *self)
     g_slice_free(ObFrame, self);
 }
 
+/* The client window is seen when the frame is, and not shaded.  In X the
+   frame (its parent) clips it away when shaded. */
+static void update_client_visible(ObFrame *self)
+{
+    client_set_surface_visible(self->client,
+                               self->visible && !self->shaded);
+}
+
 void frame_show(ObFrame *self)
 {
     if (!self->visible) {
         self->visible = TRUE;
         framerender_frame(self);
-        client_set_surface_visible(self->client, TRUE);
+        update_client_visible(self);
         fwin_map(self->window);
     }
 }
@@ -232,7 +240,7 @@ void frame_hide(ObFrame *self)
         self->visible = FALSE;
         if (!frame_iconify_animating(self))
             fwin_unmap(self->window);
-        client_set_surface_visible(self->client, FALSE);
+        update_client_visible(self);
     }
 }
 
@@ -317,6 +325,8 @@ void frame_adjust_area(ObFrame *self, gboolean moved,
         if (!fake) {
             gint innercornerheight =
                 ob_rr_theme->grip_width - self->size.bottom;
+
+            update_client_visible(self);
 
             if (self->cbwidth_l) {
                 fwin_move_resize(self->innerleft,

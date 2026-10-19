@@ -30,6 +30,8 @@
 #include <time.h>
 #include <wlr/backend.h>
 #include <wlr/backend/session.h>
+#include <wlr/backend/drm.h>
+#include <wlr/backend/multi.h>
 #include <wlr/render/allocator.h>
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_alpha_modifier_v1.h>
@@ -149,6 +151,7 @@ static bool filter_global(const struct wl_client *client,
     static const gchar *privileged[] = {
         "zwlr_layer_shell_v1", "zwlr_screencopy_manager_v1",
         "ext_image_copy_capture_manager_v1", "zwlr_export_dmabuf_manager_v1",
+        "ext_foreign_toplevel_image_capture_source_manager_v1",
         "zwlr_gamma_control_manager_v1", "zwlr_output_manager_v1",
         "zwlr_output_power_manager_v1", "zwlr_data_control_manager_v1",
         "ext_data_control_manager_v1", "zwlr_foreign_toplevel_manager_v1",
@@ -288,6 +291,22 @@ void server_init(void)
 
     security = wlr_security_context_manager_v1_create(server.display);
     wl_display_set_global_filter(server.display, filter_global, security);
+}
+
+static void find_drm(struct wlr_backend *backend, void *data)
+{
+    if (wlr_backend_is_drm(backend))
+        *(gboolean*)data = TRUE;
+}
+
+gboolean server_is_session(void)
+{
+    gboolean drm = FALSE;
+    if (wlr_backend_is_multi(server.backend))
+        wlr_multi_for_each_backend(server.backend, find_drm, &drm);
+    else
+        drm = wlr_backend_is_drm(server.backend);
+    return drm;
 }
 
 void server_start(void)

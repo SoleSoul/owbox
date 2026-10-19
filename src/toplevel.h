@@ -60,4 +60,7 @@ const gchar* toplevel_launch_token(const gchar *app_id);
 /*! Is the client a modal dialog (xdg-dialog protocol) */
 gboolean toplevel_is_modal(struct _ObClient *c);
 
+/*! The window's ext-foreign-toplevel identifier, or NULL */
+const gchar* toplevel_identifier(struct _ObClient *c);
+
 #endif

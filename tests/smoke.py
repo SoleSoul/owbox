@@ -97,9 +97,49 @@ def test_xdg(out):
     check("Alt-drag moves", (w["x"], w["y"]) ==
           (w0["x"] - 100, w0["y"] + 50), w)
 
+    test_shade_decorate(out)
+
     inp(out, "key", "alt+F4")
     w = wait_windows(out, 0)
     check("A-F4 closes", len(w) == 0, w)
+
+
+def pixel(out, x, y):
+    """The color at x,y in a new screenshot, as (r, g, b)"""
+    import cairo
+    path = os.path.join(out, "pixel.png")
+    run(out, "grim", path, timeout=10)
+    img = cairo.ImageSurface.create_from_png(path)
+    data, stride = img.get_data(), img.get_stride()
+    b, g, r = data[y * stride + x * 4: y * stride + x * 4 + 3]
+    return (r, g, b)
+
+
+def action(out, xml):
+    run(out, OWBOX, "--msg", "action " + xml, timeout=5)
+    time.sleep(0.5)
+
+
+def test_shade_decorate(out):
+    w = windows(out)[0]
+    desktop = (0x30, 0x30, 0x30)
+    inside = (w["x"] + w["width"] // 2, w["y"] + w["height"] // 2)
+    title = title_point(w)
+    title_color = pixel(out, *title)
+
+    action(out, '<action name="ToggleShade"/>')
+    check("shading hides the window's contents",
+          windows(out)[0]["shaded"] and pixel(out, *inside) == desktop,
+          pixel(out, *inside))
+    action(out, '<action name="ToggleShade"/>')
+    check("unshading shows them again", pixel(out, *inside) != desktop)
+
+    action(out, '<action name="ToggleDecorations"/>')
+    check("undecorating removes the titlebar",
+          pixel(out, *title) != title_color, pixel(out, *title))
+    action(out, '<action name="ToggleDecorations"/>')
+    check("redecorating brings it back", pixel(out, *title) == title_color,
+          pixel(out, *title))
 
 
 def test_menus(out):
