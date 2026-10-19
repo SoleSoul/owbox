@@ -23,6 +23,8 @@
 #include "seat.h"
 #include "openbox.h"
 #include "debug.h"
+#include "config.h"
+#include "panels.h"
 
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_layer_shell_v1.h>
@@ -55,7 +57,13 @@ static void arrange_layer(ObOutput *o, enum zwlr_layer_shell_v1_layer layer,
         if (ls->current.layer != layer) continue;
         if ((ls->current.exclusive_zone > 0) != exclusive_only) continue;
 
-        wlr_scene_layer_surface_v1_configure(s->scene, full, usable);
+        if (config_panels_autohide && layers_is_panel(s)) {
+            /* owbox: hidden panels don't take space, they show over the
+               windows */
+            struct wlr_box scratch = *usable;
+            wlr_scene_layer_surface_v1_configure(s->scene, full, &scratch);
+        } else
+            wlr_scene_layer_surface_v1_configure(s->scene, full, usable);
         /* popups go along with it */
         wlr_scene_node_set_position(&s->popup_tree->node,
                                     s->tree->node.x, s->tree->node.y);
@@ -120,6 +128,97 @@ static void free_struts(void)
         g_slice_free(StrutPartial, it->data);
     g_list_free(struts);
     struts = NULL;
+}
+
+/* ---- panels (owbox) ---- */
+
+gboolean layers_is_panel(ObLayerSurface *s)
+{
+    const guint32 horz = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
+        ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT;
+    const guint32 vert = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP |
+        ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
+    struct wlr_layer_surface_v1 *ls = s->layer_surface;
+    guint32 a;
+
+    if (!ls->initialized) return FALSE;
+    if (ls->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_TOP &&
+        ls->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
+        return FALSE;
+    /* a bar along one edge (a notification is in a corner, a launcher in
+       the middle) */
+    a = ls->current.anchor;
+    return ((a & horz) == horz && (a & vert) && (a & vert) != vert) ||
+        ((a & vert) == vert && (a & horz) && (a & horz) != horz);
+}
+
+/* where a panel goes: above the dim while the panels are shown, its layer
+   otherwise, and hidden then if they hide */
+static void place_panel(ObLayerSurface *s)
+{
+    gboolean shown = panels_shown();
+    struct wlr_scene_tree *parent;
+
+    if (!layers_is_panel(s)) return;
+    parent = shown ? server.panels_tree :
+        server.layer_tree[s->layer_surface->current.layer];
+    if (s->tree->node.parent != parent)
+        wlr_scene_node_reparent(&s->tree->node, parent);
+    wlr_scene_node_set_enabled(&s->tree->node,
+                               shown || !config_panels_autohide);
+    wlr_scene_node_set_enabled(&s->popup_tree->node,
+                               shown || !config_panels_autohide);
+}
+
+void layers_place_panels(void)
+{
+    GList *it;
+    for (it = surfaces; it; it = g_list_next(it))
+        place_panel(it->data);
+}
+
+void layers_for_each_panel(void (*func)(ObLayerSurface *s, gpointer data),
+                           gpointer data)
+{
+    GList *it;
+    for (it = surfaces; it; it = g_list_next(it))
+        if (((ObLayerSurface*)it->data)->mapped &&
+            layers_is_panel(it->data))
+            func(it->data, data);
+}
+
+ObLayerSurface* layers_surface_owner(struct wlr_surface *surface)
+{
+    /* through the popups (a tray menu) to the layer surface */
+    while (surface) {
+        struct wlr_surface *root = wlr_surface_get_root_surface(surface);
+        struct wlr_layer_surface_v1 *ls;
+        struct wlr_xdg_popup *popup;
+
+        if ((ls = wlr_layer_surface_v1_try_from_wlr_surface(root)))
+            return ls->data;
+        if (!(popup = wlr_xdg_popup_try_from_wlr_surface(root)))
+            return NULL;
+        surface = popup->parent;
+    }
+    return NULL;
+}
+
+gboolean layers_surface_wants_keyboard(ObLayerSurface *s)
+{
+    return s->layer_surface->current.keyboard_interactive !=
+        ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
+}
+
+void layers_close(ObLayerSurface *s)
+{
+    wlr_layer_surface_v1_destroy(s->layer_surface);
+}
+
+ObLayerSurface* layers_keyboard_surface(void)
+{
+    struct wlr_surface *focus = server.seat->keyboard_state.focused_surface;
+    return focus ? layers_surface_owner(focus) : NULL;
 }
 
 void layers_arrange_all(void)
@@ -189,6 +288,8 @@ static void handle_map(struct wl_listener *l, void *data)
 {
     ObLayerSurface *s = wl_container_of(l, s, map);
     s->mapped = TRUE;
+    place_panel(s);
+    panels_layer_mapped(s);
     layers_arrange_all();
     update_keyboard();
     seat_rebase_pointer();
@@ -198,6 +299,7 @@ static void handle_unmap(struct wl_listener *l, void *data)
 {
     ObLayerSurface *s = wl_container_of(l, s, unmap);
     s->mapped = FALSE;
+    panels_layer_gone(s);
     if (exclusive == s) {
         exclusive = NULL;
         seat_focus_surface(NULL);
@@ -220,6 +322,9 @@ static void handle_commit(struct wl_listener *l, void *data)
         parent = server.layer_tree[ls->current.layer];
         wlr_scene_node_reparent(&s->tree->node, parent);
     }
+    if (ls->current.committed &
+        (WLR_LAYER_SURFACE_V1_STATE_LAYER | WLR_LAYER_SURFACE_V1_STATE_ANCHOR))
+        place_panel(s);
 
     if (ls->current.committed || ls->initial_commit) {
         layers_arrange_all();
@@ -231,6 +336,7 @@ static void handle_destroy(struct wl_listener *l, void *data)
 {
     ObLayerSurface *s = wl_container_of(l, s, destroy);
 
+    panels_layer_gone(s);
     surfaces = g_list_remove(surfaces, s);
     if (exclusive == s) {
         exclusive = NULL;

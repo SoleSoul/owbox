@@ -146,6 +146,28 @@ should only return (or fork) once the screen is locked. Set `screenOff` to
 0 and `lock` to no to use swayidle instead.
 
 ```xml
+  <panels>
+    <autoHide>yes</autoHide>
+    <dim>40</dim>              <!-- percent, 0 for none -->
+  </panels>
+```
+
+Panels are layer-shell bars along an edge of the screen (waybar, and the
+like), in the top or bottom layer; notifications and launchers aren't. The
+`TogglePanels` action (tapping Super, in the default rc.xml) brings them
+above all the windows, which are dimmed by `dim` percent, and runs a
+launcher. It ends with Escape, a click outside the panels and the
+launcher, switching to a window (the taskbar), the launcher closing, or
+TogglePanels again, and the launcher is closed with it. With `autoHide`
+the panels are hidden the rest of the time, and take no space from the
+windows. Without it they stay where they are, and TogglePanels still raises
+them above the dimmed windows.
+
+`/usr/share/owbox/examples` has a waybar configuration made for this (a
+thin bar at the top, and the windows in the middle of the bottom) and a
+matching fuzzel one.
+
+```xml
   <scale>1.5</scale>
 ```
 
@@ -206,6 +228,24 @@ for `GoToDesktop` with directions. In Openbox a pager sets this layout.
 <action name="Unsnap"/>
 ```
 
+```xml
+<action name="TogglePanels"><launcher>owbox-launcher</launcher></action>
+```
+
+`TogglePanels` shows the panels and runs `launcher`, or hides them (see
+`<panels>`). `owbox-launcher` runs `$OWBOX_LAUNCHER`, or the first
+installed of fuzzel, wofi, rofi, tofi and bemenu.
+
+```xml
+<keybind key="Super_L" tap="yes">
+```
+
+A key binding with `tap="yes"` runs when its key is released, if no other
+key or button was pressed while it was down. It is meant for a modifier
+alone: Super tapped runs the binding, while Super+E and Super+drag do what
+they always did. (Openbox runs a binding of a modifier when it is pressed,
+which is still what happens without `tap`.)
+
 `SnapToEdge` takes the direction `north`, `south`, `east`, `west`,
 `northeast`, `northwest`, `southeast` or `southwest` (or `up`, `down`,
 `left`, `right`). The window fills that half or quarter of its monitor, but
@@ -237,6 +277,8 @@ Screenshots go to `Pictures/Screenshots` and the clipboard.
 
 An rc.xml of your own (or Openbox's) doesn't get new default bindings:
 owbox Settings' Key Bindings page offers to add them.
+
+Tapping Super runs `TogglePanels` with `owbox-launcher`.
 
 The default menu's Leave submenu has Lock Screen, Suspend, Log Out, Restart
 and Shut Down (the last two ask first).

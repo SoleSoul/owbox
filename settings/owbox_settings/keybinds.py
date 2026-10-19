@@ -64,6 +64,8 @@ ACTIONS = [
     ("SnapToEdge", _("Snap the window to the screen's edge"), "direction",
      "choice", EDGES),
     ("Unsnap", _("Unsnap the window"), None, None, None),
+    ("TogglePanels", _("Show the panels, and a launcher"), "launcher",
+     "text", None),
     ("Raise", _("Raise the window"), None, None, None),
     ("Lower", _("Lower the window"), None, None, None),
     ("ToggleShowDesktop", _("Show the desktop"), None, None, None),
@@ -75,6 +77,14 @@ ACTIONS = [
 ]
 ACTION_INFO = {a[0].lower(): a for a in ACTIONS}
 
+
+# modifiers that can be bound alone, as a tap (tap="yes")
+TAP_KEYS = {
+    "Super_L": _("Super"), "Super_R": _("Right Super"),
+    "Alt_L": _("Alt"), "Alt_R": _("Right Alt"),
+    "Control_L": _("Ctrl"), "Control_R": _("Right Ctrl"),
+    "Shift_L": _("Shift"), "Shift_R": _("Right Shift"),
+}
 
 # keys whose X names aren't words people use
 KEY_NAMES = {
@@ -98,6 +108,8 @@ KEY_NAMES = {
 
 def key_label(key):
     """'W-A-Left' -> 'Super+Alt+Left'"""
+    if key in TAP_KEYS:
+        return _("%s (alone)") % TAP_KEYS[key]
     parts = key.split("-")
     # a key that is a minus sign: 'C--'
     if key.endswith("--"):
@@ -131,6 +143,11 @@ class Binding:
     @key.setter
     def key(self, value):
         self.elem.set("key", value)
+        # a modifier alone works when it's tapped
+        if value in TAP_KEYS:
+            self.elem.set("tap", "yes")
+        elif "tap" in self.elem.attrib:
+            del self.elem.attrib["tap"]
 
     def actions(self):
         return [a for a in self.elem if a.tag == q("action")]
@@ -227,7 +244,7 @@ def _indent(elem, depth):
 # the bindings owbox's default rc.xml has besides Openbox's, which an Openbox
 # rc.xml, or a copy of an older owbox's, doesn't have
 OWBOX_DEFAULT_KEYS = [
-    "W-Left", "W-Right", "W-Up", "W-Down", "W-e",
+    "Super_L", "W-Left", "W-Right", "W-Up", "W-Down", "W-e",
     "XF86AudioRaiseVolume", "XF86AudioLowerVolume", "XF86AudioMute",
     "XF86AudioMicMute", "XF86AudioPlay", "XF86AudioPause", "XF86AudioNext",
     "XF86AudioPrev", "XF86MonBrightnessUp", "XF86MonBrightnessDown",
@@ -294,6 +311,7 @@ class KeyBindings:
         kb = self.keyboard()
         e = self.rc.append(kb, "keybind", {"key": key})
         b = Binding(e)
+        b.key = key
         b.set_action(action, option)
         return b
 

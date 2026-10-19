@@ -736,6 +736,9 @@ static gboolean event_handle_user_input(ObClient *client, ObEvent *e)
              e->type == OB_EVENT_KEY_PRESS ||
              e->type == OB_EVENT_KEY_RELEASE);
 
+    if (e->type == OB_EVENT_BUTTON_PRESS)
+        keyboard_cancel_tap(); /* owbox: Super and a click isn't a tap */
+
     if (menu_frame_visible) {
         if (e->type == OB_EVENT_MOTION)
             return TRUE;

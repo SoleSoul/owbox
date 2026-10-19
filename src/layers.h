@@ -77,6 +77,22 @@ void layers_surface_clicked(struct wlr_surface *surface);
 struct wlr_scene_tree* layers_popup_parent_tree(struct wlr_surface *parent);
 void layers_popup_unconstrain(struct wlr_xdg_popup *popup);
 
+/* owbox: panels, bars along an edge of the screen (layers_is_panel), which
+   can hide until panels.c shows them */
+
+gboolean layers_is_panel(ObLayerSurface *s);
+/*! Put the panels where they go for panels_shown() */
+void layers_place_panels(void);
+void layers_for_each_panel(void (*func)(ObLayerSurface *s, gpointer data),
+                           gpointer data);
+/*! The layer surface a surface (or a popup of it) belongs to, or NULL */
+ObLayerSurface* layers_surface_owner(struct wlr_surface *surface);
+/*! The layer surface with the keyboard focus, or NULL */
+ObLayerSurface* layers_keyboard_surface(void);
+gboolean layers_surface_wants_keyboard(ObLayerSurface *s);
+/*! Ask a layer surface's client to close it */
+void layers_close(ObLayerSurface *s);
+
 /*! Is the surface a lock screen surface */
 gboolean layers_surface_is_lock(struct wlr_surface *surface);
 

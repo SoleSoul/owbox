@@ -139,6 +139,8 @@ gdouble config_scale;
 gdouble config_idle_screen_off;
 gboolean config_idle_lock;
 gchar *config_idle_lock_command;
+gboolean config_panels_autohide;
+gfloat config_panels_dim;
 guint    config_desktops_rows;
 guint    config_desktops_columns;
 ObOrientation config_desktops_orientation;
@@ -494,6 +496,7 @@ static void parse_key(xmlNodePtr node, GList *keylist)
     gboolean is_chroot = FALSE;
     gboolean grab = TRUE;
     gboolean repeat = FALSE;
+    gboolean tap = FALSE;
 
     if (!obt_xml_attr_string(node, "key", &keystring))
         return;
@@ -501,6 +504,7 @@ static void parse_key(xmlNodePtr node, GList *keylist)
     obt_xml_attr_bool(node, "chroot", &is_chroot);
     obt_xml_attr_bool(node, "grab", &grab);
     obt_xml_attr_bool(node, "repeat", &repeat);
+    obt_xml_attr_bool(node, "tap", &tap); /* owbox */
 
     keys = g_strsplit(keystring, " ", 0);
     for (key = keys; *key; ++key) {
@@ -518,7 +522,7 @@ static void parse_key(xmlNodePtr node, GList *keylist)
 
                 action = actions_parse(n);
                 if (action)
-                    keyboard_bind(keylist, action, grab, !repeat);
+                    keyboard_bind(keylist, action, grab, !repeat, tap);
                 n = obt_xml_find_node(n->next, "action");
             }
         }
@@ -1066,7 +1070,7 @@ static void bind_default_keyboard(void)
     };
     for (it = binds; it->key; ++it) {
         GList *l = g_list_append(NULL, (gchar*)it->key);
-        keyboard_bind(l, actions_parse_string(it->actname), TRUE, TRUE);
+        keyboard_bind(l, actions_parse_string(it->actname), TRUE, TRUE, FALSE);
         g_list_free(l);
     }
 }
@@ -1388,6 +1392,13 @@ static void parse_owbox(xmlNodePtr node, gpointer d)
             config_idle_lock_command = node_string_or_null(c);
         }
     }
+    if ((n = obt_xml_find_node(node, "panels"))) {
+        if ((c = obt_xml_find_node(n->children, "autoHide")))
+            config_panels_autohide = obt_xml_node_bool(c);
+        if ((c = obt_xml_find_node(n->children, "dim")))
+            /* a percentage */
+            config_panels_dim = CLAMP(obt_xml_node_int(c), 0, 90) / 100.0f;
+    }
     if ((n = obt_xml_find_node(node, "reloadOnChange")))
         config_auto_reload = obt_xml_node_bool(n);
     if ((n = obt_xml_find_node(node, "allowShortcutsInhibit")))
@@ -1527,6 +1538,8 @@ static void owbox_defaults(void)
     config_idle_screen_off = 10;
     config_idle_lock = TRUE;
     config_idle_lock_command = NULL;
+    config_panels_autohide = FALSE;
+    config_panels_dim = 0.4f;
     config_desktops_rows = config_desktops_columns = 0;
     config_desktops_orientation = OB_ORIENTATION_HORZ;
     config_desktops_start_corner = OB_CORNER_TOPLEFT;

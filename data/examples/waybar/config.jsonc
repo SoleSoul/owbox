@@ -1,0 +1,135 @@
+// waybar for owbox: a thin bar along the top with the time and the
+// machine's state, and the open windows in the middle of the bottom.
+//
+// Copy it, with style.css, to ~/.config/waybar/, and start waybar with the
+// session: "systemctl --user enable waybar.service", or "waybar &" in
+// ~/.config/owbox/autostart.
+//
+// With <owbox><panels><autoHide>yes</autoHide></panels> in rc.xml both stay
+// hidden until Super is tapped (a <keybind key="Super_L" tap="yes"> running
+// TogglePanels), and go away with Escape, a click elsewhere, or switching
+// to a window.
+[
+  {
+    "name": "top",
+    "layer": "top",
+    "position": "top",
+    "height": 28,
+    "exclusive": false,
+    "spacing": 4,
+    "modules-left": ["ext/workspaces"],
+    "modules-center": ["clock"],
+    "modules-right": [
+      "idle_inhibitor",
+      "cpu",
+      "memory",
+      "temperature",
+      "network",
+      "pulseaudio",
+      "battery",
+      "tray"
+    ],
+
+    "ext/workspaces": {
+      "format": "{name}",
+      "on-click": "activate"
+    },
+    "clock": {
+      "format": "{:%a %d %b  %H:%M}",
+      "tooltip-format": "<tt>{calendar}</tt>",
+      "calendar": {
+        "mode": "month",
+        "weeks-pos": "left",
+        "format": {
+          "today": "<b><u>{}</u></b>",
+          "weeks": "<span alpha='50%'>{}</span>"
+        }
+      }
+    },
+    "idle_inhibitor": {
+      "format": "{icon}",
+      "format-icons": { "activated": "\uf7b6", "deactivated": "\uf186" },
+      "tooltip-format-activated": "The screen stays on",
+      "tooltip-format-deactivated": "The screen turns off when idle"
+    },
+    "cpu": {
+      "format": "\uf2db {usage}%",
+      "interval": 5
+    },
+    "memory": {
+      "format": "\uf538 {percentage}%",
+      "tooltip-format": "{used:0.1f} of {total:0.1f} GiB used",
+      "interval": 10
+    },
+    "temperature": {
+      // the first thermal zone; for the CPU package of an Intel CPU, by a
+      // path that stays the same across boots:
+      // "hwmon-path-abs": "/sys/devices/platform/coretemp.0/hwmon",
+      // "input-filename": "temp1_input",
+      "critical-threshold": 85,
+      "format": "\uf2c9 {temperatureC}°",
+      "tooltip-format": "CPU {temperatureC}°C",
+      "interval": 5
+    },
+    "network": {
+      "format-ethernet": "\uf6ff {ifname}",
+      "format-wifi": "\uf1eb {essid}",
+      "format-disconnected": "\uf127 offline",
+      "tooltip-format": "{ipaddr} on {ifname}",
+      "interval": 10
+    },
+    "pulseaudio": {
+      "format": "{icon} {volume}%",
+      "format-muted": "\uf6a9 muted",
+      "format-icons": { "default": ["\uf026", "\uf027", "\uf028"] },
+      "on-click": "owbox-volume mute",
+      "on-click-right": "pavucontrol",
+      "scroll-step": 5
+    },
+    "battery": {
+      // hides itself on a computer without a battery
+      "format": "{icon} {capacity}%",
+      "format-charging": "\uf0e7 {capacity}%",
+      "format-icons": ["\uf244", "\uf243", "\uf242", "\uf241", "\uf240"],
+      "states": { "warning": 20, "critical": 10 }
+    },
+    "tray": {
+      "icon-size": 16,
+      "spacing": 8
+    }
+
+    // More can go in "modules-right", for example an NVIDIA GPU's
+    // temperature and fan:
+    //
+    // "custom/gpu": {
+    //   "exec": "nvidia-smi --query-gpu=temperature.gpu,fan.speed --format=csv,noheader,nounits | awk -F', ' '{ print \"GPU \" $1 \"°  \" $2 \"%\" }'",
+    //   "format": "\uf863 {}",
+    //   "interval": 5
+    // },
+    //
+    // or anything a script prints (a line every interval):
+    //
+    // "custom/usage": {
+    //   "exec": "~/bin/usage-left",
+    //   "format": "{}",
+    //   "interval": 300
+    // }
+  },
+  {
+    "name": "bottom",
+    "layer": "top",
+    "position": "bottom",
+    "height": 58,
+    "exclusive": false,
+    "modules-center": ["wlr/taskbar"],
+
+    "wlr/taskbar": {
+      "format": "{icon}",
+      "icon-size": 32,
+      "tooltip-format": "{title}",
+      "on-click": "activate",
+      "on-click-middle": "close",
+      "on-click-right": "minimize-raise"
+    }
+  }
+]

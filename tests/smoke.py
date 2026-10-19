@@ -204,6 +204,41 @@ def test_idle(out):
     time.sleep(1.5)
 
 
+def test_panels(out):
+    """Tapping Super shows the panels over the dimmed windows, Escape and
+    clicks end it, Super with another key isn't a tap"""
+    subprocess.Popen([os.path.join(HERE, "run.sh"), out, "foot"],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    w = wait_windows(out, 1)
+    if not w:
+        check("foot maps", False)
+        return
+    w = w[0]
+    inside = (w["x"] + w["width"] // 2, w["y"] + w["height"] // 2)
+    before = pixel(out, *inside)
+    inp(out, "keydown", "Super_L", "keyup", "Super_L")
+    time.sleep(0.5)
+    dimmed = pixel(out, *inside)
+    check("tapping Super dims the windows", sum(dimmed) < sum(before),
+          (before, dimmed))
+    inp(out, "key", "Escape")
+    time.sleep(0.5)
+    check("Escape ends it", pixel(out, *inside) == before,
+          pixel(out, *inside))
+    inp(out, "keydown", "Super_L", "keyup", "Super_L")
+    time.sleep(0.5)
+    inp(out, "move", str(inside[0]), str(inside[1]), "click", "left")
+    time.sleep(0.5)
+    check("a click ends it", pixel(out, *inside) == before,
+          pixel(out, *inside))
+    inp(out, "keydown", "Super_L", "key", "Left", "keyup", "Super_L")
+    time.sleep(0.5)
+    check("Super with a key isn't a tap", pixel(out, *inside) == before,
+          pixel(out, *inside))
+    inp(out, "key", "alt+F4")
+    wait_windows(out, 0)
+
+
 def test_menus(out):
     # the root menu at 700,200 (Clearlooks, the default font): Applications
     # is the 3rd item (y+62), Windows the 4th (y+84), the submenu opens at
@@ -256,7 +291,8 @@ def test_x11(out):
 def main():
     keep = "--keep" in sys.argv
     out = tempfile.mkdtemp(prefix="owbox-smoke-")
-    env = dict(os.environ, OWBOX=OWBOX)
+    # Super's launcher does nothing, so the tests don't depend on one
+    env = dict(os.environ, OWBOX=OWBOX, OWBOX_LAUNCHER="true")
     # the default configuration, with the default menu
     rc = open(os.path.join(ROOT, "data", "rc.xml")).read()
     rc = rc.replace("<file>menu.xml</file>", "<file>%s</file>" %
@@ -272,6 +308,7 @@ def main():
         test_xdg(out)
         test_scale(out)
         test_idle(out)
+        test_panels(out)
         test_menus(out)
         test_x11(out)
         try:

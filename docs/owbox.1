@@ -132,6 +132,14 @@ owbox sets \fBWAYLAND_DISPLAY\fR, \fBDISPLAY\fR (for X applications),
 \fBOWBOX_SOCK\fR for the programs it runs, and passes them to D\-Bus and
 systemd.  It starts \fBowbox\-session.target\fR (bound to
 \fBgraphical\-session.target\fR) and stops it when it exits.
+.SH PANELS
+Tapping Super (pressing and releasing it alone) shows the panels (bars
+along the screen's edges, like waybar) above the dimmed windows, and a
+launcher (\fBowbox\-launcher\fR, which runs fuzzel or another installed
+one), until Escape, a click elsewhere, or switching to a window.
+\fB<owbox><panels>\fR in rc.xml can hide the panels the rest of the time.
+Example configurations for waybar and fuzzel are in
+\fI/usr/share/owbox/examples\fR.
 .SH IDLE AND LOCKING
 The monitors turn off after ten minutes without input, unless a window asks
 to keep them on, and the screen is locked then, before suspending, and on

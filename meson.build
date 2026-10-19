@@ -177,6 +177,7 @@ owbox_sources = files(
 	'src/actions/showdesktop.c',
 	'src/actions/showmenu.c',
 	'src/actions/snap.c',
+	'src/actions/togglepanels.c',
 	'src/actions/unfocus.c',
 	'src/buffer.c',
 	'src/capture.c',
@@ -218,6 +219,7 @@ owbox_sources = files(
 	'src/server.c',
 	'src/session.c',
 	'src/idle.c',
+	'src/panels.c',
 	'src/snap.c',
 	'src/stacking.c',
 	'src/toplevel.c',
@@ -293,7 +295,8 @@ install_data(
 	install_dir: sysconfdir / 'xdg' / 'owbox',
 )
 install_data('data/owbox-terminal', 'data/owbox-screenshot',
-	'data/owbox-volume', 'data/owbox-brightness', install_dir: bindir,
+	'data/owbox-volume', 'data/owbox-brightness', 'data/owbox-launcher',
+	install_dir: bindir,
 	install_mode: 'rwxr-xr-x')
 configure_file(
 	input: 'data/owbox-session',
@@ -322,6 +325,9 @@ install_data('data/owbox-session.target', install_dir: systemd_user_unit_dir)
 # settings for each desktop from here)
 install_data('data/xdg-desktop-portal-wlr/owbox',
 	install_dir: sysconfdir / 'xdg' / 'xdg-desktop-portal-wlr')
+# example configurations of companion programs (waybar, fuzzel)
+install_subdir('data/examples', install_dir: owbox_datadir,
+	strip_directory: false)
 # Openbox's themes, for when Openbox isn't installed
 install_subdir('data/themes', install_dir: owbox_datadir,
 	strip_directory: false)

@@ -1,0 +1,120 @@
+/* waybar for owbox: a quiet top bar, and a pill of window icons at the
+   bottom.  The colors are a dark glass that sits on the dimmed desktop. */
+
+* {
+    font-family: "Noto Sans", "Font Awesome 7 Free", sans-serif;
+    font-size: 13px;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+}
+
+window#waybar {
+    background: transparent;
+    color: #e6e6ea;
+}
+
+tooltip {
+    background: rgba(24, 24, 30, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+/* ---- the top bar ---- */
+
+window#waybar.top {
+    background: rgba(18, 18, 24, 0.82);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+window#waybar.top .modules-left,
+window#waybar.top .modules-right {
+    padding: 0 8px;
+}
+
+#workspaces button {
+    padding: 0 9px;
+    color: rgba(230, 230, 234, 0.55);
+    background: transparent;
+    border-radius: 6px;
+    margin: 3px 1px;
+}
+
+#workspaces button.active {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+#workspaces button:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+#clock {
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+#idle_inhibitor,
+#cpu,
+#memory,
+#temperature,
+#custom-gpu,
+#network,
+#pulseaudio,
+#battery,
+#tray {
+    padding: 0 7px;
+    color: rgba(230, 230, 234, 0.8);
+}
+
+#idle_inhibitor.activated {
+    color: #f5c66b;
+}
+
+#temperature.critical,
+#battery.critical {
+    color: #ff6b6b;
+}
+
+#battery.warning {
+    color: #f5c66b;
+}
+
+#pulseaudio.muted {
+    color: rgba(230, 230, 234, 0.4);
+}
+
+/* ---- the bottom bar: only the pill in the middle shows ---- */
+
+window#waybar.bottom {
+    background: transparent;
+}
+
+#taskbar {
+    background: rgba(18, 18, 24, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 4px 6px;
+    margin-bottom: 6px;
+}
+
+#taskbar button {
+    padding: 4px 6px;
+    margin: 0 2px;
+    border-radius: 10px;
+    background: transparent;
+    border-bottom: 2px solid transparent;
+}
+
+#taskbar button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#taskbar button.active {
+    background: rgba(255, 255, 255, 0.14);
+    border-bottom: 2px solid #8ab4f8;
+}
+
+#taskbar button.minimized {
+    opacity: 0.55;
+}

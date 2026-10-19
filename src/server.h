@@ -120,6 +120,8 @@ struct _ObServer {
     /*! Xwayland's override-redirect windows (menus, tooltips), above the
       managed windows */
     struct wlr_scene_tree *xwayland_tree;
+    /*! The dim and the panels, while they are shown */
+    struct wlr_scene_tree *panels_tree;
     /*! Popups of layer shell surfaces, above all windows */
     struct wlr_scene_tree *layer_popup_tree;
     /*! Drag and drop icons */

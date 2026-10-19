@@ -17,6 +17,7 @@
    See the COPYING file for a copy of the GNU General Public License.
 */
 
+#include "panels.h"
 #include "client.h"
 #include "ping.h"
 #include "debug.h"
@@ -3023,9 +3024,12 @@ void client_activate(ObClient *self, gboolean desktop,
 {
     self = client_focus_target(self);
 
-    if (client_can_steal_focus(self, desktop, user, event_time(), 0))
+    if (client_can_steal_focus(self, desktop, user, event_time(), 0)) {
         client_present(self, here, raise, unshade);
-    else
+        /* owbox: going to a window (the taskbar), the shown panels are
+           done */
+        panels_window_activated();
+    } else
         client_hilite(self, TRUE);
 }
 

@@ -33,6 +33,7 @@ src/
   ping.c            pinging windows being closed
   session.c         environment, autostart, XDG autostart, the systemd target
   idle.c            monitors off when idle, locking (logind: Lock, suspend)
+  panels.c          showing the panels over the dimmed windows (TogglePanels)
   render/           Openbox's obrender, drawing into cairo surfaces
   obt/              the parts of Openbox's libobt still needed (paths, xml,
                     keyboard helpers)

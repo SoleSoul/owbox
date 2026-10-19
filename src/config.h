@@ -315,6 +315,11 @@ extern gdouble config_idle_screen_off;
 extern gboolean config_idle_lock;
 /*! The screen locker to run, or NULL for the first one installed */
 extern gchar *config_idle_lock_command;
+/*! Hide the panels (bars along the screen's edges) until TogglePanels shows
+  them */
+extern gboolean config_panels_autohide;
+/*! How dark the windows get while the panels are shown, 0 to 1 */
+extern gfloat config_panels_dim;
 /*! Read the scale from rc.xml's root before the rest is parsed, since fonts
   are opened at it as they are parsed */
 void config_read_scale(xmlNodePtr root);

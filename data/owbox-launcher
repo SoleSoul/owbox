@@ -1,0 +1,16 @@
+#!/bin/sh
+# Run an application launcher, the one in $OWBOX_LAUNCHER or the first one
+# installed.
+#
+# Tapping Super runs this (TogglePanels in the default rc.xml), and owbox
+# closes it again when the panels go away.
+
+for l in "$OWBOX_LAUNCHER" fuzzel "wofi --show drun" "rofi -show drun" \
+         "tofi-drun --drun-launch=true" bemenu-run; do
+    [ -n "$l" ] || continue
+    command -v "${l%% *}" >/dev/null 2>&1 || continue
+    exec $l
+done
+echo "owbox-launcher: no launcher found (fuzzel, wofi, rofi, tofi, bemenu)," \
+     "set OWBOX_LAUNCHER" >&2
+exit 1

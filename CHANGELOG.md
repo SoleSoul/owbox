@@ -4,6 +4,14 @@
 
 The first public release.
 
+- **Tap Super** to bring up the panels and a launcher above the dimmed
+  windows, fullscreen ones included, a moment to switch tasks that ends with
+  Escape, a click elsewhere, picking a window in the taskbar, or tapping
+  Super again. `<owbox><panels><autoHide>` keeps the panels hidden the rest
+  of the time. This is the new `TogglePanels` action, `tap="yes"` key
+  bindings (a modifier pressed and released alone), and `owbox-launcher`.
+  `/usr/share/owbox/examples` has waybar (a thin top bar and a centered
+  taskbar) and fuzzel configurations made for it.
 - **owbox's scale** (`<owbox><scale>`, and Settings → Appearance → Size of
   owbox): window frames, menus, Alt-Tab and the other popups drawn larger
   than the theme, with their fonts, while applications keep their size.

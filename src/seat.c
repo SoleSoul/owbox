@@ -16,6 +16,7 @@
    See the COPYING file for a copy of the GNU General Public License.
 */
 
+#include "panels.h"
 #include "idle.h"
 #include "seat.h"
 #include "server.h"
@@ -522,7 +523,10 @@ static void keyboard_handle_key(struct wl_listener *listener, void *data)
 
     if (!seat.locked) {
         if (press) {
-            if (seat.kgrab || !shortcuts_inhibited())
+            /* owbox: Escape hides the shown panels */
+            if (panels_key(&e))
+                used = TRUE;
+            else if (seat.kgrab || !shortcuts_inhibited())
                 used = event_key(&e);
             /* everything goes to owbox while it holds the keyboard */
             used = used || seat.kgrab;
@@ -530,7 +534,10 @@ static void keyboard_handle_key(struct wl_listener *listener, void *data)
                 g_hash_table_add(seat.used_keys,
                                  GUINT_TO_POINTER(e.keycode));
         } else {
-            event_key(&e);
+            /* owbox: not while an application has the keys (a tap would
+               run) */
+            if (seat.kgrab || !shortcuts_inhibited())
+                event_key(&e);
             /* a release goes where its press went, so clients never think a
                key is stuck down */
             used = g_hash_table_remove(seat.used_keys,
@@ -1180,6 +1187,8 @@ static void handle_cursor_button(struct wl_listener *listener, void *data)
 
     /* a new press */
     fill_event_target(&e, &surface, &sx, &sy, &node);
+    /* owbox: a click outside the shown panels hides them */
+    panels_pointer_pressed(surface);
 
     if (e.client && mouse_frame_binding_exists(
             xbutton, obt_keyboard_only_modmasks(e.state)))
@@ -1681,6 +1690,7 @@ void seat_set_locked(gboolean locked)
     seat.locked = locked;
     if (locked) {
         idle_locked();
+        panels_hide();
         wlr_seat_keyboard_notify_clear_focus(server.seat);
         wlr_seat_pointer_notify_clear_focus(server.seat);
         seat.override_focus = NULL;

@@ -89,6 +89,7 @@ listed is a bug.
 
 These have no Openbox equivalent and are described in
 [CONFIG.md](CONFIG.md): the `<owbox>` section (including `<scale>`, which
-draws the theme larger), the `SnapToEdge` and `Unsnap` actions,
+draws the theme larger, and `<panels>`), the `tap` attribute of key
+bindings, the `SnapToEdge`, `Unsnap` and `TogglePanels` actions,
 `applications-menu`, the control socket, reloading rc.xml when it changes,
 and the default bindings for media keys and screenshots.

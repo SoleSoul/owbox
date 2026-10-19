@@ -29,6 +29,9 @@ typedef struct KeyBindingTree {
     GList *keylist;
     GSList *actions; /* list of Action pointers */
     gboolean chroot;
+    /*! owbox: run when the key is released, if no other key or button was
+      pressed while it was down (tap="yes", for a modifier alone) */
+    gboolean tap;
 
     /* the level up in the tree */
     struct KeyBindingTree *parent;
@@ -39,7 +42,8 @@ typedef struct KeyBindingTree {
 } KeyBindingTree;
 
 void tree_destroy(KeyBindingTree *tree);
-KeyBindingTree *tree_build(GList *keylist, gboolean grab, gboolean no_repeat);
+KeyBindingTree *tree_build(GList *keylist, gboolean grab, gboolean no_repeat,
+                           gboolean tap);
 void tree_assimilate(KeyBindingTree *node);
 KeyBindingTree *tree_find(KeyBindingTree *search, gboolean *conflict);
 gboolean tree_chroot(KeyBindingTree *tree, GList *keylist);

@@ -123,3 +123,17 @@ graphical-session.target), started when owbox runs on the hardware and
 stopped when it exits. Services tied to the graphical session (portals,
 gvfs, panels run as services) then stop at logout instead of serving a
 display that is gone.
+
+**Super alone is a tap binding** (`<keybind key="Super_L" tap="yes">`), run
+when the key is released with nothing pressed in between. Openbox runs a
+binding of a modifier on its press, which breaks every Super+key binding,
+so the new behavior is asked for with an attribute and an Openbox rc.xml
+means what it meant.
+
+**The panels mode belongs to the compositor.** A bar can't know about
+Escape, clicks elsewhere or focus changes, and can't put itself above a
+fullscreen window, so showing panels is owbox's job (TogglePanels), done
+for any layer-shell bar rather than one program. The launcher runs with
+it, so the second tap can close it instead of starting another. The dim
+is a one pixel buffer stretched over the monitors that clicks go through,
+so a click on a window under it goes to the window.

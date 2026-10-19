@@ -317,6 +317,15 @@
     <action name="Unsnap"/>
   </keybind>
 
+  <!-- Tapping Super (pressing and releasing it alone) shows the panels and
+       a launcher over the dimmed windows, until Escape, a click elsewhere
+       or switching to a window.  See <panels> in the <owbox> section -->
+  <keybind key="Super_L" tap="yes">
+    <action name="TogglePanels">
+      <launcher>owbox-launcher</launcher>
+    </action>
+  </keybind>
+
   <!-- Keybindings for running applications -->
   <keybind key="W-e">
     <action name="Execute">
@@ -892,6 +901,16 @@
          gtklock, waylock and hyprlock.  It should lock before it returns
          or forks, like 'swaylock -f' -->
   </idle>
+
+  <panels>
+    <autoHide>no</autoHide>
+    <!-- hide the panels (bars along an edge of the screen, like waybar)
+         until TogglePanels shows them (tapping Super).  Hidden panels
+         don't take space from the windows -->
+    <dim>40</dim>
+    <!-- how much darker the windows get while the panels are shown, in
+         percent, 0 for not at all -->
+  </panels>
 
   <scale>1</scale>
   <!-- how much larger than the theme owbox draws window frames, menus and

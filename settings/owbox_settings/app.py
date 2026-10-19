@@ -25,7 +25,7 @@ from gi.repository import Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 from .rcxml import (RcXml, find_config, running_config, owbox_config_path,  # noqa: E402
                     reconfigure, config_home, q)
 from .keybinds import (KeyBindings, ACTIONS, ACTION_INFO, key_label,  # noqa: E402
-                       key_from_event)
+                       key_from_event, TAP_KEYS)
 from . import xkb  # noqa: E402
 from . import autostart  # noqa: E402
 
@@ -291,6 +291,18 @@ class SettingsWindow(Gtk.ApplicationWindow):
                        _("Window frames, menus and popups.  Applications "
                          "keep their size, the Displays page scales "
                          "everything.")))
+
+        box.append(section(_("Panels")))
+        box.append(row(_("Hide the panels until Super is tapped"),
+                       self.switch("owbox/panels/autoHide", False),
+                       _("Bars along the screen's edges (like waybar) come up "
+                         "with the launcher when Super is pressed alone, and "
+                         "go with Escape, a click elsewhere or switching to "
+                         "a window")))
+        dims = [("0", _("No")), ("20", _("A little")), ("40", _("Some")),
+                ("60", _("Much"))]
+        box.append(row(_("Dim the windows meanwhile"),
+                       self.dropdown("owbox/panels/dim", dims, "40")))
 
         box.append(section(_("Title bar")))
         layout = Gtk.Entry(text=self.rc.get("theme/titleLayout", "NLIMC"))
@@ -1078,6 +1090,7 @@ class BindingDialog(Gtk.Window):
 
         keys = Gtk.EventControllerKey()
         keys.connect("key-pressed", self.on_key)
+        keys.connect("key-released", self.on_key_released)
         self.add_controller(keys)
         self.connect("close-request", lambda w: self.stop_recording() or False)
 
@@ -1159,6 +1172,9 @@ class BindingDialog(Gtk.Window):
         if not self.recording:
             return False
         name = Gdk.keyval_name(Gdk.keyval_to_lower(keyval)) or ""
+        # a modifier alone is a key when it's released without another key
+        # (a tap, like Super for the panels)
+        self.lone_key = name if name in TAP_KEYS else None
         if name in ("Shift_L", "Shift_R", "Control_L", "Control_R", "Alt_L",
                     "Alt_R", "Super_L", "Super_R", "Meta_L", "Meta_R",
                     "ISO_Level3_Shift", "Hyper_L", "Hyper_R", "Caps_Lock",
@@ -1177,6 +1193,15 @@ class BindingDialog(Gtk.Window):
         self.stop_recording()
         self.update()
         return True
+
+    def on_key_released(self, controller, keyval, keycode, state):
+        name = Gdk.keyval_name(Gdk.keyval_to_lower(keyval)) or ""
+        if not self.recording or name != getattr(self, "lone_key", None):
+            return
+        self.key = name
+        self.lone_key = None
+        self.stop_recording()
+        self.update()
 
     def on_save(self, *args):
         info = ACTIONS[self.action.get_selected()]

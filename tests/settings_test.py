@@ -81,6 +81,15 @@ def main():
           "Run a command: foot", kb2.find("W-Return").description())
     check("Alt-Tab with finalactions is editable",
           kb2.find("A-Tab").is_simple())
+    rc4 = RcXml(path)
+    kb4 = KeyBindings(rc4)
+    kb4.add("Super_R", "TogglePanels", "fuzzel")
+    rc4.save()
+    b = KeyBindings(RcXml(path)).find("Super_R")
+    check("a modifier alone is bound as a tap",
+          b is not None and b.elem.get("tap") == "yes" and
+          b.option() == "fuzzel" and key_label("Super_R") == "Right Super (alone)",
+          b.elem.attrib if b is not None else None)
     check("media key labels", key_label("XF86AudioMute") == "Mute" and
           key_label("S-Print") == "Shift+Print Screen",
           key_label("S-Print"))

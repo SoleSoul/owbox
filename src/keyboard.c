@@ -51,6 +51,10 @@ static void grab_keys(gboolean grab)
        key chain all keys go to owbox though, see keyboard_in_chain() */
 }
 
+/* owbox: the tap binding whose key is down, and the key */
+static KeyBindingTree *tap_binding = NULL;
+static guint tap_keycode = 0;
+
 gboolean keyboard_in_chain(void)
 {
     return curpos != NULL;
@@ -138,6 +142,7 @@ void keyboard_reset_chains(gint break_chroots)
 
 void keyboard_unbind_all(void)
 {
+    tap_binding = NULL;
     tree_destroy(keyboard_firstnode);
     keyboard_firstnode = NULL;
 }
@@ -148,14 +153,14 @@ void keyboard_chroot(GList *keylist)
        chroot binding. so add it to the tree then. */
     if (!tree_chroot(keyboard_firstnode, keylist)) {
         KeyBindingTree *tree;
-        if (!(tree = tree_build(keylist, TRUE, TRUE)))
+        if (!(tree = tree_build(keylist, TRUE, TRUE, FALSE)))
             return;
         tree_chroot(tree, keylist);
         tree_assimilate(tree);
     }
 }
 
-gboolean keyboard_bind(GList *keylist, ObActionsAct *action, gboolean grab, gboolean no_repeat)
+gboolean keyboard_bind(GList *keylist, ObActionsAct *action, gboolean grab, gboolean no_repeat, gboolean tap)
 {
     KeyBindingTree *tree, *t;
     gboolean conflict;
@@ -163,7 +168,7 @@ gboolean keyboard_bind(GList *keylist, ObActionsAct *action, gboolean grab, gboo
     g_assert(keylist != NULL);
     g_assert(action != NULL);
 
-    if (!(tree = tree_build(keylist, grab, no_repeat)))
+    if (!(tree = tree_build(keylist, grab, no_repeat, tap)))
         return FALSE;
 
     if ((t = tree_find(tree, &conflict)) != NULL) {
@@ -191,6 +196,11 @@ gboolean keyboard_bind(GList *keylist, ObActionsAct *action, gboolean grab, gboo
     return TRUE;
 }
 
+void keyboard_cancel_tap(void)
+{
+    tap_binding = NULL;
+}
+
 gboolean keyboard_event(ObClient *client, const ObEvent *e)
 {
     KeyBindingTree *p;
@@ -200,6 +210,17 @@ gboolean keyboard_event(ObClient *client, const ObEvent *e)
 
     if (e->type == OB_EVENT_KEY_RELEASE) {
         repeat_key = 0;
+        /* owbox: the key of a tap binding, released alone */
+        if (tap_binding && e->keycode == tap_keycode) {
+            p = tap_binding;
+            tap_binding = NULL;
+            if (menu_frame_visible)
+                menu_frame_hide_all();
+            keyboard_reset_chains(0);
+            actions_run_acts(p->actions, OB_USER_ACTION_KEYBOARD_KEY_NO_REPEAT,
+                             e->state, e->x_root, e->y_root,
+                             0, OB_FRAME_CONTEXT_NONE, client);
+        }
         return FALSE;
     }
 
@@ -209,6 +230,10 @@ gboolean keyboard_event(ObClient *client, const ObEvent *e)
         repeating = TRUE;
     else
         repeat_key = e->keycode;
+
+    /* owbox: another key pressed, it's not a tap */
+    if (!repeating)
+        tap_binding = NULL;
 
     mods = obt_keyboard_only_modmasks(e->state);
 
@@ -234,6 +259,14 @@ gboolean keyboard_event(ObClient *client, const ObEvent *e)
             /* if we hit a key binding, then close any open menus and run it */
             if (menu_frame_visible)
                 menu_frame_hide_all();
+
+            if (p->tap && p->first_child == NULL) {
+                /* owbox: run on the release, and let the key do what it
+                   does (a modifier) until then */
+                tap_binding = p;
+                tap_keycode = e->keycode;
+                return curpos != NULL;
+            }
 
             if (p->first_child != NULL) { /* part of a chain */
                 if (chain_timer) g_source_remove(chain_timer);
@@ -287,7 +320,7 @@ static void node_rebind(KeyBindingTree *node)
         while (node->actions) {
             /* add each action, and remove them from the original tree so
                they don't get free'd on us */
-            keyboard_bind(node->keylist, node->actions->data, node->grab, node->no_repeat);
+            keyboard_bind(node->keylist, node->actions->data, node->grab, node->no_repeat, node->tap);
             node->actions = g_slist_delete_link(node->actions, node->actions);
         }
 

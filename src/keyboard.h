@@ -37,7 +37,9 @@ void keyboard_shutdown(gboolean reconfig);
 void keyboard_rebind(void);
 
 void keyboard_chroot(GList *keylist);
-gboolean keyboard_bind(GList *keylist, struct _ObActionsAct *action, gboolean grab, gboolean no_repeat);
+gboolean keyboard_bind(GList *keylist, struct _ObActionsAct *action, gboolean grab, gboolean no_repeat, gboolean tap);
+/*! owbox: a button was pressed, a key held down isn't a tap */
+void keyboard_cancel_tap(void);
 void keyboard_unbind_all(void);
 
 gboolean keyboard_event(struct _ObClient *client, const ObEvent *e);

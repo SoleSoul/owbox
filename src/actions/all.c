@@ -42,6 +42,7 @@ void action_all_startup(void)
     action_focustobottom_startup();
     /* owbox */
     action_snap_startup();
+    action_togglepanels_startup();
     /* 3.4-compatibility */
     action_shadelowerraise_startup();
 }

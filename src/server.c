@@ -226,7 +226,8 @@ void server_init(void)
 
     /* the scene graph, from the bottom up:
        the root color, layer shell background and bottom, Openbox's stacking
-       layers up to above, layer shell top, fullscreen windows, layer shell
+       layers up to above, the shown panels, layer shell top, fullscreen
+       windows (below the shown panels while they are), layer shell
        overlay, X override-redirect windows (menus, tooltips), Openbox's
        internal windows (menus, popups), layer shell
        popups, drag icons, and the lock screen */
@@ -247,6 +248,9 @@ void server_init(void)
         wlr_scene_tree_create(&server.scene->tree);
     for (i = OB_STACKING_LAYER_INVALID; i <= OB_STACKING_LAYER_ABOVE; ++i)
         server.stack_tree[i] = wlr_scene_tree_create(&server.scene->tree);
+    /* the dim over the windows and the panels above it, while the panels
+       are shown (panels.c) */
+    server.panels_tree = wlr_scene_tree_create(&server.scene->tree);
     server.layer_tree[OB_LAYER_SHELL_TOP] =
         wlr_scene_tree_create(&server.scene->tree);
     server.stack_tree[OB_STACKING_LAYER_FULLSCREEN] =

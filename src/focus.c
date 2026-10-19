@@ -17,6 +17,7 @@
    See the COPYING file for a copy of the GNU General Public License.
 */
 
+#include "panels.h"
 #include "debug.h"
 #include "event.h"
 #include "openbox.h"
@@ -86,6 +87,9 @@ void focus_set_client(ObClient *client)
         /* make sure the focus cycle popup shows things in the right order */
         focus_cycle_reorder();
     }
+
+    /* owbox: another window, the panels' job is done */
+    panels_focus_changed(client);
 
     /* when focus is moved to a new window, the last_user_time timestamp would
        no longer be valid, as it applies for the focused window */

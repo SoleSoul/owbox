@@ -24,6 +24,10 @@ monitors), plus a few things most Openbox users add on top of it:
   Super+arrows
 - a scale for owbox itself: Openbox themes drawn larger and sharp on high
   resolution screens, without making applications larger
+- tap Super to bring up the panels and a launcher over the dimmed desktop,
+  a moment to switch tasks that ends with Escape or picking a window;
+  panels can stay hidden the rest of the time (example waybar and fuzzel
+  configurations included)
 - a built-in applications menu generated from the installed applications
 - **owbox Settings**, one application for all of it: themes (with
   previews), windows, displays, desktops, keyboard layouts, mouse and
@@ -93,8 +97,8 @@ A typical session uses a few companion programs:
 | What | Program |
 |---|---|
 | wallpaper | `swaybg -i picture.png -m fill &` |
-| panel, taskbar, tray | `waybar` (or any panel using wlr-layer-shell) |
-| launcher | `fuzzel`, `wofi`, `rofi` (Wayland builds) |
+| panel, taskbar, tray | `waybar` (or any panel using wlr-layer-shell), see `/usr/share/owbox/examples` |
+| launcher | `fuzzel` (or `wofi`, `rofi`, `tofi`, `bemenu`), shown with Super |
 | screen locker | `swaylock` (owbox runs it, and turns the monitors off itself) |
 | monitor setup | owbox Settings, or `wlr-randr`, `kanshi`, `wdisplays` |
 | screenshots | `grim` and `slurp`, which Print Screen runs |

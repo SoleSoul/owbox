@@ -18,6 +18,7 @@
    See the COPYING file for a copy of the GNU General Public License.
 */
 
+#include "panels.h"
 #include "debug.h"
 #include "openbox.h"
 #include "event.h"
@@ -292,6 +293,7 @@ gint main(gint argc, gchar **argv)
         client_startup(reconfigure);
         moveresize_startup(reconfigure);
         snap_startup(reconfigure);
+        panels_startup(reconfigure);
         keyboard_startup(reconfigure);
         mouse_startup(reconfigure);
         menu_frame_startup(reconfigure);
@@ -353,6 +355,7 @@ gint main(gint argc, gchar **argv)
         menu_frame_shutdown(reconfigure);
         mouse_shutdown(reconfigure);
         keyboard_shutdown(reconfigure);
+        panels_shutdown(reconfigure);
         snap_shutdown(reconfigure);
         moveresize_shutdown(reconfigure);
         client_shutdown(reconfigure);

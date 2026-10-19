@@ -27,6 +27,10 @@
 
 ## 0.3.0 (done)
 
+- tapping Super shows the panels and a launcher over the dimmed windows
+  (`tap="yes"` key bindings, the `TogglePanels` action, `<owbox><panels>`
+  to keep them hidden otherwise), with example waybar and fuzzel
+  configurations
 - `<owbox><scale>`: Openbox themes drawn larger and sharp (frames, menus,
   popups and their fonts), without making applications larger, in owbox
   Settings' Appearance page
@@ -41,10 +45,6 @@
 
 ## Next
 
-- **Panels on Super**: a binding for Super pressed and released alone (so
-  Super+key shortcuts don't trigger it), and a `ShowPanels` action that
-  shows auto-hidden panels (waybar or any layer shell bar) until Esc, a
-  click elsewhere or another window is focused, like GNOME.
 - **More of owbox Settings**: mouse bindings, the menus, per-application
   rules, margins, monitor arrangement by dragging.
 - **Test more hardware**: multiple monitors, hotplug, suspend and resume,
@@ -62,6 +62,10 @@
 - **Tablets** (tablet-v2).
 - **Optional eye candy**, off by default: rounded corners, shadows,
   window open/close and iconify animations, opacity rules per application.
+
+- **A guide to a complete desktop** (an Arch wiki page): for each kind of
+  companion program (bar, launcher, notifications, locker, file manager,
+  ...) the one that fits owbox best and how to set it up.
 
 ## Later, maybe
 
