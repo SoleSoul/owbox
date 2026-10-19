@@ -261,7 +261,9 @@ gchar *obt_paths_expand_tilde(const gchar *f)
     if (!f)
         return NULL;
 
-    regex = g_regex_new("(?:^|(?<=[ \\t]))~(?=[/ \\t$])", G_REGEX_MULTILINE | G_REGEX_RAW, 0, NULL);
+    /* owbox: Openbox has $ inside the brackets, where it is a literal $, so
+       a ~ at the end ("xdg-open ~") wasn't expanded */
+    regex = g_regex_new("(?:^|(?<=[ \\t]))~(?=[/ \\t]|$)", G_REGEX_MULTILINE | G_REGEX_RAW, 0, NULL);
     ret = g_regex_replace_literal(regex, f, -1, 0, g_get_home_dir(), 0, NULL);
     g_regex_unref(regex);
 

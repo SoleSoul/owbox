@@ -148,6 +148,9 @@ static struct {
 
     const gchar *cursor_name;
     gboolean cursor_from_client;
+    /* the xcursor shown, owbox's or a client's shape, NULL when a client
+       shows a surface */
+    const gchar *xcursor_name;
 
     struct wl_listener new_input;
     struct wl_listener cursor_motion;
@@ -281,6 +284,7 @@ void seat_set_cursor(ObCursor cursor)
         return;
     seat.cursor_name = name;
     seat.cursor_from_client = FALSE;
+    seat.xcursor_name = name;
     wlr_cursor_set_xcursor(server.cursor, server.xcursor_manager, name);
 }
 
@@ -779,16 +783,23 @@ void seat_reconfigure(void)
 {
     ObKeyboard *kb;
     ObPointerDevice *p;
+    struct wlr_xcursor_manager *old;
 
     wl_list_for_each(kb, &seat.keyboards, link)
         keyboard_configure(kb->wlr_keyboard);
     wl_list_for_each(p, &seat.pointers, link)
         configure_libinput(p->device);
 
-    if (server.xcursor_manager)
-        wlr_xcursor_manager_destroy(server.xcursor_manager);
+    old = server.xcursor_manager;
     server.xcursor_manager =
         wlr_xcursor_manager_create(config_cursor_theme, config_cursor_size);
+    /* the cursor keeps the manager of the image it shows, so show that
+       image from the new one before destroying the old one */
+    if (seat.xcursor_name)
+        wlr_cursor_set_xcursor(server.cursor, server.xcursor_manager,
+                               seat.xcursor_name);
+    if (old)
+        wlr_xcursor_manager_destroy(old);
     export_cursor_theme();
     seat.cursor_name = NULL;
     seat_update_cursor();
@@ -1497,6 +1508,7 @@ static void handle_request_set_cursor(struct wl_listener *listener,
     if (seat.pgrab || seat.press_owner == PRESS_OWBOX) return;
     seat.cursor_from_client = TRUE;
     seat.cursor_name = NULL;
+    seat.xcursor_name = NULL;
     wlr_cursor_set_surface(server.cursor, ev->surface,
                            ev->hotspot_x, ev->hotspot_y);
 }
@@ -1510,8 +1522,9 @@ static void handle_request_set_shape(struct wl_listener *listener,
     if (seat.pgrab || seat.press_owner == PRESS_OWBOX) return;
     seat.cursor_from_client = TRUE;
     seat.cursor_name = NULL;
+    seat.xcursor_name = wlr_cursor_shape_v1_name(ev->shape);
     wlr_cursor_set_xcursor(server.cursor, server.xcursor_manager,
-                           wlr_cursor_shape_v1_name(ev->shape));
+                           seat.xcursor_name);
 }
 
 /* ---- selections and drag and drop ---- */
