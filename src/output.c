@@ -59,7 +59,7 @@ static void update_monitors(void)
     wl_list_for_each(o, &server.outputs, link) {
         struct wlr_box box;
 
-        o->in_layout = o->wlr_output->enabled &&
+        o->in_layout = (o->wlr_output->enabled || o->powered_off) &&
             wlr_output_layout_get(server.output_layout, o->wlr_output);
         if (!o->in_layout) continue;
 
@@ -124,7 +124,7 @@ static void update_output_manager(void)
         struct wlr_box box;
 
         wlr_output_layout_get_box(server.output_layout, o->wlr_output, &box);
-        head->state.enabled = o->wlr_output->enabled;
+        head->state.enabled = o->wlr_output->enabled || o->powered_off;
         if (!wlr_box_empty(&box)) {
             head->state.x = box.x;
             head->state.y = box.y;
@@ -397,16 +397,36 @@ static void handle_manager_test(struct wl_listener *listener, void *data)
     apply_manager_config(data, TRUE);
 }
 
+void output_set_power(ObOutput *o, gboolean on)
+{
+    struct wlr_output_state state;
+
+    if (!o || o->powered_off == !on) return;
+    /* a monitor turned off in the configuration isn't powered */
+    if (!on && !o->wlr_output->enabled) return;
+
+    wlr_output_state_init(&state);
+    wlr_output_state_set_enabled(&state, on);
+    if (wlr_output_commit_state(o->wlr_output, &state))
+        o->powered_off = !on;
+    wlr_output_state_finish(&state);
+}
+
+void output_set_power_all(gboolean on)
+{
+    ObOutput *o;
+
+    wl_list_for_each(o, &server.outputs, link)
+        if (o->in_layout)
+            output_set_power(o, on);
+}
+
 static void handle_power_set_mode(struct wl_listener *listener, void *data)
 {
     struct wlr_output_power_v1_set_mode_event *event = data;
-    struct wlr_output_state state;
 
-    wlr_output_state_init(&state);
-    wlr_output_state_set_enabled(&state,
-                                 event->mode == ZWLR_OUTPUT_POWER_V1_MODE_ON);
-    wlr_output_commit_state(event->output, &state);
-    wlr_output_state_finish(&state);
+    output_set_power(output_from_wlr(event->output),
+                     event->mode == ZWLR_OUTPUT_POWER_V1_MODE_ON);
 }
 
 void output_init(void)

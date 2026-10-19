@@ -127,6 +127,25 @@ The color of the desktop when no wallpaper program is running, any color
 Openbox themes accept.
 
 ```xml
+  <idle>
+    <screenOff>10</screenOff>   <!-- minutes, 0 for never -->
+    <lock>yes</lock>
+    <lockCommand></lockCommand>
+  </idle>
+```
+
+The monitors turn off after `screenOff` minutes without input, unless a
+visible window asks to keep them on (video players and calls do, with the
+idle-inhibit protocol), and turn on with the next input. A monitor that is
+off keeps its place and its windows. With `lock` on, the screen is locked
+when the monitors turn off, before suspending, and when logind is asked to
+(`loginctl lock-session`, Lock Screen in the menu). owbox runs the screen
+locker `lockCommand`, or the first one installed of `swaylock -f`,
+`gtklock -d`, `waylock -fork-on-lock` and `hyprlock`; a command for it
+should only return (or fork) once the screen is locked. Set `screenOff` to
+0 and `lock` to no to use swayidle instead.
+
+```xml
   <scale>1.5</scale>
 ```
 
@@ -208,18 +227,28 @@ Openbox. Pipe menus work too.
 ## Default key bindings owbox adds
 
 Besides Openbox's defaults and Super+arrows for snapping, the default rc.xml
-binds Super+E to the file manager (`xdg-open ~`), the volume keys to `pactl`
-(PulseAudio and PipeWire), the media keys to `playerctl`, the brightness
-keys to `brightnessctl`, and Print Screen to `owbox-screenshot`: Print for
-the whole screen, Alt+Print for the focused window, Shift+Print for an area
-chosen with the mouse (`slurp`). Screenshots go to `Pictures/Screenshots`
-and the clipboard.
+binds Super+E to the file manager (`xdg-open ~`), the volume keys to
+`owbox-volume` and the brightness keys to `owbox-brightness`, which change
+the level (with `pactl`, for PulseAudio and PipeWire, and `brightnessctl`)
+and show it in a notification, the media keys to `playerctl`, and Print
+Screen to `owbox-screenshot`: Print for the whole screen, Alt+Print for the
+focused window, Shift+Print for an area chosen with the mouse (`slurp`).
+Screenshots go to `Pictures/Screenshots` and the clipboard.
+
+An rc.xml of your own (or Openbox's) doesn't get new default bindings:
+owbox Settings' Key Bindings page offers to add them.
+
+The default menu's Leave submenu has Lock Screen, Suspend, Log Out, Restart
+and Shut Down (the last two ask first).
 
 ## The session
 
 `owbox-session` points `SSH_AUTH_SOCK` at the SSH agent systemd started
 (GNOME's from gcr, or OpenSSH's `ssh-agent.socket`), as other desktops'
-sessions do. The system autostart (`/etc/xdg/owbox/autostart`, run before
+sessions do. owbox starts the systemd user target `owbox-session.target`,
+which is bound to `graphical-session.target`, and stops it when it exits,
+so services of the graphical session (portals, gvfs, panels run as
+services) start and stop with it. The system autostart (`/etc/xdg/owbox/autostart`, run before
 the user's) starts an installed polkit agent, which asks for passwords when
 applications need administrator rights.
 
@@ -238,7 +267,7 @@ with an empty line. The reply's first line is `ok` or `error <message>`.
 | `action <xml>` | runs actions, written as in rc.xml, on the focused window |
 | `windows` | one JSON object per window, bottom to top |
 | `desktops` | `{"current": n, "names": [...]}` |
-| `outputs` | one JSON object per monitor: name, make, model, enabled, x, y, width, height, refresh (mHz), scale, transform, modes |
+| `outputs` | one JSON object per monitor: name, make, model, enabled, power (false while turned off), x, y, width, height, refresh (mHz), scale, transform, modes |
 | `config-file` | the path of the rc.xml in use |
 | `choose-share` | shows the menu of monitors and windows to share, and replies with `Monitor: <name>` or `Window: <identifier>`, or nothing when cancelled (also `owbox --choose-share`) |
 

@@ -217,6 +217,7 @@ owbox_sources = files(
 	'src/seat.c',
 	'src/server.c',
 	'src/session.c',
+	'src/idle.c',
 	'src/snap.c',
 	'src/stacking.c',
 	'src/toplevel.c',
@@ -291,7 +292,8 @@ install_data(
 	'data/rc.xml', 'data/menu.xml', 'data/environment', 'data/autostart',
 	install_dir: sysconfdir / 'xdg' / 'owbox',
 )
-install_data('data/owbox-terminal', 'data/owbox-screenshot', install_dir: bindir,
+install_data('data/owbox-terminal', 'data/owbox-screenshot',
+	'data/owbox-volume', 'data/owbox-brightness', install_dir: bindir,
 	install_mode: 'rwxr-xr-x')
 configure_file(
 	input: 'data/owbox-session',
@@ -309,6 +311,13 @@ configure_file(
 )
 install_data('data/owbox-portals.conf',
 	install_dir: datadir / 'xdg-desktop-portal')
+# the session's systemd target (graphical-session.target)
+systemd = dependency('systemd', required: false)
+systemd_user_unit_dir = systemd.found() ? \
+	systemd.get_variable('systemd_user_unit_dir',
+		pkgconfig_define: ['prefix', get_option('prefix')]) : \
+	get_option('prefix') / 'lib' / 'systemd' / 'user'
+install_data('data/owbox-session.target', install_dir: systemd_user_unit_dir)
 # owbox's menu for choosing what to share (xdg-desktop-portal-wlr reads its
 # settings for each desktop from here)
 install_data('data/xdg-desktop-portal-wlr/owbox',

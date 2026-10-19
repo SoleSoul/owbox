@@ -1,0 +1,31 @@
+#!/bin/sh
+# Change the screen's brightness, and show it in a notification that
+# replaces the last one.
+#
+#   owbox-brightness up|down
+#
+# The default brightness key bindings run this.  It uses brightnessctl, and
+# doesn't go all the way down to black.
+
+step=5
+
+case $1 in
+    up)   change="+$step%" ;;
+    down) change="$step%-" ;;
+    *)
+        echo "usage: owbox-brightness up|down" >&2
+        exit 2 ;;
+esac
+
+# the machine-readable output: device,class,current,percent,max
+out=$(brightnessctl -m --min-value=1 set "$change") || exit 1
+p=$(echo "$out" | head -n1 | cut -d, -f4 | tr -d %)
+
+command -v notify-send >/dev/null 2>&1 || exit 0
+idfile=${XDG_RUNTIME_DIR:-/tmp}/owbox-brightness.id
+id=$(cat "$idfile" 2>/dev/null)
+notify-send -a owbox -u low -t 1500 -e -p -i display-brightness \
+    ${id:+-r "$id"} -h "int:value:$p" \
+    -h string:x-canonical-private-synchronous:owbox-brightness \
+    "Brightness $p%" > "$idfile.tmp" 2>/dev/null && mv "$idfile.tmp" "$idfile"
+exit 0

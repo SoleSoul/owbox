@@ -42,6 +42,9 @@ struct _ObOutput {
     Rect area;
     /*! Is the output part of the layout (enabled) */
     gboolean in_layout;
+    /*! The monitor is turned off (idle, or wlr-output-power), but it stays
+      in the layout, with its windows */
+    gboolean powered_off;
 
     struct wl_listener frame;
     struct wl_listener request_state;
@@ -65,5 +68,10 @@ gfloat output_max_scale(void);
 
 /*! Apply the output settings from the configuration file */
 void output_reconfigure(void);
+
+/*! Turn a monitor off or on, keeping it in the layout */
+void output_set_power(ObOutput *o, gboolean on);
+/*! Turn all the monitors in the layout off or on */
+void output_set_power_all(gboolean on);
 
 #endif

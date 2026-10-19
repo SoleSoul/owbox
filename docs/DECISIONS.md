@@ -108,3 +108,18 @@ any size. The few sizes Openbox hardcodes in the popups, menus and dialogs
 are multiplied where they are defined, and the code using them is
 unchanged. Drawing at the theme's size and enlarging the picture would have
 been simpler but blurry, text especially.
+
+**Idle and locking are built in**, rather than left to swayidle. Openbox
+users had X's screen blanking for free, and a session whose monitors never
+turn off, or that suspends unlocked, is broken out of the box. owbox
+already knows the input, the idle inhibitors (videos) and the lock state.
+It runs a screen locker (swaylock and others, found or configured) and
+doesn't draw one. A monitor turned off stays in the layout, so its windows
+don't move. logind is used only when owbox runs on the hardware: a test
+owbox must not lock the user's session.
+
+**The session is a systemd target** (`owbox-session.target`, bound to
+graphical-session.target), started when owbox runs on the hardware and
+stopped when it exits. Services tied to the graphical session (portals,
+gvfs, panels run as services) then stop at logout instead of serving a
+display that is gone.

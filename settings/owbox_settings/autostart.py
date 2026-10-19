@@ -29,9 +29,20 @@ X_PROGRAMS = {
     "tint2": _("an X panel, use waybar"),
     "lxpanel": _("an X panel, use waybar"),
     "xfce4-panel": _("use waybar, or a Wayland build of xfce4-panel"),
-    "xset": _("X only, screen blanking is swayidle's job"),
-    "xscreensaver": _("use swayidle and swaylock"),
-    "light-locker": _("use swayidle and swaylock"),
+    "xset": _("not needed, owbox turns the monitors off when idle "
+              "(Displays settings)"),
+    "xscreensaver": _("not needed, install swaylock and owbox locks the "
+                      "screen with it"),
+    "light-locker": _("not needed, install swaylock and owbox locks the "
+                      "screen with it"),
+    "xss-lock": _("not needed, owbox locks the screen before suspending"),
+    "xautolock": _("not needed, owbox locks the screen when idle"),
+    "xfce4-power-manager": _("X only, owbox turns the monitors off when "
+                             "idle"),
+    "volumeicon": _("an X tray icon, the volume keys work without it"),
+    "polkit-gnome-authentication-agent-1": _("not needed, owbox starts a "
+                                             "polkit agent"),
+    "lxpolkit": _("not needed, owbox starts a polkit agent"),
     "setxkbmap": _("set the keyboard in owbox's Keyboard settings"),
     "numlockx": _("turn Num Lock on in owbox's Keyboard settings"),
     "xrandr": _("set the monitors in owbox's Displays settings"),

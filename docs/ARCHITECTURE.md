@@ -31,7 +31,8 @@ src/
   icons.c           desktop entries and icon themes (libsfdo)
   ipc.c             the control socket (owbox --msg)
   ping.c            pinging windows being closed
-  session.c         environment, autostart, XDG autostart
+  session.c         environment, autostart, XDG autostart, the systemd target
+  idle.c            monitors off when idle, locking (logind: Lock, suspend)
   render/           Openbox's obrender, drawing into cairo surfaces
   obt/              the parts of Openbox's libobt still needed (paths, xml,
                     keyboard helpers)

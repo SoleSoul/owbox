@@ -45,6 +45,7 @@
 #include "icons.h"
 #include "ipc.h"
 #include "session.h"
+#include "idle.h"
 #include "snap.h"
 #include "gettext.h"
 #include "render/render.h"
@@ -251,6 +252,7 @@ gint main(gint argc, gchar **argv)
     server_start();
     ipc_startup();
     session_environment();
+    idle_startup();
 
     do {
         gchar *xml_error_string = NULL;
@@ -266,6 +268,7 @@ gint main(gint argc, gchar **argv)
             GList *it;
 
             seat_reconfigure();
+            idle_reconfigure();
             output_reconfigure();
 
             /* update all existing windows for the new theme */
@@ -367,6 +370,7 @@ gint main(gint argc, gchar **argv)
         actions_shutdown(reconfigure);
     } while (reconfigure);
 
+    idle_shutdown();
     ipc_shutdown();
     if (config_monitor)
         g_object_unref(config_monitor);

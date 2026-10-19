@@ -136,6 +136,9 @@ gboolean config_auto_reload;
 gboolean config_allow_shortcuts_inhibit;
 ObXwaylandMode config_xwayland;
 gdouble config_scale;
+gdouble config_idle_screen_off;
+gboolean config_idle_lock;
+gchar *config_idle_lock_command;
 guint    config_desktops_rows;
 guint    config_desktops_columns;
 ObOrientation config_desktops_orientation;
@@ -1372,6 +1375,19 @@ static void parse_owbox(xmlNodePtr node, gpointer d)
         if ((c = obt_xml_find_node(n->children, "dragUnmaximize")))
             config_snap_drag_unmaximize = obt_xml_node_bool(c);
     }
+    if ((n = obt_xml_find_node(node, "idle"))) {
+        if ((c = obt_xml_find_node(n->children, "screenOff"))) {
+            gchar *s = obt_xml_node_string(c);
+            config_idle_screen_off = MAX(g_ascii_strtod(s, NULL), 0);
+            g_free(s);
+        }
+        if ((c = obt_xml_find_node(n->children, "lock")))
+            config_idle_lock = obt_xml_node_bool(c);
+        if ((c = obt_xml_find_node(n->children, "lockCommand"))) {
+            g_free(config_idle_lock_command);
+            config_idle_lock_command = node_string_or_null(c);
+        }
+    }
     if ((n = obt_xml_find_node(node, "reloadOnChange")))
         config_auto_reload = obt_xml_node_bool(n);
     if ((n = obt_xml_find_node(node, "allowShortcutsInhibit")))
@@ -1508,6 +1524,9 @@ static void owbox_defaults(void)
     config_allow_shortcuts_inhibit = TRUE;
     config_xwayland = OB_XWAYLAND_LAZY;
     config_scale = 1.0;
+    config_idle_screen_off = 10;
+    config_idle_lock = TRUE;
+    config_idle_lock_command = NULL;
     config_desktops_rows = config_desktops_columns = 0;
     config_desktops_orientation = OB_ORIENTATION_HORZ;
     config_desktops_start_corner = OB_CORNER_TOPLEFT;
@@ -1530,6 +1549,7 @@ static void owbox_free(void)
     g_free(config_xkb_options);
     g_free(config_cursor_theme);
     g_free(config_icon_theme);
+    g_free(config_idle_lock_command);
     for (it = config_libinput; it; it = g_slist_next(it)) {
         ObLibinputConfig *lc = it->data;
         g_free(lc->match);

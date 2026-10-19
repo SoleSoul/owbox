@@ -30,9 +30,11 @@
 - `<owbox><scale>`: Openbox themes drawn larger and sharp (frames, menus,
   popups and their fonts), without making applications larger, in owbox
   Settings' Appearance page
-- a session that works out of the box: media, volume and brightness keys,
-  screenshots with Print Screen (`owbox-screenshot`), a polkit agent, the
-  SSH agent
+- a session that works out of the box: monitors off when idle and locking
+  (`<owbox><idle>`, with swaylock), Lock, Suspend, Restart and Shut Down in
+  the menu, volume and brightness keys that show the level, screenshots
+  with Print Screen (`owbox-screenshot`), a polkit agent, the SSH agent,
+  `graphical-session.target`
 - fixes: a crash when changing a monitor's scale after a reconfigure, `~`
   at the end of a command (the default Super+E)
 - first public release, on GitHub and the AUR

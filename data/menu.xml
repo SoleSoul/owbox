@@ -29,6 +29,39 @@
   </item>
 </menu>
 
+<!-- Locking runs the screen locker (swaylock), see <owbox><idle> in rc.xml.
+     Suspending locks the screen first. -->
+<menu id="leave-menu" label="Leave" icon="system-shutdown">
+  <item label="Lock Screen" icon="system-lock-screen">
+    <action name="Execute">
+      <command>loginctl lock-session</command>
+    </action>
+  </item>
+  <item label="Suspend" icon="system-suspend">
+    <action name="Execute">
+      <command>systemctl suspend</command>
+    </action>
+  </item>
+  <separator />
+  <item label="Log Out" icon="system-log-out">
+    <action name="Exit">
+      <prompt>yes</prompt>
+    </action>
+  </item>
+  <item label="Restart" icon="system-reboot">
+    <action name="Execute">
+      <prompt>Restart the computer?</prompt>
+      <command>systemctl reboot</command>
+    </action>
+  </item>
+  <item label="Shut Down" icon="system-shutdown">
+    <action name="Execute">
+      <prompt>Shut down the computer?</prompt>
+      <command>systemctl poweroff</command>
+    </action>
+  </item>
+</menu>
+
 <menu id="root-menu" label="owbox">
   <item label="Terminal" icon="utilities-terminal">
     <action name="Execute">
@@ -47,11 +80,7 @@
   <separator />
   <menu id="owbox-menu" />
   <separator />
-  <item label="Log Out" icon="system-log-out">
-    <action name="Exit">
-      <prompt>yes</prompt>
-    </action>
-  </item>
+  <menu id="leave-menu" />
 </menu>
 
 </openbox_menu>

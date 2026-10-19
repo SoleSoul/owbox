@@ -168,6 +168,8 @@ void server_init(void);
   Wayland socket */
 /*! Is owbox the session, running on the hardware (not nested or headless) */
 gboolean server_is_session(void);
+/*! Is owbox running in a window of another Wayland or X session */
+gboolean server_is_nested(void);
 void server_start(void);
 void server_finish(void);
 

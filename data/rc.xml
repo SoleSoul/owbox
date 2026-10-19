@@ -328,20 +328,21 @@
     </action>
   </keybind>
 
-  <!-- Keybindings for the keyboard's media keys, and screenshots.  These run
-       pactl (PulseAudio and PipeWire), playerctl and brightnessctl, which
-       need to be installed -->
+  <!-- Keybindings for the keyboard's media keys, and screenshots.
+       owbox-volume and owbox-brightness change the level and show it in a
+       notification.  They need pactl (PulseAudio or PipeWire) and
+       brightnessctl, the media keys need playerctl -->
   <keybind key="XF86AudioRaiseVolume">
-    <action name="Execute"><command>pactl set-sink-volume @DEFAULT_SINK@ +5%</command></action>
+    <action name="Execute"><command>owbox-volume up</command></action>
   </keybind>
   <keybind key="XF86AudioLowerVolume">
-    <action name="Execute"><command>pactl set-sink-volume @DEFAULT_SINK@ -5%</command></action>
+    <action name="Execute"><command>owbox-volume down</command></action>
   </keybind>
   <keybind key="XF86AudioMute">
-    <action name="Execute"><command>pactl set-sink-mute @DEFAULT_SINK@ toggle</command></action>
+    <action name="Execute"><command>owbox-volume mute</command></action>
   </keybind>
   <keybind key="XF86AudioMicMute">
-    <action name="Execute"><command>pactl set-source-mute @DEFAULT_SOURCE@ toggle</command></action>
+    <action name="Execute"><command>owbox-volume mic-mute</command></action>
   </keybind>
   <keybind key="XF86AudioPlay">
     <action name="Execute"><command>playerctl play-pause</command></action>
@@ -356,10 +357,10 @@
     <action name="Execute"><command>playerctl previous</command></action>
   </keybind>
   <keybind key="XF86MonBrightnessUp">
-    <action name="Execute"><command>brightnessctl set +5%</command></action>
+    <action name="Execute"><command>owbox-brightness up</command></action>
   </keybind>
   <keybind key="XF86MonBrightnessDown">
-    <action name="Execute"><command>brightnessctl set 5%-</command></action>
+    <action name="Execute"><command>owbox-brightness down</command></action>
   </keybind>
   <!-- owbox-screenshot saves screenshots in Pictures/Screenshots -->
   <keybind key="Print">
@@ -878,6 +879,19 @@
   <background>#303030</background>
   <!-- the color of the desktop when no wallpaper program (like swaybg) is
        running -->
+
+  <idle>
+    <screenOff>10</screenOff>
+    <!-- minutes without input before the monitors turn off, 0 for never.
+         A window can keep them on (a video player, a call) -->
+    <lock>yes</lock>
+    <!-- lock the screen when the monitors turn off, before suspending, and
+         when asked (the menu's Lock Screen, 'loginctl lock-session') -->
+    <lockCommand></lockCommand>
+    <!-- the screen locker, empty for the first one installed of swaylock,
+         gtklock, waylock and hyprlock.  It should lock before it returns
+         or forks, like 'swaylock -f' -->
+  </idle>
 
   <scale>1</scale>
   <!-- how much larger than the theme owbox draws window frames, menus and

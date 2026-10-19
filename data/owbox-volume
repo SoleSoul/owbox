@@ -1,0 +1,66 @@
+#!/bin/sh
+# Change the volume, and show it in a notification that replaces the last
+# one (a bar where the notification daemon draws one).
+#
+#   owbox-volume up|down|mute|mic-mute
+#
+# The default volume key bindings run this.  It uses pactl, which works with
+# PulseAudio and PipeWire.  Up unmutes, and stops at 100%.
+
+step=5
+
+volume() {
+    pactl get-sink-volume @DEFAULT_SINK@ | grep -o '[0-9]*%' | head -n1 |
+        tr -d %
+}
+
+muted() {
+    pactl get-"$1"-mute "$2" | grep -q yes
+}
+
+# show ICON TEXT [PERCENT]
+show() {
+    command -v notify-send >/dev/null 2>&1 || return 0
+    idfile=${XDG_RUNTIME_DIR:-/tmp}/owbox-volume.id
+    id=$(cat "$idfile" 2>/dev/null)
+    notify-send -a owbox -u low -t 1500 -e -p -i "$1" \
+        ${id:+-r "$id"} ${3:+-h "int:value:$3"} \
+        -h string:x-canonical-private-synchronous:owbox-volume \
+        "$2" > "$idfile.tmp" 2>/dev/null && mv "$idfile.tmp" "$idfile"
+}
+
+case $1 in
+    up)
+        v=$(volume) || exit 1
+        v=$((v + step > 100 ? (v > 100 ? v : 100) : v + step))
+        pactl set-sink-mute @DEFAULT_SINK@ 0 &&
+            pactl set-sink-volume @DEFAULT_SINK@ "$v%" || exit 1 ;;
+    down)
+        v=$(volume) || exit 1
+        v=$((v > step ? v - step : 0))
+        pactl set-sink-volume @DEFAULT_SINK@ "$v%" || exit 1 ;;
+    mute)
+        pactl set-sink-mute @DEFAULT_SINK@ toggle || exit 1 ;;
+    mic-mute)
+        pactl set-source-mute @DEFAULT_SOURCE@ toggle || exit 1
+        if muted source @DEFAULT_SOURCE@; then
+            show microphone-sensitivity-muted "Microphone off"
+        else
+            show microphone-sensitivity-high "Microphone on"
+        fi
+        exit 0 ;;
+    *)
+        echo "usage: owbox-volume up|down|mute|mic-mute" >&2
+        exit 2 ;;
+esac
+
+v=$(volume)
+if muted sink @DEFAULT_SINK@; then
+    show audio-volume-muted "Muted" 0
+elif [ "$v" -ge 67 ]; then
+    show audio-volume-high "Volume $v%" "$v"
+elif [ "$v" -ge 34 ]; then
+    show audio-volume-medium "Volume $v%" "$v"
+else
+    show audio-volume-low "Volume $v%" "$v"
+fi

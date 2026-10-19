@@ -153,9 +153,10 @@ static void list_outputs(GString *out)
         g_string_append(out, ",\"model\":");
         json_string(out, w->model);
         g_string_append_printf(out,
-            ",\"enabled\":%s,\"x\":%d,\"y\":%d,\"width\":%d,"
+            ",\"enabled\":%s,\"power\":%s,\"x\":%d,\"y\":%d,\"width\":%d,"
             "\"height\":%d,\"refresh\":%d,\"scale\":%g,\"transform\":",
-            w->enabled ? "true" : "false", o->area.x, o->area.y,
+            w->enabled || o->powered_off ? "true" : "false",
+            o->powered_off ? "false" : "true", o->area.x, o->area.y,
             w->width, w->height, w->refresh, w->scale);
         json_string(out, transforms[w->transform & 7]);
         g_string_append(out, ",\"modes\":[");

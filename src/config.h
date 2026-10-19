@@ -308,6 +308,13 @@ extern ObXwaylandMode config_xwayland;
 /*! How much larger than the theme's sizes owbox draws its frames, menus
   and popups, and its fonts */
 extern gdouble config_scale;
+/*! Minutes without input before the monitors turn off, 0 for never */
+extern gdouble config_idle_screen_off;
+/*! Lock the screen when the monitors turn off, before suspending, and
+  when logind asks (loginctl lock-session) */
+extern gboolean config_idle_lock;
+/*! The screen locker to run, or NULL for the first one installed */
+extern gchar *config_idle_lock_command;
 /*! Read the scale from rc.xml's root before the rest is parsed, since fonts
   are opened at it as they are parsed */
 void config_read_scale(xmlNodePtr root);

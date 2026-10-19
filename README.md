@@ -32,8 +32,11 @@ monitors), plus a few things most Openbox users add on top of it:
   from Openbox
 - screen sharing (of a monitor or a window) with an Openbox style menu to
   choose what to share
-- what a desktop session needs out of the box: media and brightness keys,
-  screenshots (Print Screen), a polkit agent and the SSH agent
+- what a desktop session needs out of the box: monitors that turn off when
+  idle, locking (when idle, before suspending, from the menu), Lock,
+  Suspend, Restart and Shut Down in the menu, volume and brightness keys
+  that show the level, screenshots (Print Screen), a polkit agent, the SSH
+  agent, and the systemd graphical session
 - a control socket for scripting (`owbox --msg`)
 - automatic reload when `rc.xml` changes, so any editor's changes apply
   immediately
@@ -92,7 +95,7 @@ A typical session uses a few companion programs:
 | wallpaper | `swaybg -i picture.png -m fill &` |
 | panel, taskbar, tray | `waybar` (or any panel using wlr-layer-shell) |
 | launcher | `fuzzel`, `wofi`, `rofi` (Wayland builds) |
-| screen locker, idle | `swaylock`, `swayidle` |
+| screen locker | `swaylock` (owbox runs it, and turns the monitors off itself) |
 | monitor setup | owbox Settings, or `wlr-randr`, `kanshi`, `wdisplays` |
 | screenshots | `grim` and `slurp`, which Print Screen runs |
 | media keys | `pactl` (libpulse), `playerctl`, `brightnessctl` |

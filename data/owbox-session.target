@@ -1,0 +1,10 @@
+# The owbox session, for systemd user services.  owbox starts it when it
+# runs on the hardware and stops it when it exits, so that services bound
+# to graphical-session.target (portals, panels run as services) start with
+# the session and stop with it.
+[Unit]
+Description=owbox session
+Documentation=man:owbox(1)
+BindsTo=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target

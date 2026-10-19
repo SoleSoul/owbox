@@ -23,6 +23,9 @@
 
 #include <string.h>
 
+/* owbox is the session (on the hardware), and started its systemd target */
+static gboolean in_session = FALSE;
+
 static void spawn(gchar **argv)
 {
     GError *e = NULL;
@@ -64,11 +67,16 @@ void session_environment(void)
                them for this one */
             "systemctl --user try-restart xdg-desktop-portal.service "
             "xdg-desktop-portal-wlr.service xdg-desktop-portal-gtk.service "
-            ">/dev/null 2>&1", exe);
+            ">/dev/null 2>&1; "
+            /* graphical-session.target, for the services that come and go
+               with the session */
+            "systemctl --user start owbox-session.target >/dev/null 2>&1",
+            exe);
         gchar *argv[] = { "/bin/sh", "-c", script, NULL };
         spawn(argv);
         g_free(script);
         g_free(exe);
+        in_session = TRUE;
     }
 }
 
@@ -236,4 +244,16 @@ void session_autostart(void)
 
 void session_shutdown(void)
 {
+    /* the session's services stop, and later ones don't get this session's
+       display */
+    if (in_session) {
+        gchar *argv[] = { "/bin/sh", "-c",
+            "systemctl --user --no-block stop owbox-session.target; "
+            "systemctl --user unset-environment WAYLAND_DISPLAY DISPLAY "
+            "OWBOX_SOCK", NULL };
+        g_spawn_sync(NULL, argv, NULL,
+                     G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
+                     NULL, NULL, NULL, NULL, NULL, NULL);
+        in_session = FALSE;
+    }
 }

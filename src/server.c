@@ -33,6 +33,8 @@
 #include <wlr/backend/session.h>
 #include <wlr/backend/drm.h>
 #include <wlr/backend/multi.h>
+#include <wlr/backend/wayland.h>
+#include <wlr/backend/x11.h>
 #include <wlr/render/allocator.h>
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_alpha_modifier_v1.h>
@@ -301,6 +303,22 @@ static void find_drm(struct wlr_backend *backend, void *data)
 {
     if (wlr_backend_is_drm(backend))
         *(gboolean*)data = TRUE;
+}
+
+static void find_nested(struct wlr_backend *backend, void *data)
+{
+    if (wlr_backend_is_wl(backend) || wlr_backend_is_x11(backend))
+        *(gboolean*)data = TRUE;
+}
+
+gboolean server_is_nested(void)
+{
+    gboolean nested = FALSE;
+    if (wlr_backend_is_multi(server.backend))
+        wlr_multi_for_each_backend(server.backend, find_nested, &nested);
+    else
+        find_nested(server.backend, &nested);
+    return nested;
 }
 
 gboolean server_is_session(void)

@@ -459,6 +459,7 @@ class SettingsWindow(Gtk.ApplicationWindow):
         if not outputs:
             box.append(label(_("owbox isn't running, the monitors can be "
                                "set while it is."), css="dim-label"))
+            self.idle_section(box)
             return scroll
         for o in outputs:
             name = o["name"]
@@ -540,7 +541,42 @@ class SettingsWindow(Gtk.ApplicationWindow):
             box.append(row(_("Position"), pos,
                            _("Where its top left corner is among the "
                              "monitors")))
+        self.idle_section(box)
         return scroll
+
+    def idle_section(self, box):
+        """<owbox><idle>: the monitors off when idle, and locking"""
+        box.append(section(_("When idle")))
+        minutes = ["0", "1", "2", "3", "5", "10", "15", "20", "30", "45",
+                   "60"]
+        names = [_("Never")] + [_("After %s minutes") % m if m != "1" else
+                                _("After 1 minute") for m in minutes[1:]]
+        cur = self.rc.get("owbox/idle/screenOff", "10")
+        if cur not in minutes:
+            # set in rc.xml by hand
+            minutes.append(cur)
+            names.append(_("After %s minutes") % cur)
+        dd = Gtk.DropDown.new_from_strings(names)
+        dd.set_selected(minutes.index(cur))
+        dd.connect("notify::selected", lambda w, p: self.set(
+            "owbox/idle/screenOff", minutes[w.get_selected()]))
+        box.append(row(_("Turn the monitors off"), dd,
+                       _("When there's no input, unless a window asks to "
+                         "keep them on (a video)")))
+        locker = next((n for n in ("swaylock", "gtklock", "waylock",
+                                   "hyprlock") if shutil.which(n)), None)
+        note = _("When the monitors turn off, before suspending, and with "
+                 "Lock Screen in the menu.")
+        if self.rc.get("owbox/idle/lockCommand"):
+            note += " " + _("Locks with %s.") % \
+                self.rc.get("owbox/idle/lockCommand")
+        elif locker:
+            note += " " + _("Locks with %s.") % locker
+        else:
+            note += " " + _("Install a screen locker, like swaylock, to "
+                            "lock the screen.")
+        box.append(row(_("Lock the screen"),
+                       self.switch("owbox/idle/lock", True), note))
 
     # ---- Desktops ----
 

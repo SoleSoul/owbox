@@ -174,6 +174,36 @@ def test_scale(out):
     wait_windows(out, 0)
 
 
+def outputs(out):
+    r = run(out, OWBOX, "--msg", "outputs", timeout=5)
+    return [json.loads(l) for l in r.stdout.splitlines() if l.startswith("{")]
+
+
+def test_idle(out):
+    """<owbox><idle>: the monitors turn off, lock, and wake on input"""
+    rc = os.path.join(out, "rc.xml")
+    orig = open(rc).read()
+    flag = os.path.join(out, "locked")
+    with open(rc, "w") as f:
+        f.write(orig.replace("<screenOff>10</screenOff>",
+                             "<screenOff>0.05</screenOff>")
+                    .replace("<lockCommand></lockCommand>",
+                             "<lockCommand>touch %s</lockCommand>" % flag))
+    time.sleep(1.5)  # reloaded on change
+    deadline = time.time() + 8
+    while time.time() < deadline and outputs(out)[0]["power"]:
+        time.sleep(0.5)
+    o = outputs(out)[0]
+    check("idle turns the monitors off", not o["power"] and o["enabled"], o)
+    check("and locks the screen", os.path.exists(flag))
+    inp(out, "move", "200", "200")
+    time.sleep(0.3)
+    check("input turns them on", outputs(out)[0]["power"], outputs(out)[0])
+    with open(rc, "w") as f:
+        f.write(orig)
+    time.sleep(1.5)
+
+
 def test_menus(out):
     # the root menu at 700,200 (Clearlooks, the default font): Applications
     # is the 3rd item (y+62), Windows the 4th (y+84), the submenu opens at
@@ -241,6 +271,7 @@ def main():
     try:
         test_xdg(out)
         test_scale(out)
+        test_idle(out)
         test_menus(out)
         test_x11(out)
         try:

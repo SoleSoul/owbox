@@ -16,6 +16,7 @@
    See the COPYING file for a copy of the GNU General Public License.
 */
 
+#include "idle.h"
 #include "seat.h"
 #include "server.h"
 #include "xwayland.h"
@@ -188,6 +189,7 @@ static guint32 now_msec(void)
 
 static void notify_activity(void)
 {
+    idle_activity();
     if (server.idle_notifier)
         wlr_idle_notifier_v1_notify_activity(server.idle_notifier,
                                              server.seat);
@@ -1669,6 +1671,7 @@ void seat_update_idle_inhibit(void)
             inhibit = TRUE;
     }
     wlr_idle_notifier_v1_set_inhibited(server.idle_notifier, inhibit);
+    idle_set_inhibited(inhibit);
 }
 
 /* ---- session lock ---- */
@@ -1677,6 +1680,7 @@ void seat_set_locked(gboolean locked)
 {
     seat.locked = locked;
     if (locked) {
+        idle_locked();
         wlr_seat_keyboard_notify_clear_focus(server.seat);
         wlr_seat_pointer_notify_clear_focus(server.seat);
         seat.override_focus = NULL;

@@ -119,6 +119,8 @@ See docs/ARCHITECTURE.md for the map. Quick pointers:
   `src/config.c`
 - new actions: `src/actions/`, registered in `src/actions/all.c`
 - the scene graph's order: `server_init()` in `src/server.c`
+- idle, locking and logind: `src/idle.c` (logind only on the DRM backend,
+  so tests don't lock the user's session)
 
 ## Packaging
 

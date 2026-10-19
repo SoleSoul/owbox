@@ -10,6 +10,12 @@ owbox \- Openbox for Wayland, a stacking window manager and compositor
 .br
 .B owbox-screenshot
 [\fBscreen\fR|\fBarea\fR|\fBwindow\fR]
+.br
+.B owbox-volume
+\fBup\fR|\fBdown\fR|\fBmute\fR|\fBmic-mute\fR
+.br
+.B owbox-brightness
+\fBup\fR|\fBdown\fR
 .SH DESCRIPTION
 .B owbox
 is a Wayland compositor that is Openbox: the same window management, the
@@ -124,7 +130,17 @@ The path of the rc.xml owbox loaded.
 owbox sets \fBWAYLAND_DISPLAY\fR, \fBDISPLAY\fR (for X applications),
 \fBXDG_CURRENT_DESKTOP\fR=owbox (if not set), \fBXDG_SESSION_TYPE\fR and
 \fBOWBOX_SOCK\fR for the programs it runs, and passes them to D\-Bus and
-systemd.
+systemd.  It starts \fBowbox\-session.target\fR (bound to
+\fBgraphical\-session.target\fR) and stops it when it exits.
+.SH IDLE AND LOCKING
+The monitors turn off after ten minutes without input, unless a window asks
+to keep them on, and the screen is locked then, before suspending, and on
+\fBloginctl lock\-session\fR (the menu's Lock Screen), with
+\fBswaylock\fR(1) or another installed screen locker.
+\fB<owbox><idle>\fR in rc.xml sets it.
+.PP
+\fBowbox\-volume\fR and \fBowbox\-brightness\fR, which the volume and
+brightness keys run, change the level and show it in a notification.
 .SH SCREENSHOTS
 \fBowbox\-screenshot\fR saves a screenshot with \fBgrim\fR(1) in
 \fIPictures/Screenshots\fR and copies it to the clipboard: of every

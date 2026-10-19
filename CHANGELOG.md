@@ -13,11 +13,22 @@ The first public release.
   for media keys, and Key Bindings offers owbox's default bindings that an
   Openbox rc.xml (or a copy of an older owbox's) doesn't have, like Print
   Screen and the volume keys.
-- **A session that works out of the box**: the default rc.xml binds the
-  volume, media and brightness keys, and Print Screen to the new
-  `owbox-screenshot` (the screen, Alt for the focused window, Shift for an
-  area). The system autostart starts an installed polkit agent, and
-  `owbox-session` points `SSH_AUTH_SOCK` at the SSH agent systemd started.
+- **A session that works out of the box**:
+  - The monitors turn off after 10 minutes without input (unless a video
+    keeps them on), and the screen locks then, before suspending, and from
+    the menu, with swaylock or another installed locker
+    (`<owbox><idle>`, Settings → Displays).
+  - The menu's new Leave submenu: Lock Screen, Suspend, Log Out, Restart,
+    Shut Down.
+  - The default rc.xml binds the volume and brightness keys to the new
+    `owbox-volume` and `owbox-brightness`, which show the level in a
+    notification, the media keys to playerctl, and Print Screen to the new
+    `owbox-screenshot` (the screen, Alt for the focused window, Shift for
+    an area).
+  - The system autostart starts an installed polkit agent, `owbox-session`
+    points `SSH_AUTH_SOCK` at the SSH agent systemd started, and owbox
+    starts `owbox-session.target` (graphical-session.target), so the
+    session's services stop at logout.
 - `owbox --msg windows` reports each frame's size around its window.
 - Fixed: owbox crashed when a monitor's scale changed after a reconfigure
   while the pointer was over an application using its own cursor shape.
