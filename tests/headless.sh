@@ -14,6 +14,9 @@ mkdir -p "$out"
 here=$(dirname "$0")
 bin=${OWBOX:-$here/../build/owbox}
 
+# the themes in the source tree first (data/themes), so that tests don't
+# depend on an installed owbox
+XDG_DATA_DIRS="$(cd "$here/../data" && pwd):${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" \
 WLR_BACKENDS=headless WLR_RENDERER=${WLR_RENDERER:-pixman} \
 WLR_HEADLESS_OUTPUTS=${OUTPUTS:-1} WLR_LIBINPUT_NO_DEVICES=1 \
 XDG_CURRENT_DESKTOP=owbox \
