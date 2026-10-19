@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""A smoke test of owbox on the headless backend.
+
+    tests/smoke.py [--keep]
+
+Runs build/owbox with data/rc.xml, opens windows with foot (and an X
+application when one is installed), drives them with build/owbox-input and
+checks the results with "owbox --msg windows".  --keep leaves the output
+directory (log, screenshots) in place.  Exits non-zero on failure.
+"""
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+OWBOX = os.path.join(ROOT, "build", "owbox")
+INPUT = os.path.join(ROOT, "build", "owbox-input")
+
+failures = []
+
+
+def run(out, *cmd, timeout=20, check=False):
+    return subprocess.run([os.path.join(HERE, "run.sh"), out, *cmd],
+                          capture_output=True, text=True, timeout=timeout,
+                          check=check)
+
+
+def windows(out):
+    r = run(out, OWBOX, "--msg", "windows", timeout=5)
+    return [json.loads(line) for line in r.stdout.splitlines() if line]
+
+
+def wait_windows(out, n, timeout=6.0):
+    end = time.time() + timeout
+    while time.time() < end:
+        w = windows(out)
+        if len(w) == n:
+            return w
+        time.sleep(0.2)
+    return windows(out)
+
+
+def inp(out, *args):
+    run(out, INPUT, *[str(a) for a in args])
+
+
+def check(name, cond, detail=""):
+    print(("ok   " if cond else "FAIL ") + name +
+          ("" if cond else "  " + str(detail)))
+    if not cond:
+        failures.append(name)
+
+
+def title_point(w):
+    # the middle of the titlebar, below the top border
+    return w["x"] + w["width"] // 2, w["y"] + 10
+
+
+def test_xdg(out):
+    subprocess.Popen([os.path.join(HERE, "run.sh"), out, "foot"],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    w = wait_windows(out, 1)
+    check("foot maps", len(w) == 1, w)
+    if not w:
+        return
+    w0 = w[0]
+    check("new window is focused", w0["focused"], w0)
+
+    x, y = title_point(w0)
+    inp(out, "move", x, y, "dclick", "left", "sleep", 400)
+    w = windows(out)[0]
+    check("double click maximizes", w["maximized"], w)
+    x, y = title_point(w)
+    inp(out, "move", x, y, "dclick", "left", "sleep", 400)
+    w = windows(out)[0]
+    check("double click restores", not w["maximized"] and
+          (w["x"], w["y"]) == (w0["x"], w0["y"]), w)
+
+    inp(out, "key", "super+Left", "sleep", 400)
+    w = windows(out)[0]
+    check("W-Left snaps to the left half", w["x"] == 0 and w["y"] == 0, w)
+    inp(out, "key", "super+Down", "sleep", 400)
+    w = windows(out)[0]
+    check("W-Down unsnaps", (w["x"], w["y"]) == (w0["x"], w0["y"]), w)
+
+    x, y = w0["x"] + w0["width"] // 2, w0["y"] + w0["height"] // 2
+    inp(out, "keydown", "Alt_L", "move", x, y, "down", "left",
+        "drag", x - 100, y + 50, "up", "left", "keyup", "Alt_L", "sleep", 300)
+    w = windows(out)[0]
+    check("Alt-drag moves", (w["x"], w["y"]) ==
+          (w0["x"] - 100, w0["y"] + 50), w)
+
+    inp(out, "key", "alt+F4")
+    w = wait_windows(out, 0)
+    check("A-F4 closes", len(w) == 0, w)
+
+
+def test_x11(out):
+    if not os.path.exists(os.path.join(out, "xdisplay")):
+        print("skip X applications: no Xwayland")
+        return
+    for cmd in (["xterm"], ["xeyes"]):
+        if shutil.which(cmd[0]):
+            break
+    else:
+        print("skip X applications: no xterm or xeyes")
+        return
+    subprocess.Popen([os.path.join(HERE, "run.sh"), out, *cmd],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    w = wait_windows(out, 1, timeout=10)
+    check("X application maps", len(w) == 1, w)
+    if not w:
+        return
+    w0 = w[0]
+    x, y = title_point(w0)
+    inp(out, "move", x, y, "down", "left", "drag", x + 50, y + 40,
+        "up", "left", "sleep", 300)
+    w = windows(out)[0]
+    check("X window moves", (w["x"], w["y"]) ==
+          (w0["x"] + 50, w0["y"] + 40), w)
+    inp(out, "key", "alt+F4")
+    w = wait_windows(out, 0)
+    check("X window closes", len(w) == 0, w)
+
+
+def main():
+    keep = "--keep" in sys.argv
+    out = tempfile.mkdtemp(prefix="owbox-smoke-")
+    env = dict(os.environ, OWBOX=OWBOX)
+    subprocess.run([os.path.join(HERE, "headless.sh"), out,
+                    "--config-file", os.path.join(ROOT, "data", "rc.xml")],
+                   env=env, check=True)
+    pid = int(open(os.path.join(out, "pid")).read())
+    try:
+        test_xdg(out)
+        test_x11(out)
+        try:
+            os.kill(pid, 0)
+            alive = True
+        except OSError:
+            alive = False
+        check("owbox is still running", alive)
+        log = open(os.path.join(out, "owbox.log"), errors="replace").read()
+        bad = [l for l in log.splitlines() if "CRITICAL" in l]
+        check("no critical messages in the log", not bad, bad[:3])
+    finally:
+        subprocess.run([os.path.join(HERE, "stop.sh"), out])
+        if keep or failures:
+            print("output in", out)
+        else:
+            shutil.rmtree(out, ignore_errors=True)
+    print("%d failed" % len(failures) if failures else "all passed")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
