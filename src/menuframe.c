@@ -43,6 +43,8 @@ GList *menu_frame_visible;
 
 static RrAppearance *a_sep;
 static guint submenu_show_timer = 0;
+/*! The entry whose submenu submenu_show_timer will show */
+static ObMenuEntryFrame *submenu_show_entry = NULL;
 static guint submenu_hide_timer = 0;
 
 static ObMenuEntryFrame* menu_entry_frame_new(ObMenuEntry *entry,
@@ -1055,6 +1057,11 @@ static void menu_frame_hide(ObMenuFrame *self)
     if (self->child)
         menu_frame_hide(self->child);
 
+    /* owbox: don't open a submenu from this menu after it's gone */
+    if (submenu_show_timer && submenu_show_entry &&
+        submenu_show_entry->frame == self)
+        g_source_remove(submenu_show_timer);
+
     if (self->parent) {
         remove_submenu_hide_timeout(self);
 
@@ -1141,6 +1148,7 @@ static gboolean submenu_show_timeout(gpointer data)
 static void submenu_show_dest(gpointer data)
 {
     submenu_show_timer = 0;
+    submenu_show_entry = NULL;
 }
 
 static gboolean submenu_hide_timeout(gpointer data)
@@ -1223,6 +1231,7 @@ void menu_frame_select(ObMenuFrame *self, ObMenuEntryFrame *entry,
                                            config_submenu_show_delay,
                                            submenu_show_timeout,
                                            self->selected, submenu_show_dest);
+                    submenu_show_entry = self->selected;
                 }
             }
             /* hide the grandchildren of this menu. and move the cursor to

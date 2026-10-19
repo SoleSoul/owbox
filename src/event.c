@@ -690,31 +690,42 @@ static gboolean event_handle_menu_input(ObEvent *ev)
 }
 
 /* Motion over the menus selects the entry under the pointer, this replaces
-   the Enter/Leave/MotionNotify handling of Openbox's event_handle_menu() */
+   the Enter/Leave/MotionNotify handling of Openbox's event_handle_menu().
+   Moving from one entry to another is a LeaveNotify on the old entry's
+   window followed by an EnterNotify on the new one, like in X. */
 static void event_handle_menu(ObEvent *ev)
 {
     static ObMenuEntryFrame *last = NULL;
+    static ObMenuFrame *last_frame = NULL;
     ObMenuFrame *f;
     ObMenuEntryFrame *e;
 
+    /* the entry the pointer was in is gone if its menu was hidden or
+       updated since */
+    if (last && !(g_list_find(menu_frame_visible, last_frame) &&
+                  g_list_find(last_frame->entries, last)))
+        last = NULL;
+
     e = menu_entry_frame_under(ev->x_root, ev->y_root);
-    if (e) {
-        if (e->ignore_enters)
-            --e->ignore_enters;
-        else if (!(f = find_active_menu()) ||
-                 f == e->frame ||
-                 f->parent == e->frame ||
-                 f->child == e->frame)
-            menu_frame_select(e->frame, e, FALSE);
-    } else if (last && g_list_find(menu_frame_visible, last->frame) &&
-               (!menu_frame_under(ev->x_root, ev->y_root) ||
-                menu_frame_under(ev->x_root, ev->y_root) == last->frame))
-    {
-        /* left the entry to somewhere that isn't another entry of the
+
+    if (last && last != e && (!e || e->frame != last_frame))
+        /* LeaveNotify: the pointer didn't move to another entry of the
            menu, select nothing in the menu */
-        menu_frame_select(last->frame, NULL, FALSE);
+        menu_frame_select(last_frame, NULL, FALSE);
+
+    if (e && e != last && e->ignore_enters)
+        /* EnterNotify */
+        --e->ignore_enters;
+    else if (e) {
+        if (!(f = find_active_menu()) ||
+            f == e->frame ||
+            f->parent == e->frame ||
+            f->child == e->frame)
+            menu_frame_select(e->frame, e, FALSE);
     }
+
     last = e;
+    last_frame = e ? e->frame : NULL;
 }
 
 static gboolean event_handle_user_input(ObClient *client, ObEvent *e)

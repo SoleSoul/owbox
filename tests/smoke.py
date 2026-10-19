@@ -2,6 +2,7 @@
 """A smoke test of owbox on the headless backend.
 
     tests/smoke.py [--keep]
+    OWBOX_ARGS=--debug-focus tests/smoke.py --keep   (more owbox options)
 
 Runs build/owbox with data/rc.xml, opens windows with foot (and an X
 application when one is installed), drives them with build/owbox-input and
@@ -101,6 +102,27 @@ def test_xdg(out):
     check("A-F4 closes", len(w) == 0, w)
 
 
+def test_menus(out):
+    # the root menu at 700,200 (Clearlooks, the default font): Applications
+    # is the 3rd item (y+62), Windows the 4th (y+84), the submenu opens at
+    # x+160 with its first item at y+64
+    alive = lambda: subprocess.run(
+        ["kill", "-0", open(os.path.join(out, "pid")).read().strip()]
+    ).returncode == 0
+    # crossing another entry on the way into a submenu, then moving through
+    # the submenu's entries, used to free the submenu under a pending timer
+    moves = []
+    for y in (264, 286, 308, 330, 352, 374, 396, 374, 352, 330, 308):
+        moves += ["move", 880, y]
+    inp(out, "move", 700, 200, "click", "right", "sleep", 300,
+        "move", 740, 262, "sleep", 400, "move", 760, 284, *moves,
+        "sleep", 600,
+        # Escape closes one menu at a time, the root menu is open with a
+        # submenu and its submenu
+        "key", "Escape", "key", "Escape", "key", "Escape", "sleep", 200)
+    check("diagonal moves into a submenu", alive())
+
+
 def test_x11(out):
     if not os.path.exists(os.path.join(out, "xdisplay")):
         print("skip X applications: no Xwayland")
@@ -133,12 +155,20 @@ def main():
     keep = "--keep" in sys.argv
     out = tempfile.mkdtemp(prefix="owbox-smoke-")
     env = dict(os.environ, OWBOX=OWBOX)
+    # the default configuration, with the default menu
+    rc = open(os.path.join(ROOT, "data", "rc.xml")).read()
+    rc = rc.replace("<file>menu.xml</file>", "<file>%s</file>" %
+                    os.path.join(ROOT, "data", "menu.xml"))
+    with open(os.path.join(out, "rc.xml"), "w") as f:
+        f.write(rc)
     subprocess.run([os.path.join(HERE, "headless.sh"), out,
-                    "--config-file", os.path.join(ROOT, "data", "rc.xml")],
+                    "--config-file", os.path.join(out, "rc.xml"),
+                    *os.environ.get("OWBOX_ARGS", "").split()],
                    env=env, check=True)
     pid = int(open(os.path.join(out, "pid")).read())
     try:
         test_xdg(out)
+        test_menus(out)
         test_x11(out)
         try:
             os.kill(pid, 0)

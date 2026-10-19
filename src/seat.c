@@ -408,6 +408,13 @@ void seat_pointer_grabbed(gboolean grabbed)
            NotifyGrab in X */
         wlr_seat_pointer_notify_clear_focus(server.seat);
         seat.press_owner = PRESS_OWBOX;
+    } else if (!seat.buttons) {
+        /* the grab ended with no buttons held (a menu closed with the
+           keyboard), the next press starts over */
+        seat.press_owner = PRESS_NONE;
+        seat.press_client = NULL;
+        seat.press_win = NULL;
+        seat.press_node = NULL;
     }
     seat_rebase_pointer();
 }
