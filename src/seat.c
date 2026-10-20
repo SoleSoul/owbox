@@ -613,9 +613,11 @@ static void keyboard_configure(struct wlr_keyboard *wlr_keyboard)
 
 static void seat_update_capabilities(void)
 {
+    /* the keyboard too, always: virtual keyboards come and go, and taking
+       it away makes the clients make a new wl_keyboard, which loses the
+       first keys of the next virtual keyboard */
     uint32_t caps = WL_SEAT_CAPABILITY_POINTER;
-    if (!wl_list_empty(&seat.keyboards))
-        caps |= WL_SEAT_CAPABILITY_KEYBOARD;
+    caps |= WL_SEAT_CAPABILITY_KEYBOARD;
     caps |= WL_SEAT_CAPABILITY_TOUCH;
     wlr_seat_set_capabilities(server.seat, caps);
 }
