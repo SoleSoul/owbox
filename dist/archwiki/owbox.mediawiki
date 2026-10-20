@@ -136,6 +136,10 @@ Make sure [[WirePlumber]] is running; without a session manager, PipeWire does n
 
 X programs such as ''tint2'' cannot see Wayland windows. Use a Wayland panel such as [[Waybar]].
 
+=== Chromium or Electron programs find no keyring ===
+
+Chromium and Electron choose their password store by the desktop's name, and do not know owbox. Start them with {{ic|1=--password-store=gnome-libsecret}}, see [[Chromium#Force a password store]]. When logging in on a text console, add ''pam_gnome_keyring'' to {{ic|/etc/pam.d/login}} to unlock the keyring, see [[GNOME/Keyring#PAM step]].
+
 === Logging out leaves services failed ===
 
 owbox stops {{ic|owbox-session.target}} when it exits and clears failed user units when it starts. If owbox crashed, run {{ic|systemctl --user reset-failed}}.

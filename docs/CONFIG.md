@@ -294,6 +294,16 @@ services) start and stop with it. The system autostart (`/etc/xdg/owbox/autostar
 the user's) starts an installed polkit agent, which asks for passwords when
 applications need administrator rights.
 
+The keyring (gnome-keyring, or anything providing
+`org.freedesktop.secrets`) starts through D-Bus when an application first
+needs it. Logging in on a text console doesn't unlock it, unless
+`pam_gnome_keyring.so` is in `/etc/pam.d/login`; otherwise it asks for its
+password the first time. Chromium and Electron applications choose their
+password store by the desktop's name and don't know owbox, so they keep
+passwords unencrypted and say there is no keyring. Start them with
+`--password-store=gnome-libsecret` (Chromium reads its options from
+`~/.config/chromium-flags.conf`).
+
 ## The control socket
 
 owbox listens on `$XDG_RUNTIME_DIR/owbox-$WAYLAND_DISPLAY.sock` and exports
