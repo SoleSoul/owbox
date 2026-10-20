@@ -344,6 +344,19 @@ void server_start(void)
     if (!wlr_backend_start(server.backend))
         ob_exit_with_error("Unable to start the wlroots backend.");
 
+    /* the pointer starts in the middle of the screen, where the X server
+       puts it, not in the top left corner */
+    {
+        struct wlr_output *o =
+            wlr_output_layout_get_center_output(server.output_layout);
+        struct wlr_box box;
+
+        if (o) {
+            wlr_output_layout_get_box(server.output_layout, o, &box);
+            seat_pointer_warp(box.x + box.width / 2, box.y + box.height / 2);
+        }
+    }
+
     g_setenv("WAYLAND_DISPLAY", server.socket, TRUE);
     ob_debug("Running on WAYLAND_DISPLAY=%s", server.socket);
     xwayland_start();
