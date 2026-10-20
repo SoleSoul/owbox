@@ -28,7 +28,8 @@ typedef void (*ObShareMenuDone)(const gchar *choice, gpointer data);
 void share_menu_startup(gboolean reconfig);
 void share_menu_shutdown(gboolean reconfig);
 
-/*! Show the menu of screens and windows to share */
-void share_menu_choose(ObShareMenuDone func, gpointer data);
+/*! Show the menu of screens and/or windows to share */
+void share_menu_choose(gboolean monitors, gboolean windows,
+                       ObShareMenuDone func, gpointer data);
 
 #endif

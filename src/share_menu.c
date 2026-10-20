@@ -19,7 +19,9 @@
 /* A menu to choose what to share when an application wants to capture the
    screen.  xdg-desktop-portal-wlr runs "owbox --choose-share", which asks
    owbox for this menu over the control socket, and prints the choice:
-   "Monitor: <output>" or "Window: <ext-foreign-toplevel identifier>". */
+   "Monitor: <output>" or "Window: <ext-foreign-toplevel identifier>".
+   The menu offers only the kinds the application asked for, which
+   xdg-desktop-portal-wlr tells with its list of choices (see ipc.c). */
 
 #include "share_menu.h"
 #include "menu.h"
@@ -42,6 +44,8 @@ static ObMenu *share_menu;
 static GPtrArray *choices;
 /*! The choice made, while the menu closes */
 static gchar *choice;
+/*! The kinds of things the menu offers */
+static gboolean offer_monitors, offer_windows;
 static ObShareMenuDone done_func;
 static gpointer done_data;
 static guint finish_id;
@@ -55,11 +59,12 @@ static gboolean self_update(ObMenuFrame *frame, gpointer data)
     menu_clear_entries(menu);
     g_ptr_array_set_size(choices, 0);
 
-    menu_add_separator(menu, -1, _("Share the screen"));
+    if (offer_monitors)
+        menu_add_separator(menu, -1, _("Share the screen"));
     wl_list_for_each(o, &server.outputs, link) {
         struct wlr_output *w = o->wlr_output;
         gchar *label;
-        if (!w->enabled) continue;
+        if (!offer_monitors || !w->enabled) continue;
         label = w->model ?
             g_strdup_printf(_("Entire screen: %s (%s)"), w->name, w->model) :
             g_strdup_printf(_("Entire screen: %s"), w->name);
@@ -68,9 +73,12 @@ static gboolean self_update(ObMenuFrame *frame, gpointer data)
         g_free(label);
     }
 
-    menu_add_separator(menu, -1, _("Share a window"));
+    if (offer_windows)
+        menu_add_separator(menu, -1, _("Share a window"));
     /* the windows from the top down, like the Alt-Tab list */
-    for (it = stacking_list; it; it = g_list_next(it)) {
+    for (it = offer_windows ? stacking_list : NULL; it;
+         it = g_list_next(it))
+    {
         ObClient *c;
         ObMenuEntry *e;
         const gchar *id;
@@ -121,7 +129,8 @@ static void menu_hide(ObMenuFrame *frame, gpointer data)
         finish_id = g_idle_add(finish, NULL);
 }
 
-void share_menu_choose(ObShareMenuDone func, gpointer data)
+void share_menu_choose(gboolean monitors, gboolean windows,
+                       ObShareMenuDone func, gpointer data)
 {
     GravityPoint pos;
     gint x, y;
@@ -133,6 +142,8 @@ void share_menu_choose(ObShareMenuDone func, gpointer data)
     }
     done_func = func;
     done_data = data;
+    offer_monitors = monitors;
+    offer_windows = windows;
 
     screen_pointer_pos(&x, &y);
     GRAVITY_COORD_SET(pos.x, x - screen_physical_area_all_monitors()->x,

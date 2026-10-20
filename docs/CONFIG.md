@@ -311,7 +311,7 @@ with an empty line. The reply's first line is `ok` or `error <message>`.
 | `desktops` | `{"current": n, "names": [...]}` |
 | `outputs` | one JSON object per monitor: name, make, model, enabled, power (false while turned off), x, y, width, height, refresh (mHz), scale, transform, modes |
 | `config-file` | the path of the rc.xml in use |
-| `choose-share` | shows the menu of monitors and windows to share, and replies with `Monitor: <name>` or `Window: <identifier>`, or nothing when cancelled (also `owbox --choose-share`) |
+| `choose-share [monitors] [windows]` | shows the menu of monitors and/or windows to share (both when neither is given), and replies with `Monitor: <name>` or `Window: <identifier>`, or nothing when cancelled |
 
 Examples:
 
@@ -340,6 +340,7 @@ systemd user services:
 `/usr/share/xdg-desktop-portal/owbox-portals.conf` selects
 xdg-desktop-portal-wlr for screenshots and screen sharing, and the GTK
 portal for the rest. `/etc/xdg/xdg-desktop-portal-wlr/owbox` makes
-xdg-desktop-portal-wlr ask with owbox's menu (`owbox --choose-share`) what
-to share. Screen sharing also needs PipeWire's session manager
-(WirePlumber) running.
+xdg-desktop-portal-wlr ask with owbox's menu (`owbox --choose-share`, a
+chooser of the dmenu type) what to share. The menu offers only what the
+application asked for: monitors, windows or both. Screen sharing also needs
+PipeWire's session manager (WirePlumber) running.

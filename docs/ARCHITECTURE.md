@@ -49,7 +49,8 @@ settings/           owbox Settings (Python, GTK 4): rcxml.py edits rc.xml
                     bindings, app.py the window
 tools/              theme renderer, test input tool, helper scripts
 tests/              headless test scripts and the smoke test
-ref/                (gitignored) Openbox and wlroots sources for reference
+ref/                (gitignored) Openbox, wlroots and xdg-desktop-portal-wlr
+                    sources for reference
 ```
 
 ## The main loop

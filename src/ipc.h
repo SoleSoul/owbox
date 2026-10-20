@@ -29,5 +29,8 @@ gchar* ipc_socket_path(void);
 /*! Send a command to the running owbox and print its reply, returns TRUE if
   it succeeded */
 gboolean ipc_send_command(const gchar *command);
+/*! Ask the running owbox what to share, for xdg-desktop-portal-wlr's
+  chooser, and print the choice */
+gboolean ipc_choose_share(void);
 
 #endif

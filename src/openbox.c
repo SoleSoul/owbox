@@ -599,6 +599,8 @@ static void parse_args(gint *argc, gchar **argv)
         }
     }
 
+    if (remote && !strcmp(remote, "choose-share"))
+        exit(ipc_choose_share() ? EXIT_SUCCESS : EXIT_FAILURE);
     if (remote)
         /* tell the running owbox, see ipc.c */
         exit(ipc_send_command(remote) ? EXIT_SUCCESS : EXIT_FAILURE);

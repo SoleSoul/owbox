@@ -37,6 +37,7 @@ The reference sources in `ref/` are gitignored. To recreate them:
 
     git clone https://github.com/Mikachu/openbox.git ref/openbox
     git clone -b 0.20.2 https://gitlab.freedesktop.org/wlroots/wlroots.git ref/wlroots
+    git clone -b v0.8.4 https://github.com/emersion/xdg-desktop-portal-wlr.git ref/xdg-desktop-portal-wlr
 
 ## Testing
 

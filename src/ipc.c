@@ -28,9 +28,11 @@
      desktops              a JSON object with the desktops
      config-file           the path of the rc.xml in use
      outputs               one JSON object per monitor
-     choose-share          show the menu of what to share, the reply is
-                           "Monitor: <output>" or "Window: <identifier>", or
-                           nothing when the user didn't choose */
+     choose-share [monitors] [windows]
+                           show the menu of what to share (both kinds when
+                           none is given), the reply is "Monitor: <output>"
+                           or "Window: <identifier>", or nothing when the
+                           user didn't choose */
 
 #include "ipc.h"
 #include "openbox.h"
@@ -54,6 +56,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <gio/gio.h>
+#include <gio/gunixinputstream.h>
 #include <libxml/parser.h>
 
 static GSocketService *service = NULL;
@@ -283,10 +286,19 @@ static void client_read(GObject *src, GAsyncResult *res, gpointer data)
         g_object_unref(conn);
         return;
     }
-    if (!strcmp(g_strstrip(line), "choose-share")) {
+    if (g_str_has_prefix(g_strstrip(line), "choose-share") &&
+        (!line[12] || line[12] == ' '))
+    {
+        gchar **kinds = g_strsplit(line + 12, " ", 0);
+        gboolean monitors = g_strv_contains((const gchar**)kinds, "monitors");
+        gboolean windows = g_strv_contains((const gchar**)kinds, "windows");
+
+        g_strfreev(kinds);
         /* answered when the user has chosen */
         g_object_set_data(G_OBJECT(in), "conn", conn);
-        share_menu_choose(share_chosen, in);
+        if (!monitors && !windows)
+            monitors = windows = TRUE;
+        share_menu_choose(monitors, windows, share_chosen, in);
     } else {
         gchar *reply = handle_command(line);
         reply_and_continue(in, conn, reply);
@@ -349,7 +361,8 @@ void ipc_shutdown(void)
     }
 }
 
-gboolean ipc_send_command(const gchar *command)
+/*! Sends a command, and prints the reply or adds its lines to @reply */
+static gboolean send_command(const gchar *command, GPtrArray *reply)
 {
     const gchar *path_env = g_getenv("OWBOX_SOCK");
     gchar *path = path_env ? g_strdup(path_env) : ipc_socket_path();
@@ -392,6 +405,9 @@ gboolean ipc_send_command(const gchar *command)
                 ok = !strcmp(line, "ok");
                 if (!ok) g_printerr("%s\n", line);
                 first = FALSE;
+            } else if (reply) {
+                g_ptr_array_add(reply, line);
+                continue;
             } else
                 g_print("%s\n", line);
             g_free(line);
@@ -402,5 +418,76 @@ gboolean ipc_send_command(const gchar *command)
     g_object_unref(addr);
     g_object_unref(client);
     g_free(path);
+    return ok;
+}
+
+gboolean ipc_send_command(const gchar *command)
+{
+    return send_command(command, NULL);
+}
+
+/*! Is @line @choice, or a dmenu chooser's line for it: "Monitor: <output>
+  <description>" or "Window: <title> (<identifier>)" */
+static gboolean is_choice(const gchar *line, const gchar *choice)
+{
+    if (!strcmp(line, choice))
+        return TRUE;
+    if (g_str_has_prefix(choice, "Monitor: "))
+        return g_str_has_prefix(line, choice) && line[strlen(choice)] == ' ';
+    if (g_str_has_prefix(choice, "Window: ")) {
+        gchar *tail = g_strdup_printf(" (%s)", choice + 8);
+        gboolean is = g_str_has_prefix(line, "Window: ") &&
+            g_str_has_suffix(line, tail);
+        g_free(tail);
+        return is;
+    }
+    return FALSE;
+}
+
+gboolean ipc_choose_share(void)
+{
+    GPtrArray *offered = g_ptr_array_new_with_free_func(g_free);
+    GPtrArray *reply = g_ptr_array_new_with_free_func(g_free);
+    GString *command = g_string_new("choose-share");
+    gboolean ok;
+    guint i;
+
+    /* xdg-desktop-portal-wlr's dmenu chooser type writes the choices, only
+       of the kinds the application asked for; with its simple type, stdin
+       is empty */
+    if (!isatty(STDIN_FILENO)) {
+        GInputStream *is = g_unix_input_stream_new(STDIN_FILENO, FALSE);
+        GDataInputStream *in = g_data_input_stream_new(is);
+        gchar *line;
+        gboolean monitors = FALSE, windows = FALSE;
+
+        while ((line = g_data_input_stream_read_line_utf8(in, NULL, NULL,
+                                                          NULL)))
+        {
+            monitors = monitors || g_str_has_prefix(line, "Monitor: ");
+            windows = windows || g_str_has_prefix(line, "Window: ");
+            g_ptr_array_add(offered, line);
+        }
+        g_object_unref(in);
+        g_object_unref(is);
+        if (monitors) g_string_append(command, " monitors");
+        if (windows) g_string_append(command, " windows");
+    }
+
+    ok = send_command(command->str, reply);
+    if (ok && reply->len) {
+        const gchar *choice = reply->pdata[0];
+        if (!offered->len)
+            g_print("%s\n", choice);
+        /* answer with the chooser's own line */
+        for (i = 0; i < offered->len; ++i)
+            if (is_choice(offered->pdata[i], choice)) {
+                g_print("%s\n", (gchar*)offered->pdata[i]);
+                break;
+            }
+    }
+    g_string_free(command, TRUE);
+    g_ptr_array_free(reply, TRUE);
+    g_ptr_array_free(offered, TRUE);
     return ok;
 }

@@ -2,6 +2,8 @@
 # (XDG_CURRENT_DESKTOP=owbox), a user's ~/.config/xdg-desktop-portal-wlr/
 # files take precedence.
 [screencast]
-# owbox's own menu asks which screen or window to share
-chooser_type=simple
+# owbox's own menu asks which screen or window to share.  The dmenu type
+# gives it the list of what the application can share (only screens, or
+# only windows), and expects one of those lines back.
+chooser_type=dmenu
 chooser_cmd=owbox --choose-share
