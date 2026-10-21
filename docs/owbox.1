@@ -161,5 +161,9 @@ The default rc.xml binds it to Print, Shift+Print and Alt+Print.
 .TP
 .I ~/.cache/owbox/owbox.log
 The log of the last run.
+.PP
+When owbox runs on a console, the messages of the programs it starts go to
+the systemd journal, under the identifier \fBowbox\fR
+(\fBjournalctl \-t owbox \-b\fR).
 .SH SEE ALSO
 .BR openbox (1)

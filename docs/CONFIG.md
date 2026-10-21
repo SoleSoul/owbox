@@ -294,6 +294,13 @@ services) start and stop with it. The system autostart (`/etc/xdg/owbox/autostar
 the user's) starts an installed polkit agent, which asks for passwords when
 applications need administrator rights.
 
+When owbox runs on a console (`owbox-session` from a virtual console),
+the messages of the programs it starts, and its own, go to the systemd
+journal instead of the console, as with a display manager. They are under
+the identifier `owbox`: `journalctl --user -t owbox -b`, or
+`journalctl -t owbox -b`. Programs that lose their connection when owbox
+exits say so there.
+
 The keyring (gnome-keyring, or anything providing
 `org.freedesktop.secrets`) starts through D-Bus when an application first
 needs it. Logging in on a text console doesn't unlock it, unless

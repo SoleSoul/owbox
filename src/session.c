@@ -21,7 +21,9 @@
 #include "server.h"
 #include "obt/paths.h"
 
+#include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 /* owbox is the session (on the hardware), and started its systemd target */
 static gboolean in_session = FALSE;
@@ -36,6 +38,43 @@ static void spawn(gchar **argv)
         g_message("Unable to run %s: %s", argv[0], e->message);
         g_error_free(e);
     }
+}
+
+/*! The programs owbox runs write their messages where owbox does, which is
+  the console when owbox-session was run on one.  Send them, and owbox's own
+  (they are in owbox.log too), to the journal, as a display manager does,
+  so the console doesn't fill with them, nor with the clients' complaints
+  when owbox exits. */
+static void own_session(gpointer data)
+{
+    /* outlive the console's hangup, to log the clients' last messages */
+    setsid();
+}
+
+static void output_to_journal(void)
+{
+    gchar *argv[] = { NULL, "--identifier=owbox", NULL };
+    GError *e = NULL;
+    gint in;
+
+    if (!isatty(STDERR_FILENO) ||
+        !(argv[0] = g_find_program_in_path("systemd-cat")))
+        return;
+    if (!g_spawn_async_with_pipes(NULL, argv, NULL, G_SPAWN_DEFAULT,
+                                  own_session, NULL, NULL, &in, NULL, NULL,
+                                  &e))
+    {
+        g_message("Unable to run %s: %s", argv[0], e->message);
+        g_error_free(e);
+        g_free(argv[0]);
+        return;
+    }
+    g_free(argv[0]);
+    fflush(stdout);
+    fflush(stderr);
+    dup2(in, STDOUT_FILENO);
+    dup2(in, STDERR_FILENO);
+    close(in);
 }
 
 void session_environment(void)
@@ -56,6 +95,7 @@ void session_environment(void)
        nested or headless, the services belong to the real session. */
     if (!server_is_session())
         return;
+    output_to_journal();
     if ((exe = g_find_program_in_path("dbus-update-activation-environment")))
     {
         gchar *script = g_strdup_printf(
