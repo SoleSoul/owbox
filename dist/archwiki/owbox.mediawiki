@@ -1,3 +1,4 @@
+{{Lowercase title}}
 [[Category:Stacking window managers]]
 [[Category:Wayland compositors]]
 {{Related articles start}}
