@@ -1439,6 +1439,15 @@ class SettingsApp(Gtk.Application):
                          flags=Gio.ApplicationFlags.DEFAULT_FLAGS)
         self.path = path
 
+    def do_startup(self):
+        Gtk.Application.do_startup(self)
+        # GTK 4.24 loses the styles of a theme kept in a gresource (like
+        # WhiteSur) when it loads it again, as it does when the light or
+        # dark preference changes, which this window changes: use GTK's own
+        # theme, which follows the preference without that (libadwaita
+        # applications look like it anyway).  See docs/WORKAROUNDS.md.
+        Gtk.Settings.get_default().set_property("gtk-theme-name", "Adwaita")
+
     def do_activate(self):
         win = self.props.active_window
         if not win:

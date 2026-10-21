@@ -58,6 +58,34 @@ issue's link and when it was reported.
   other Wayland compositors set it too.
 - **Real fix:** in the JDK. Not for owbox to report.
 
+### GTK 4 themes in a gresource lose their styles when reloaded
+
+- **Where:** `SettingsApp.do_startup()` in `settings/owbox_settings/app.py`,
+  which makes owbox Settings use GTK's own Adwaita theme.
+- **Problem:** with GTK 4.24.1 (GLib 2.90.1), a GTK 4 theme whose CSS only
+  imports its styles from a `gtk.gresource` (WhiteSur: `@import
+  url("resource:///org/gnome/theme/gtk.css")`) works when an application
+  starts, but when GTK loads it again, which it does whenever the light or
+  dark preference changes, the import fails ("Failed to import: The
+  resource at /org/gnome/theme/gtk-dark.css does not exist") and the
+  application is drawn without styles (transparent windows). Changing the
+  preference back doesn't help, restarting the application does. Plain
+  GTK 4 applications are affected, GTK 3 and libadwaita ones aren't.
+  Reproduced with a few lines of Python (a window that sets
+  `gtk-theme-name` to WhiteSur-Dark and flips
+  `gtk-application-prefer-dark-theme`), not with Adwaita. GLib registers
+  and unregisters two loads of the same gresource correctly; GTK's
+  `gtk_css_provider_load_named()` registers the new resource before
+  loading the CSS and unregisters the old one in the reset, which looks
+  right in the source, so the cause wasn't found.
+- **Workaround:** owbox Settings, where the preference is changed, uses
+  Adwaita, which follows the preference without reloading a gresource
+  (most GTK 4 applications, made with libadwaita, look like it anyway).
+- **Real fix:** in GTK (gtk_css_provider_load_named and the theme reload),
+  https://gitlab.gnome.org/GNOME/gtk/-/issues. Not reported yet.
+- **Remove when:** a GTK release reloads such themes correctly (check with
+  the Python reproduction).
+
 ## In users' setups (documentation only)
 
 ### Chromium and Electron find no keyring
