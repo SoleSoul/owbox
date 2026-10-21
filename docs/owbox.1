@@ -130,9 +130,10 @@ The monitors, one JSON object per line.
 The path of the rc.xml owbox loaded.
 .SH ENVIRONMENT
 owbox sets \fBWAYLAND_DISPLAY\fR, \fBDISPLAY\fR (for X applications),
-\fBXDG_CURRENT_DESKTOP\fR=owbox (if not set), \fBXDG_SESSION_TYPE\fR and
-\fBOWBOX_SOCK\fR for the programs it runs, and passes them to D\-Bus and
-systemd.  It starts \fBowbox\-session.target\fR (bound to
+\fBXDG_CURRENT_DESKTOP\fR=owbox (if not set), \fBXDG_SESSION_TYPE\fR,
+\fBQT_QPA_PLATFORMTHEME\fR=gtk3 (if not set, so that Qt applications follow
+the desktop's look) and \fBOWBOX_SOCK\fR for the programs it runs, and
+passes them to D\-Bus and systemd.  It starts \fBowbox\-session.target\fR (bound to
 \fBgraphical\-session.target\fR) and stops it when it exits.
 .SH PANELS
 Tapping Super (pressing and releasing it alone) shows the panels (bars

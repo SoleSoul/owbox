@@ -318,15 +318,9 @@ class SettingsWindow(Gtk.ApplicationWindow):
                          "S roll up, D all desktops, in their order")))
 
         box.append(section(_("Desktop")))
-        box.append(row(_("Icon theme"), self.dropdown(
-            "owbox/icons/theme", [("", _("The applications' one"))] +
-            [(t, t) for t in icon_themes()], ""),
-            _("For window and menu icons")))
-        box.append(row(_("Cursor theme"), self.dropdown(
-            "owbox/cursor/theme", [("", _("The applications' one"))] +
-            [(t, t) for t in cursor_themes()], "")))
-        box.append(row(_("Cursor size"),
-                       self.spin("owbox/cursor/size", 16, 96, 24, 8)))
+        own = self.own_themes_row()
+        if own:
+            box.append(own)
         color = Gtk.ColorDialogButton(dialog=Gtk.ColorDialog())
         rgba = Gdk.RGBA()
         if not rgba.parse(self.rc.get("owbox/background", "#303030")):
@@ -438,31 +432,60 @@ class SettingsWindow(Gtk.ApplicationWindow):
         return button
 
     def qt_row(self):
-        """Qt applications get their style from qt6ct (Qt 6) and qt5ct
-        (Qt 5), when QT_QPA_PLATFORMTHEME says so"""
+        """Qt applications follow this page through Qt's GTK theme, which
+        owbox selects (QT_QPA_PLATFORMTHEME=gtk3) unless another is"""
         platform = os.environ.get("QT_QPA_PLATFORMTHEME", "")
-        tool = next((t for t in ("qt6ct", "qt5ct") if shutil.which(t)), None)
-        if tool and platform in ("qt5ct", "qt6ct"):
+        tool = platform if platform in ("qt5ct", "qt6ct") else None
+        if platform in ("", "gtk3", "gtk2"):
+            text = _("Qt applications follow these settings too (through "
+                     "Qt's GTK theme), except for their widgets' shapes.")
+        elif tool and shutil.which(tool):
             button = Gtk.Button(label=_("Open %s") % tool)
             button.connect("clicked", lambda b: subprocess.Popen(
                 [tool], start_new_session=True))
-            return row(_("Style and colors"), button,
-                       _("Set in %s.  The icon theme above is used there "
-                         "too.") % tool)
-        if tool:
-            text = _("%s is installed but not used: add\n"
-                     "export QT_QPA_PLATFORMTHEME=%s\nto "
-                     "~/.config/owbox/environment and log in again.") % (
-                         tool, tool)
+            return row(_("Qt applications"), button,
+                       _("They use %s's settings (QT_QPA_PLATFORMTHEME=%s), "
+                         "only the icon theme comes from here.") %
+                       (tool, tool))
         else:
-            text = _("Qt applications don't follow these settings.  To set "
-                     "their style, colors and icons, install qt6ct (and "
-                     "qt5ct for Qt 5) and add\n"
-                     "export QT_QPA_PLATFORMTHEME=qt6ct\nto "
-                     "~/.config/owbox/environment.")
+            text = _("Qt applications use QT_QPA_PLATFORMTHEME=%s, so they "
+                     "don't follow these settings%s.  Remove it from where "
+                     "it is set (a shell's startup file, "
+                     "~/.config/owbox/environment) and log in again; owbox "
+                     "then uses Qt's GTK theme.") % (
+                         platform, _(", and it isn't installed")
+                         if tool else "")
         lab = label(text, css="dim-label")
         lab.set_selectable(True)
         return lab
+
+    OWN_THEMES = ("owbox/icons/theme", "owbox/cursor/theme",
+                  "owbox/cursor/size")
+
+    def own_themes_row(self):
+        """owbox's icons and cursor follow the Applications page, unless
+        rc.xml has its own (from earlier versions, or written by hand)"""
+        own = [(p, self.rc.get(p)) for p in self.OWN_THEMES
+               if self.rc.get(p)]
+        if not own:
+            return None
+        names = {"owbox/icons/theme": _("icon theme %s"),
+                 "owbox/cursor/theme": _("cursor theme %s"),
+                 "owbox/cursor/size": _("cursor size %s")}
+        button = Gtk.Button(label=_("Use the applications' ones"))
+        r = row(_("Icons and cursor"), button,
+                _("owbox uses its own: %s.  The Applications page sets "
+                  "them for everything.") %
+                ", ".join(names[p] % v for p, v in own))
+
+        def on_clicked(b):
+            self.ensure_user_file()
+            for p in self.OWN_THEMES:
+                self.rc.unset(p)
+            self.changed()
+            r.set_visible(False)
+        button.connect("clicked", on_clicked)
+        return r
 
     def on_theme_selected(self, flow):
         sel = flow.get_selected_children()

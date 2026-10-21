@@ -89,6 +89,11 @@ void session_environment(void)
     /* Java's toolkit needs this with window managers that don't reparent,
        which Xwayland's window manager doesn't */
     g_setenv("_JAVA_AWT_WM_NONREPARENTING", "1", FALSE);
+    /* Qt applications look like Qt's defaults (light, hardly any icons)
+       on desktops it doesn't know; its GTK theme makes them follow the
+       desktop's settings (icon theme, light or dark, fonts), as under
+       GNOME */
+    g_setenv("QT_QPA_PLATFORMTHEME", "gtk3", FALSE);
 
     /* let D-Bus activated services (portals, notification daemons) and
        systemd user services find the session.  Not for an owbox running
@@ -101,7 +106,7 @@ void session_environment(void)
         gchar *script = g_strdup_printf(
             "%s --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP "
             "XDG_SESSION_TYPE XDG_SESSION_DESKTOP XCURSOR_THEME XCURSOR_SIZE "
-            "OWBOX_SOCK SSH_AUTH_SOCK; "
+            "OWBOX_SOCK SSH_AUTH_SOCK QT_QPA_PLATFORMTHEME; "
             /* portals left running by an earlier session (the systemd user
                instance outlives it) serve that session's desktop, restart
                them for this one */

@@ -869,14 +869,16 @@
   </outputs>
 
   <cursor>
-    <!-- the default cursor theme, XCURSOR_THEME and XCURSOR_SIZE are used
-         when these are left out -->
+    <!-- left out, owbox uses the applications' cursor (XCURSOR_THEME and
+         XCURSOR_SIZE, or GNOME's settings, which owbox Settings'
+         Applications page sets), so it doesn't change between windows -->
     <!-- <theme>Adwaita</theme> -->
     <!-- <size>24</size> -->
   </cursor>
 
   <icons>
-    <!-- the icon theme for window and menu icons -->
+    <!-- the icon theme for window and menu icons, left out the
+         applications' one -->
     <!-- <theme>Adwaita</theme> -->
   </icons>
 

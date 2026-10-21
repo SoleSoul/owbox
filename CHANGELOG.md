@@ -8,6 +8,11 @@
   Electron and browsers follow, and in GTK's settings.ini for applications
   running on X. The icon theme is also set for Qt in qt5ct/qt6ct, when
   they are used.
+- Qt applications follow the same settings: owbox sets
+  `QT_QPA_PLATFORMTHEME=gtk3`, Qt's own GTK theme, unless it is already
+  set. Without it they were light with hardly any icons.
+- owbox Settings no longer has separate icon and cursor themes for owbox:
+  owbox uses the applications' (it still reads them from rc.xml).
 
 ## 0.3.2 (2026-10-21)
 

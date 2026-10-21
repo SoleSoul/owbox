@@ -108,7 +108,9 @@ The cursor theme defaults to `XCURSOR_THEME`/`XCURSOR_SIZE`, then GNOME's
 `cursor-theme` setting. The icon theme (used for window and menu icons)
 defaults to GNOME's `icon-theme` setting, then GTK 3's settings.ini, then
 Adwaita. owbox exports `XCURSOR_THEME` and `XCURSOR_SIZE` so that
-applications draw the same cursor.
+applications draw the same cursor. Usually these are left out, and owbox
+Settings' Applications page sets the themes for owbox and the applications
+together.
 
 ```xml
   <decorations>auto</decorations>
@@ -353,6 +355,9 @@ systemd user services:
 - `XCURSOR_THEME` and `XCURSOR_SIZE`
 - `OWBOX_SOCK`
 - `_JAVA_AWT_WM_NONREPARENTING=1`
+- `QT_QPA_PLATFORMTHEME=gtk3`, unless already set, so that Qt applications
+  follow the desktop's icon theme, light or dark preference and fonts (Qt's
+  defaults are light with hardly any icons)
 
 `/usr/share/xdg-desktop-portal/owbox-portals.conf` selects
 xdg-desktop-portal-wlr for screenshots and screen sharing, and the GTK
