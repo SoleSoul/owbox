@@ -149,6 +149,8 @@ decorations, snapping and Xwayland. The installed `rc.xml` documents each of the
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how Openbox's code was
   brought to Wayland, a map of the source
 - [docs/DECISIONS.md](docs/DECISIONS.md): design decisions and why
+- [docs/WORKAROUNDS.md](docs/WORKAROUNDS.md): workarounds for other
+  projects' bugs, and where to report them
 - [docs/ROADMAP.md](docs/ROADMAP.md): what's next
 - [CLAUDE.md](CLAUDE.md): development notes (building, testing, debugging)
 

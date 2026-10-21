@@ -17,6 +17,9 @@ docs/DECISIONS.md for why, and docs/ROADMAP.md for what's next.
 - Match the surrounding code's style: Openbox's C style (4 spaces, glib
   types, `/* */` comments, the emacs mode line and GPL header on each
   file).
+- A workaround for another project's bug goes in docs/WORKAROUNDS.md, with
+  where it is, the real fix and where to report it. File reports only
+  after the user has approved the text.
 - Document at milestones, not mid-work: README.md, docs/*.md, the man page
   (docs/owbox.1), and the comments in data/rc.xml for any new `<owbox>`
   setting.
