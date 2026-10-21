@@ -28,6 +28,7 @@
 #include "screen.h"
 #include "output.h"
 #include "openbox.h"
+#include "focus.h"
 #include "moveresize.h"
 #include "menu.h"
 #include "seat.h"
@@ -458,6 +459,16 @@ static void handle_commit(struct wl_listener *l, void *data)
                 WLR_XDG_TOPLEVEL_WM_CAPABILITIES_MINIMIZE);
         decoration_set_mode(x);
         wlr_xdg_toplevel_set_size(x->toplevel, 0, 0);
+
+        /* GTK 3 has dialogs without a parent (X's transient for the
+           group), and gives them its focused window as the parent when
+           that window is told it is focused.  Tell it again, so the
+           dialog has its parent before it is placed. */
+        if (focus_client && focus_client->impl == &xdg_client_impl &&
+            XDG(focus_client)->toplevel->base->client == base->client &&
+            XDG(focus_client)->toplevel->base->initialized)
+            wlr_xdg_toplevel_set_activated(XDG(focus_client)->toplevel,
+                                           TRUE);
         return;
     }
 
