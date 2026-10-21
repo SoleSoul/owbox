@@ -46,7 +46,8 @@ src/
 data/               default rc.xml, menu.xml, session files, themes
 settings/           owbox Settings (Python, GTK 4): rcxml.py edits rc.xml
                     keeping what it doesn't know, keybinds.py the key
-                    bindings, app.py the window
+                    bindings, desktop.py the look of applications (GSettings,
+                    GTK's settings.ini, qt5ct/qt6ct), app.py the window
 tools/              theme renderer, test input tool, helper scripts
 tests/              headless test scripts and the smoke test
 ref/                (gitignored) Openbox, wlroots and xdg-desktop-portal-wlr

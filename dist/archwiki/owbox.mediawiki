@@ -27,7 +27,7 @@ owbox starts the [[systemd/User|user]] unit {{ic|owbox-session.target}}, which i
 
 === owbox Settings ===
 
-Run {{ic|owbox-settings}} (also in owbox's root menu). It covers the theme, window behavior, monitors, desktops, keyboard layouts, mouse and touchpad, key bindings, idle and locking, and autostart. Changes are saved to {{ic|rc.xml}} and applied immediately.
+Run {{ic|owbox-settings}} (also in owbox's root menu). It covers the theme, the look of applications (GTK theme, icons, cursor, fonts, light or dark), window behavior, monitors, desktops, keyboard layouts, mouse and touchpad, key bindings, idle and locking, and autostart. Changes are saved to {{ic|rc.xml}} and applied immediately.
 
 === Configuration files ===
 

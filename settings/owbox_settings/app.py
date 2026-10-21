@@ -28,6 +28,7 @@ from .keybinds import (KeyBindings, ACTIONS, ACTION_INFO, key_label,  # noqa: E4
                        key_from_event, TAP_KEYS)
 from . import xkb  # noqa: E402
 from . import autostart  # noqa: E402
+from . import desktop  # noqa: E402
 
 APP_ID = "org.owbox.Settings"
 SAVE_DELAY = 400  # ms
@@ -85,6 +86,8 @@ class SettingsWindow(Gtk.ApplicationWindow):
         self.rc = RcXml(path)
         self.keys = KeyBindings(self.rc)
         self.save_id = 0
+        self.desktop = desktop.DesktopSettings()
+        self.desktop_id = 0
 
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.set_child(outer)
@@ -104,6 +107,8 @@ class SettingsWindow(Gtk.ApplicationWindow):
 
         pages = [("theme", _("Theme"), self.page_theme),
                  ("appearance", _("Appearance"), self.page_appearance),
+                 ("applications", _("Applications"),
+                  self.page_applications),
                  ("windows", _("Windows"), self.page_windows),
                  ("displays", _("Displays"), self.page_displays),
                  ("desktops", _("Desktops"), self.page_desktops),
@@ -314,11 +319,11 @@ class SettingsWindow(Gtk.ApplicationWindow):
 
         box.append(section(_("Desktop")))
         box.append(row(_("Icon theme"), self.dropdown(
-            "owbox/icons/theme", [("", _("The one GTK applications use"))] +
+            "owbox/icons/theme", [("", _("The applications' one"))] +
             [(t, t) for t in icon_themes()], ""),
             _("For window and menu icons")))
         box.append(row(_("Cursor theme"), self.dropdown(
-            "owbox/cursor/theme", [("", _("The one GTK applications use"))] +
+            "owbox/cursor/theme", [("", _("The applications' one"))] +
             [(t, t) for t in cursor_themes()], "")))
         box.append(row(_("Cursor size"),
                        self.spin("owbox/cursor/size", 16, 96, 24, 8)))
@@ -344,6 +349,120 @@ class SettingsWindow(Gtk.ApplicationWindow):
                        self.font_button(("ActiveOnScreenDisplay",
                                          "InactiveOnScreenDisplay"))))
         return scroll
+
+    # ---- Applications ----
+
+    def page_applications(self):
+        scroll, box = page_box()
+        box.append(label(_("The look of applications.  GTK applications, and "
+                           "the light or dark preference of others (libadwaita, "
+                           "Electron, browsers), follow these settings, also "
+                           "under GNOME and other desktops."),
+                         css="dim-label"))
+        if not self.desktop.available():
+            box.append(label(_("gsettings-desktop-schemas is not installed: "
+                               "only applications running on X follow these "
+                               "settings."), css="error"))
+
+        box.append(section(_("Style")))
+        box.append(row(_("GTK theme"), self.desktop_dropdown(
+            "gtk-theme", [(t, t) for t in desktop.gtk_themes()]),
+            _("GTK 3 applications.  GTK 4 applications made with libadwaita "
+              "have their own look, and follow the preference below.")))
+        box.append(row(_("Light or dark"), self.desktop_dropdown(
+            "color-scheme", [("default", _("As the application likes")),
+                             ("prefer-dark", _("Dark")),
+                             ("prefer-light", _("Light"))]),
+            _("The preference of applications that have both")))
+
+        box.append(section(_("Icons and cursor")))
+        box.append(row(_("Icon theme"), self.desktop_dropdown(
+            "icon-theme", [(t, t) for t in icon_themes()])))
+        box.append(row(_("Cursor theme"), self.desktop_dropdown(
+            "cursor-theme", [(t, t) for t in cursor_themes()])))
+        size = Gtk.SpinButton.new_with_range(16, 96, 8)
+        size.set_value(self.desktop.get("cursor-size") or 24)
+        size.connect("value-changed", lambda w: self.desktop_set(
+            "cursor-size", int(w.get_value())))
+        box.append(row(_("Cursor size"), size))
+
+        box.append(section(_("Fonts")))
+        box.append(row(_("Interface"), self.desktop_font("font-name")))
+        box.append(row(_("Monospace"),
+                       self.desktop_font("monospace-font-name"),
+                       _("Terminals and code")))
+
+        box.append(section(_("Qt applications")))
+        box.append(self.qt_row())
+        return scroll
+
+    def desktop_set(self, key, value):
+        """Write a desktop setting, and let owbox follow it (its cursor and
+        icons) once the changes stop"""
+        self.desktop.set(key, value)
+        if self.desktop_id:
+            GLib.source_remove(self.desktop_id)
+        self.desktop_id = GLib.timeout_add(SAVE_DELAY, self.desktop_done)
+
+    def desktop_done(self):
+        self.desktop_id = 0
+        reconfigure()
+        return False
+
+    def desktop_dropdown(self, key, choices):
+        """choices: [(value, label)], with the current value added when it
+        isn't one of them"""
+        cur = self.desktop.get(key)
+        values = [c[0] for c in choices]
+        labels = [c[1] for c in choices]
+        if cur not in values:
+            values.append(cur)
+            labels.append(cur)
+        dd = Gtk.DropDown.new_from_strings(labels)
+        dd.set_selected(values.index(cur))
+        dd.connect("notify::selected", lambda w, p: self.desktop_set(
+            key, values[w.get_selected()]))
+        return dd
+
+    def desktop_font(self, key):
+        button = Gtk.FontDialogButton(dialog=Gtk.FontDialog())
+        button.set_font_desc(Pango.FontDescription.from_string(
+            self.desktop.get(key)))
+        button.set_level(Gtk.FontLevel.FONT)
+
+        def on_font(w, p):
+            d = w.get_font_desc()
+            if d is not None:
+                self.desktop_set(key, d.to_string())
+        button.connect("notify::font-desc", on_font)
+        return button
+
+    def qt_row(self):
+        """Qt applications get their style from qt6ct (Qt 6) and qt5ct
+        (Qt 5), when QT_QPA_PLATFORMTHEME says so"""
+        platform = os.environ.get("QT_QPA_PLATFORMTHEME", "")
+        tool = next((t for t in ("qt6ct", "qt5ct") if shutil.which(t)), None)
+        if tool and platform in ("qt5ct", "qt6ct"):
+            button = Gtk.Button(label=_("Open %s") % tool)
+            button.connect("clicked", lambda b: subprocess.Popen(
+                [tool], start_new_session=True))
+            return row(_("Style and colors"), button,
+                       _("Set in %s.  The icon theme above is used there "
+                         "too.") % tool)
+        if tool:
+            text = _("%s is installed but not used: add\n"
+                     "export QT_QPA_PLATFORMTHEME=%s\nto "
+                     "~/.config/owbox/environment and log in again.") % (
+                         tool, tool)
+        else:
+            text = _("Qt applications don't follow these settings.  To set "
+                     "their style, colors and icons, install qt6ct (and "
+                     "qt5ct for Qt 5) and add\n"
+                     "export QT_QPA_PLATFORMTHEME=qt6ct\nto "
+                     "~/.config/owbox/environment.")
+        lab = label(text, css="dim-label")
+        lab.set_selectable(True)
+        return lab
 
     def on_theme_selected(self, flow):
         sel = flow.get_selected_children()

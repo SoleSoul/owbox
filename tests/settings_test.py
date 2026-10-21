@@ -126,6 +126,30 @@ def main():
           open(old).read())
     del os.environ["XDG_CONFIG_DIRS"]
 
+    # the look of applications, with GSettings in a file of its own
+    cfg = os.path.join(tmp, "config")
+    os.makedirs(os.path.join(cfg, "gtk-3.0"))
+    os.makedirs(os.path.join(cfg, "qt6ct"))
+    with open(os.path.join(cfg, "gtk-3.0", "settings.ini"), "w") as f:
+        f.write("# mine\n[Settings]\ngtk-enable-animations=false\n")
+    with open(os.path.join(cfg, "qt6ct", "qt6ct.conf"), "w") as f:
+        f.write("[Appearance]\nstyle=Fusion\n\n[Fonts]\nfixed=x\n")
+    r = subprocess.run([sys.executable, __file__, "--desktop"],
+                       env=dict(os.environ, XDG_CONFIG_HOME=cfg,
+                                GSETTINGS_BACKEND="keyfile"),
+                       capture_output=True, text=True)
+    check("the look of applications is read back", r.stdout.strip() ==
+          "WhiteSur-Dark Papirus 32 prefer-dark", r.stdout + r.stderr)
+    ini = open(os.path.join(cfg, "gtk-3.0", "settings.ini")).read()
+    check("and written for applications on X", "# mine" in ini and
+          "gtk-enable-animations=false" in ini and
+          "gtk-theme-name=WhiteSur-Dark" in ini and
+          "gtk-application-prefer-dark-theme=true" in ini, ini)
+    qt = open(os.path.join(cfg, "qt6ct", "qt6ct.conf")).read()
+    check("and the icon theme for Qt", qt ==
+          "[Appearance]\nstyle=Fusion\nicon_theme=Papirus\n\n"
+          "[Fonts]\nfixed=x\n", qt)
+
     # owbox reads the result without complaints
     owbox = os.path.join(ROOT, "build", "owbox")
     out = os.path.join(tmp, "run")
@@ -146,5 +170,19 @@ def main():
     return 1 if failures else 0
 
 
+def desktop_main():
+    """Set the look of applications, and print it as read back"""
+    from owbox_settings import desktop
+    d = desktop.DesktopSettings()
+    d.set("gtk-theme", "WhiteSur-Dark")
+    d.set("icon-theme", "Papirus")
+    d.set("cursor-size", 32)
+    d.set("color-scheme", "prefer-dark")
+    d = desktop.DesktopSettings()
+    print(d.get("gtk-theme"), d.get("icon-theme"), d.get("cursor-size"),
+          d.get("color-scheme"))
+    return 0
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(desktop_main() if "--desktop" in sys.argv else main())

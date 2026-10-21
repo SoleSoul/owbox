@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- owbox Settings has an Applications page for the look of applications:
+  GTK theme, light or dark preference, icon and cursor themes, fonts. They
+  are saved in GSettings, which GTK applications on Wayland, libadwaita,
+  Electron and browsers follow, and in GTK's settings.ini for applications
+  running on X. The icon theme is also set for Qt in qt5ct/qt6ct, when
+  they are used.
+
 ## 0.3.2 (2026-10-21)
 
 - Fixed: owbox Settings was laid out right to left in a right-to-left

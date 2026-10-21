@@ -17,8 +17,9 @@
 
 - runs as a daily session on real hardware (NVIDIA, DRM backend, VT
   switching), with waybar, swaybg and fuzzel
-- owbox Settings: appearance, windows, displays, desktops, keyboard,
-  mouse and touchpad, key bindings, autostart (with Openbox migration)
+- owbox Settings: appearance, applications' look, windows, displays,
+  desktops, keyboard, mouse and touchpad, key bindings, autostart (with
+  Openbox migration)
 - screen sharing of monitors and windows, with owbox's own chooser menu;
   32 bit capture formats on GPUs that prefer 24 bit (NVIDIA)
 - fixes from daily use: submenus, menus closed with the keyboard, client

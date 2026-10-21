@@ -96,6 +96,15 @@ after two missed intervals) is kept.
 **Icon and cursor themes default to the desktop's** (GNOME/GTK settings),
 since Openbox users usually set them for GTK and don't want to repeat it.
 
+**The look of applications is kept in GSettings** (org.gnome.desktop.interface),
+where GTK on Wayland, the settings portal (libadwaita, Electron, browsers)
+and owbox read it, so it works like under other desktops and other tools
+(nwg-look, gsettings) can change it too. owbox Settings' Applications page
+also writes it to GTK's settings.ini, which GTK applications on X read
+(there is no XSETTINGS daemon), and the icon theme to qt5ct/qt6ct, Qt's
+own settings. Openbox users had LXAppearance, which writes only the X
+files.
+
 **owbox's scale is the theme's.** `<owbox><scale>` makes frames, menus and
 popups larger without making applications larger (an output's scale does
 both). Openbox's window management code takes every size from the theme,
