@@ -49,6 +49,13 @@
   panels run as services after logging in again, the example waybar's
   bars covering maximized windows
 
+## 0.3.2 (done)
+
+- fixes: the screen sharing menu offers only what the application asked
+  for, GTK 3 dialogs without a parent are centered over their application,
+  the pointer starts in the middle, virtual keyboards' first keys
+- programs' messages go to the journal when owbox runs on a console
+
 ## Next
 
 - **More of owbox Settings**: mouse bindings, the menus, per-application

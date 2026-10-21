@@ -1,10 +1,31 @@
 # Changelog
 
-## Unreleased
+## 0.3.2 (2026-10-21)
 
 - Fixed: owbox Settings was laid out right to left in a right-to-left
   language like Hebrew, with its English text. Until it is translated it
   keeps the left-to-right layout.
+- Fixed: the screen sharing menu offered windows to applications that
+  asked for a screen, and screens to ones that asked for a window. It now
+  offers only what the application can share. owbox's
+  xdg-desktop-portal-wlr configuration uses the chooser type `dmenu` for
+  this; restart xdg-desktop-portal-wlr after updating.
+- Fixed: GTK 3 dialogs that have no parent window, like Thunar's Rename,
+  were placed like new windows, often in the top left. They are now
+  centered over their application, as Openbox does under X. See
+  docs/WORKAROUNDS.md.
+- Fixed: the pointer started in the top left corner. It now starts in the
+  middle of the screen, where the X server puts it.
+- Fixed: without a physical keyboard, virtual keyboards (remote control and
+  automation tools, owbox-input) lost the first keys they typed.
+- Changed: when owbox runs on a console, the messages of the programs it
+  starts go to the systemd journal (`journalctl -t owbox`), not to the
+  console, so applications' complaints when owbox exits no longer fill it.
+- The example fuzzel configuration leaves out applications meant only for
+  other desktops (`filter-desktop`), like Xfce's settings dialogs.
+- Documentation: the keyring (gnome-keyring, and the password store of
+  Chromium and Electron applications), and docs/WORKAROUNDS.md, the
+  workarounds for other projects' bugs.
 
 ## 0.3.1 (2026-10-20)
 
