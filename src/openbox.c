@@ -477,7 +477,7 @@ static void print_help(void)
     g_print(_("  --debug             Display debugging output\n"));
     g_print(_("  --debug-focus       Display debugging output for focus handling\n"));
     g_print(_("  --debug-wlroots     Display debugging output from wlroots\n"));
-    g_print(_("\nPlease report bugs at %s\n"), "https://github.com/owbox/owbox");
+    g_print(_("\nPlease report bugs at %s\n"), "https://github.com/SoleSoul/owbox");
 }
 
 static void remove_args(gint *argc, gchar **argv, gint index, gint num)
