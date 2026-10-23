@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- New windows are placed in the middle of the monitor, cascading down and
+  to the right where they would hide a whole window, like KDE and labwc.
+  Openbox's placement (the free area with the least overlap) put them in
+  corners, like a password prompt over a maximized window. It is still
+  there: `<placement>openbox</placement>` in `<owbox>`, or "Where there is
+  room" in owbox Settings.
+- New windows, launchers and popups (Alt-Tab, the desktop switcher) open
+  on the monitor in use, the one the pointer or the focus moved to last,
+  like in KDE, rather than on the primary monitor. It is the new value
+  `Current` of `<monitor>` and `<primaryMonitor>`, and owbox Settings has
+  the choice for windows.
 - owbox Settings has an Applications page for the look of applications:
   GTK theme, light or dark preference, icon and cursor themes, fonts. They
   are saved in GSettings, which GTK applications on Wayland, libadwaita,

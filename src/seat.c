@@ -939,6 +939,10 @@ static void pointer_update(guint32 time, gboolean motion)
     wlr_scene_node_set_position(&server.drag_tree->node,
                                 e.x_root, e.y_root);
 
+    /* the user is on the pointer's monitor now */
+    if (motion)
+        screen_pointer_moved();
+
     if (server.seat->drag) {
         /* a drag and drop sends enter/motion to whatever is under the
            pointer, the seat's drag grab takes care of the protocol */

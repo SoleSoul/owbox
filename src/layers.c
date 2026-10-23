@@ -372,10 +372,9 @@ static void handle_new_surface(struct wl_listener *l, void *data)
     ObOutput *o;
 
     if (!ls->output) {
-        /* put it on the output with the pointer */
-        gint x, y;
-        seat_pointer_pos(&x, &y);
-        o = output_at(x, y);
+        /* put it on the monitor the user is on, where new windows go too */
+        guint m = screen_monitor_current();
+        o = m < output_count() ? output_nth(m) : NULL;
         if (!o && output_count()) o = output_nth(0);
         if (!o) {
             wlr_layer_surface_v1_destroy(ls);

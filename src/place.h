@@ -40,7 +40,8 @@ typedef enum
     OB_PLACE_MONITOR_ACTIVE,
     OB_PLACE_MONITOR_MOUSE,
     OB_PLACE_MONITOR_PRIMARY,
-    OB_PLACE_MONITOR_ALL
+    OB_PLACE_MONITOR_ALL,
+    OB_PLACE_MONITOR_CURRENT /* owbox: KWin's active output */
 } ObPlaceMonitor;
 
 /*! Return TRUE if openbox chose the position for the window, and FALSE if

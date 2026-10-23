@@ -557,12 +557,38 @@ class SettingsWindow(Gtk.ApplicationWindow):
                        self.switch("focus/focusNew", True)))
 
         box.append(section(_("Placement")))
-        box.append(row(_("Place new windows"), self.dropdown(
-            "placement/policy", [("Smart", _("Where there is room")),
-                                 ("UnderMouse", _("Under the mouse"))],
-            "Smart")))
-        box.append(row(_("Center new windows"),
-                       self.switch("placement/center", True)))
+        # Openbox's <placement><policy>, and how owbox does its 'Smart'
+        place = Gtk.DropDown.new_from_strings([_("In the middle"),
+                                               _("Where there is room"),
+                                               _("Under the mouse")])
+        if (self.rc.get("placement/policy") or "").lower() == "undermouse":
+            place.set_selected(2)
+        elif (self.rc.get("owbox/placement") or "").lower() == "openbox":
+            place.set_selected(1)
+        else:
+            place.set_selected(0)
+        box.append(row(_("Place new windows"), place))
+        center_row = row(_("Center in the free area"),
+                         self.switch("placement/center", True))
+        box.append(center_row)
+
+        def on_place(w, p):
+            i = w.get_selected()
+            self.set("placement/policy", "UnderMouse" if i == 2 else "Smart")
+            if i != 2:
+                self.set("owbox/placement", "openbox" if i == 1 else
+                         "cascade")
+            center_row.set_sensitive(i == 1)
+        place.connect("notify::selected", on_place)
+        center_row.set_sensitive(place.get_selected() == 1)
+        box.append(row(_("Open new windows on"), self.dropdown(
+            "placement/monitor",
+            [("Current", _("The monitor in use")),
+             ("Mouse", _("The monitor with the mouse")),
+             ("Active", _("The focused window's monitor")),
+             ("Primary", _("The primary monitor")),
+             ("Any", _("Any monitor"))],
+            "Current")))
 
         box.append(section(_("Snapping")))
         snap = Gtk.Switch(active=(self.rc.find("owbox/snapping") is None or

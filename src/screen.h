@@ -168,6 +168,15 @@ gboolean screen_pointer_pos(gint *x, gint *y);
 /*! Returns the monitor which contains the pointer device */
 guint screen_monitor_pointer(void);
 
+/*! owbox: Returns the monitor the user is on, KWin's active output: the
+  focused window's, or the pointer's when the pointer moved after the focus
+  did (or nothing is focused) */
+guint screen_monitor_current(void);
+/*! owbox: The pointer moved, for screen_monitor_current() */
+void screen_pointer_moved(void);
+/*! owbox: The focus moved to a window, for screen_monitor_current() */
+void screen_focus_moved(void);
+
 /*! Compare the desktop for two windows to see if they are considered on the
   same desktop.
   Windows that are on "all desktops" are treated like they are only on the

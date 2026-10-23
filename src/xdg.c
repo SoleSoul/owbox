@@ -429,7 +429,7 @@ const ObClientImpl xdg_client_impl = {
 /*! The size a window should start with, for the bounds hint */
 static void usable_bounds(gint *w, gint *h)
 {
-    Rect *a = screen_area(screen_desktop, screen_monitor_pointer(), NULL);
+    Rect *a = screen_area(screen_desktop, screen_monitor_current(), NULL);
     *w = a->width;
     *h = a->height;
     g_slice_free(Rect, a);

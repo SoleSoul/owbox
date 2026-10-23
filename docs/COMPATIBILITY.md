@@ -7,8 +7,9 @@ listed is a bug in owbox: please report it to owbox, not to Openbox.
 ## Works the same
 
 - rc.xml: all sections. That covers resistance, focus (including
-  focus-follows-mouse, delay, underMouse), placement (smart, under mouse,
-  center, monitor policy), theme (name, titleLayout, fonts, keepBorder,
+  focus-follows-mouse, delay, underMouse), placement (smart with
+  `<placement>openbox</placement>` in `<owbox>`, under mouse, center,
+  monitor policy), theme (name, titleLayout, fonts, keepBorder,
   animateIconify, window list icon size), desktops (number, names, popup
   time), resize (drawContents, popups), margins, menu settings, key bindings
   (chains, keycodes, chroots), mouse bindings (all contexts and events,
@@ -33,9 +34,21 @@ listed is a bug in owbox: please report it to owbox, not to Openbox.
 - **Restart** (the action and `--restart`) reconfigures. A Wayland
   compositor can't restart without closing every window.
 - **Window positions are owbox's.** Wayland applications can't place
-  themselves, so owbox places them with Openbox's placement code, and
-  `<position>` in per-application settings works for them. X applications
-  can still ask for positions, as in Openbox.
+  themselves, so owbox places them, and `<position>` in per-application
+  settings works for them. X applications can still ask for positions, as
+  in Openbox.
+- **Smart placement cascades from the middle of the monitor** by default,
+  as KDE and labwc do. With every window placed by the compositor,
+  Openbox's search for the free area with the least overlap often put new
+  windows in a corner (a password prompt over a maximized window).
+  `<placement>openbox</placement>` in `<owbox>` gives Openbox's.
+- **New windows and popups open on the monitor in use**, as in KDE: the
+  one the pointer or the focus moved to last. That is `Current` in
+  `<monitor>` and `<primaryMonitor>`, an owbox value, and the default when
+  rc.xml doesn't say. Launchers (layer-shell surfaces that don't choose a
+  monitor) open there too. Openbox's defaults are the primary monitor for
+  windows and the first one for popups, and an Openbox rc.xml saying
+  `Primary` and `1` keeps them.
 - **Window groups** don't exist in Wayland. Where Openbox uses the X window
   group (group transients, "the same application" in placement and focus),
   owbox uses windows of the same process.

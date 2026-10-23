@@ -1455,6 +1455,27 @@ guint screen_monitor_active(void)
         return screen_monitor_pointer();
 }
 
+/* owbox: which of the pointer and the focus moved last */
+static gboolean pointer_moved_last = TRUE;
+
+guint screen_monitor_current(void)
+{
+    if (!pointer_moved_last && focus_client)
+        return client_monitor(focus_client);
+    else
+        return screen_monitor_pointer();
+}
+
+void screen_pointer_moved(void)
+{
+    pointer_moved_last = TRUE;
+}
+
+void screen_focus_moved(void)
+{
+    pointer_moved_last = FALSE;
+}
+
 const Rect* screen_physical_area_active(void)
 {
     return screen_physical_area_monitor(screen_monitor_active());
@@ -1472,6 +1493,8 @@ guint screen_monitor_primary(gboolean fixed)
         return 0;
     else if (config_primary_monitor == OB_PLACE_MONITOR_ACTIVE)
         return screen_monitor_active();
+    else if (config_primary_monitor == OB_PLACE_MONITOR_CURRENT)
+        return screen_monitor_current();
     else /* config_primary_monitor == OB_PLACE_MONITOR_MOUSE */
         return screen_monitor_pointer();
 }

@@ -183,6 +183,28 @@ they stay crisp: at 125% they keep their size, from 150% they double.
 Gradients and text are sharp at any scale.
 
 ```xml
+  <placement>cascade</placement>
+```
+
+How Openbox's `Smart` placement (`<policy>` in `<placement>`) places new
+windows that don't have a position of their own (from per-application
+settings, or asked for by an X application):
+
+- `cascade` (the default): in the middle of the monitor, on top of the
+  other windows. Where a new window would hide a whole window that can
+  still be seen, it moves to that window's top left corner, down and to
+  the right by a title bar, and so on, so that a stack of windows of one
+  size shows every title bar. When there is no room for that, it stays in
+  the middle. This is KDE's default placement (Centered) and labwc's
+  (cascade).
+- `openbox`: Openbox's, the free area with the least overlap, in its
+  middle with `<center>`. When there is no free area, a window can end up
+  in a corner.
+
+Dialogs go over their parent window, and `UnderMouse` places windows under
+the mouse, with both.
+
+```xml
   <snapping enabled="yes">
     <range>10</range>          <!-- pixels from the edge -->
     <cornerRange>60</cornerRange>

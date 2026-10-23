@@ -24,7 +24,11 @@
 #include "focus.h"
 #include "config.h"
 #include "debug.h"
+#include "openbox.h"
+#include "stacking.h"
 #include "place_overlap.h"
+
+#include <pixman.h>
 
 static Rect *choose_pointer_monitor(ObClient *c)
 {
@@ -40,6 +44,7 @@ static Rect *choose_pointer_monitor(ObClient *c)
    3. primary monitor if placement=PRIMARY
       active monitor if placement=ACTIVE
       pointer monitor if placement=MOUSE
+      the monitor the user is on if placement=CURRENT (owbox)
    4. primary monitor
    5. other monitors where the window has group members on the same desktop
    6. other monitors where the window has group members on other desktops
@@ -214,6 +219,16 @@ static Rect* choose_monitor(ObClient *c, gboolean client_to_be_foregrounded,
             choice[i].flags |= HEAD_PERAPP;
     }
 
+    /* owbox: the monitor the user is on */
+    i = screen_monitor_current();
+    if (i < screen_num_monitors) {
+        if (config_place_monitor == OB_PLACE_MONITOR_CURRENT)
+            choice[i].flags |= HEAD_PLACED;
+        if (settings &&
+            settings->monitor_type == OB_PLACE_MONITOR_CURRENT)
+            choice[i].flags |= HEAD_PERAPP;
+    }
+
     if (settings) {
         i = settings->monitor - 1;
         if (i < screen_num_monitors)
@@ -381,6 +396,108 @@ static gboolean place_transient_splash(ObClient *client, Rect *area,
     return FALSE;
 }
 
+/* KWin's default placement, "Centered" (and labwc's "cascade"): new windows
+   go in the middle of the monitor, on top of the others.  Where a window
+   would hide one completely, it moves to that window's corner, down and to
+   the right by about a title bar, so the one below can still be seen and
+   clicked.  When there is no room for that, it stays in the middle.  This
+   is Placement::placeCentered and Placement::cascadeIfCovering in KWin's
+   src/placement.cpp. */
+static gboolean place_cascade(ObClient *c, Rect *head, int *x, int *y,
+                              Size frame_size)
+{
+    Rect center, r;
+    gint offset;
+    gboolean moved;
+    pixman_box32_t area_box;
+
+    if (!config_place_cascade)
+        return FALSE;
+
+    ob_debug("placing cascaded");
+
+    RECT_SET(center,
+             MAX(head->x + (head->width - frame_size.width) / 2, head->x),
+             MAX(head->y + (head->height - frame_size.height) / 2, head->y),
+             frame_size.width, frame_size.height);
+    r = center;
+
+    /* labwc's step, with Openbox themes too: the title bar and its border,
+       and a little more */
+    offset = ob_rr_theme->title_height + ob_rr_theme->fbwidth + 5;
+
+    area_box.x1 = head->x;
+    area_box.y1 = head->y;
+    area_box.x2 = head->x + head->width;
+    area_box.y2 = head->y + head->height;
+
+    /* If we're "showing desktop", and going to allow this window to
+       be shown now, then ignore all existing windows */
+    if (screen_show_desktop_mode == SCREEN_SHOW_DESKTOP_UNTIL_TOGGLE)
+        moved = FALSE;
+    else
+        moved = TRUE;
+
+    while (moved) {
+        pixman_region32_t covered;
+        GList *it;
+
+        moved = FALSE;
+        /* the windows above, which hide the ones below them anyway */
+        pixman_region32_init(&covered);
+        for (it = stacking_list; it; it = g_list_next(it)) {
+            ObClient *o;
+            Rect *a;
+            pixman_box32_t box;
+
+            if (!WINDOW_IS_CLIENT(it->data))
+                continue;
+            o = WINDOW_AS_CLIENT(it->data);
+            if (o == c || o->iconic || !client_occupies_space(o))
+                continue;
+            if (c->desktop != DESKTOP_ALL) {
+                if (o->desktop != c->desktop && o->desktop != DESKTOP_ALL)
+                    continue;
+            } else {
+                if (o->desktop != screen_desktop && o->desktop != DESKTOP_ALL)
+                    continue;
+            }
+
+            a = &o->frame->area;
+            if (!RECT_INTERSECTS_RECT(r, *a))
+                continue;
+
+            box.x1 = a->x;
+            box.y1 = a->y;
+            box.x2 = a->x + a->width;
+            box.y2 = a->y + a->height;
+            if (RECT_CONTAINS_RECT(r, *a) &&
+                pixman_region32_contains_rectangle(&covered, &box) !=
+                PIXMAN_REGION_IN)
+            {
+                RECT_SET_POINT(r, a->x + offset, a->y + offset);
+                if (RECT_CONTAINS_RECT(*head, r))
+                    moved = TRUE;
+                else
+                    /* no room to cascade, keep it in the middle */
+                    r = center;
+                break;
+            }
+
+            pixman_region32_union_rect(&covered, &covered,
+                                       a->x, a->y, a->width, a->height);
+            if (pixman_region32_contains_rectangle(&covered, &area_box) ==
+                PIXMAN_REGION_IN)
+                break;
+        }
+        pixman_region32_fini(&covered);
+    }
+
+    *x = r.x;
+    *y = r.y;
+    return TRUE;
+}
+
 static gboolean place_least_overlap(ObClient *c, Rect *head, int *x, int *y,
                                     Size frame_size)
 {
@@ -499,6 +616,7 @@ gboolean place_client(ObClient *client, gboolean client_to_be_foregrounded,
                                        frame_size) ||
         place_transient_splash(client, monitor_area, x, y, frame_size) ||
         place_under_mouse(client, x, y, frame_size) ||
+        place_cascade(client, monitor_area, x, y, frame_size) ||
         place_least_overlap(client, monitor_area, x, y, frame_size);
     g_assert(ret);
 

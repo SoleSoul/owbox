@@ -293,6 +293,9 @@ extern gint config_cursor_size;
 extern gchar *config_icon_theme;
 extern ObDecorationPolicy config_decoration_policy;
 extern gboolean config_force_server_decorations;
+/*! Smart placement cascades windows from the middle of the monitor, like
+  KWin, instead of looking for the free area with the least overlap */
+extern gboolean config_place_cascade;
 /*! The color of the root window (where there is no wallpaper) */
 extern guchar config_root_color[3];
 /*! Reconfigure when rc.xml changes */

@@ -67,6 +67,30 @@ there's no new theme format.
 **Restart is reconfigure.** A Wayland compositor that execs itself loses
 all its clients.
 
+**New windows go in the middle, cascading (2026-10).** Openbox's Smart
+placement looks for the free area with the least overlap. Under X most
+applications remembered their own positions, and Smart placed the rest;
+on Wayland it places every window, and when there's no free area (a
+maximized window) a new one lands in the monitor's top left corner,
+away from where the user is looking. KDE replaced the same kind of
+placement as its default with Centered for that reason, and labwc (an
+Openbox-like Wayland compositor) took KWin's algorithm as its default
+cascade: in the middle, moved down and right only where it would hide a
+whole window. owbox does the same for Smart; Openbox's is
+`<placement>openbox</placement>`. The setting is in `<owbox>` because an
+Openbox rc.xml always says Smart, so a new value of Openbox's `<policy>`
+would never be the default. Mutter's first fit (middle, then beside other
+windows, then a cascade) was the other candidate, but next to other windows
+is what surprised in Openbox's.
+
+**The monitor in use is where the pointer or the focus moved last.**
+That's KWin's active output, and owbox puts new windows, launchers and
+popups there (`Current`). Openbox's choices are the primary monitor, the
+pointer's (Mutter's choice) or the focused window's, and each is wrong
+some of the time: the pointer is left on another monitor while typing,
+and the focus stays behind when clicking a panel on another monitor.
+Openbox's own values keep their meaning.
+
 **Decorations: decorate unless the client insists.** xdg-decoration
 clients get server-side decorations unless they ask for client-side ones.
 GTK 3 uses KDE's server-decoration protocol, which defaults to server-side.

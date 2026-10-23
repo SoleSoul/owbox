@@ -36,7 +36,7 @@ owbox looks for each file in {{ic|~/.config/owbox/}}, then {{ic|~/.config/openbo
  $ mkdir -p ~/.config/owbox
  $ cp /etc/xdg/owbox/{rc.xml,menu.xml,autostart,environment} ~/.config/owbox/
 
-{{ic|rc.xml}} is reloaded when it is saved. Settings that Openbox does not have go in an {{ic|<owbox>}} section, which Openbox ignores: keyboard layouts, input devices, monitors, cursor and icon themes, snapping, idle and locking, the size of owbox's decorations ({{ic|<scale>}}), and panels. The installed {{ic|/etc/xdg/owbox/rc.xml}} documents each of them, and the {{ic|owbox(1)}} man page describes the rest.
+{{ic|rc.xml}} is reloaded when it is saved. Settings that Openbox does not have go in an {{ic|<owbox>}} section, which Openbox ignores: keyboard layouts, input devices, monitors, cursor and icon themes, window placement, snapping, idle and locking, the size of owbox's decorations ({{ic|<scale>}}), and panels. The installed {{ic|/etc/xdg/owbox/rc.xml}} documents each of them, and the {{ic|owbox(1)}} man page describes the rest.
 
 === Autostart ===
 

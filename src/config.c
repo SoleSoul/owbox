@@ -131,6 +131,7 @@ gint     config_cursor_size;
 gchar   *config_icon_theme;
 ObDecorationPolicy config_decoration_policy;
 gboolean config_force_server_decorations;
+gboolean config_place_cascade;
 guchar   config_root_color[3];
 gboolean config_auto_reload;
 gboolean config_allow_shortcuts_inhibit;
@@ -291,6 +292,8 @@ static void parse_single_per_app_settings(xmlNodePtr app,
                     settings->monitor_type = OB_PLACE_MONITOR_ACTIVE;
                 else if (!g_ascii_strcasecmp(s, "primary"))
                     settings->monitor_type = OB_PLACE_MONITOR_PRIMARY;
+                else if (!g_ascii_strcasecmp(s, "current"))
+                    settings->monitor_type = OB_PLACE_MONITOR_CURRENT;
                 else
                     settings->monitor = obt_xml_node_int(c);
                 g_free(s);
@@ -719,12 +722,22 @@ static void parse_placement(xmlNodePtr node, gpointer d)
             config_place_monitor = OB_PLACE_MONITOR_MOUSE;
         else if (obt_xml_node_contains(n, "any"))
             config_place_monitor = OB_PLACE_MONITOR_ANY;
+        /* Openbox's default, not owbox's */
+        else if (obt_xml_node_contains(n, "primary"))
+            config_place_monitor = OB_PLACE_MONITOR_PRIMARY;
+        else if (obt_xml_node_contains(n, "current"))
+            config_place_monitor = OB_PLACE_MONITOR_CURRENT;
     }
     if ((n = obt_xml_find_node(node, "primaryMonitor"))) {
         config_primary_monitor_index = obt_xml_node_int(n);
         if (!config_primary_monitor_index) {
             if (obt_xml_node_contains(n, "mouse"))
                 config_primary_monitor = OB_PLACE_MONITOR_MOUSE;
+            /* Openbox's default, not owbox's */
+            else if (obt_xml_node_contains(n, "active"))
+                config_primary_monitor = OB_PLACE_MONITOR_ACTIVE;
+            else if (obt_xml_node_contains(n, "current"))
+                config_primary_monitor = OB_PLACE_MONITOR_CURRENT;
         }
     }
 }
@@ -1351,6 +1364,8 @@ static void parse_owbox(xmlNodePtr node, gpointer d)
         else
             config_decoration_policy = OB_DECORATION_POLICY_AUTO;
     }
+    if ((n = obt_xml_find_node(node, "placement")))
+        config_place_cascade = !obt_xml_node_contains(n, "openbox");
     if ((n = obt_xml_find_node(node, "background"))) {
         gchar *s = obt_xml_node_string(n);
         RrColor *col = RrColorParse(ob_rr_inst, s);
@@ -1527,6 +1542,7 @@ static void owbox_defaults(void)
     config_icon_theme = NULL;
     config_decoration_policy = OB_DECORATION_POLICY_AUTO;
     config_force_server_decorations = FALSE;
+    config_place_cascade = TRUE;
     /* the X root window's default color in most distributions */
     config_root_color[0] = 0x30;
     config_root_color[1] = 0x30;
@@ -1593,10 +1609,13 @@ void config_startup(ObtXmlInst *i)
 
     config_place_policy = OB_PLACE_POLICY_SMART;
     config_place_center = TRUE;
-    config_place_monitor = OB_PLACE_MONITOR_PRIMARY;
+    /* the monitor the user is on, like KWin, rather than Openbox's primary
+       monitor */
+    config_place_monitor = OB_PLACE_MONITOR_CURRENT;
 
-    config_primary_monitor_index = 1;
-    config_primary_monitor = OB_PLACE_MONITOR_ACTIVE;
+    /* popups too, where Openbox has the first monitor */
+    config_primary_monitor_index = 0;
+    config_primary_monitor = OB_PLACE_MONITOR_CURRENT;
 
     obt_xml_register(i, "placement", parse_placement, NULL);
 

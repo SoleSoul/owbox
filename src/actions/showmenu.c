@@ -63,6 +63,8 @@ static gpointer setup_func(xmlNodePtr node)
                     o->monitor_type = OB_PLACE_MONITOR_PRIMARY;
                 else if (!g_ascii_strcasecmp(s, "all"))
                     o->monitor_type = OB_PLACE_MONITOR_ALL;
+                else if (!g_ascii_strcasecmp(s, "current"))
+                    o->monitor_type = OB_PLACE_MONITOR_CURRENT;
                 else
                     o->monitor = obt_xml_node_int(c) - 1;
                 g_free(s);
@@ -102,6 +104,9 @@ static gboolean run_func(ObActionsData *data, gpointer options)
                 break;
             case OB_PLACE_MONITOR_ALL:
                 monitor = screen_num_monitors;
+                break;
+            case OB_PLACE_MONITOR_CURRENT:
+                monitor = screen_monitor_current();
                 break;
             default:
                 g_assert_not_reached();

@@ -86,6 +86,9 @@ void focus_set_client(ObClient *client)
 
         /* make sure the focus cycle popup shows things in the right order */
         focus_cycle_reorder();
+
+        /* owbox: the user is on this window's monitor now */
+        screen_focus_moved();
     }
 
     /* owbox: another window, the panels' job is done */
