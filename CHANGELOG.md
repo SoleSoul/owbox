@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 (2026-10-23)
 
 - New windows are placed in the middle of the monitor, cascading down and
   to the right where they would hide a whole window, like KDE and labwc.
@@ -24,6 +24,10 @@
   set. Without it they were light with hardly any icons.
 - owbox Settings no longer has separate icon and cursor themes for owbox:
   owbox uses the applications' (it still reads them from rc.xml).
+- owbox Settings is drawn with GTK's Adwaita, light or dark as the
+  preference says, instead of the GTK theme: with GTK 4.24 a theme like
+  WhiteSur lost its styles when the preference changed. See
+  docs/WORKAROUNDS.md.
 
 ## 0.3.2 (2026-10-21)
 

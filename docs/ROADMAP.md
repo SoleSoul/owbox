@@ -57,6 +57,15 @@
   the pointer starts in the middle, virtual keyboards' first keys
 - programs' messages go to the journal when owbox runs on a console
 
+## 0.4.0 (done)
+
+- new windows in the middle of the monitor, cascading where they would
+  hide a whole window (KWin's placement), on the monitor in use (where the
+  pointer or the focus moved last), with launchers and popups; Openbox's
+  placement is a setting
+- owbox Settings' Applications page: GTK theme, light or dark, icons,
+  cursor and fonts for applications, which Qt follows too
+
 ## Next
 
 - **More of owbox Settings**: mouse bindings, the menus, per-application
