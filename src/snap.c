@@ -117,26 +117,25 @@ void snap_client(ObClient *c, guint edges, guint monitor)
 
         client_maximize(c, TRUE, 0);
         /* unmaximizing gives back the size from before it was snapped */
-        if (snapped && c->max_horz && c->max_vert)
+        if (snapped && c->max_horz && c->max_vert) {
             c->pre_max_area = c->pre_snap_area;
+            c->pre_max_snap_edges = 0;
+        }
         return;
     }
 
-    /* keep the size it has when not maximized or fullscreen, c->area
-       doesn't have it until the configures below are done */
-    if (!c->snap_edges) {
-        if (c->fullscreen)
-            c->pre_snap_area = c->pre_fullscreen_area;
-        else {
-            c->pre_snap_area = c->area;
-            if (c->max_horz) {
-                c->pre_snap_area.x = c->pre_max_area.x;
-                c->pre_snap_area.width = c->pre_max_area.width;
-            }
-            if (c->max_vert) {
-                c->pre_snap_area.y = c->pre_max_area.y;
-                c->pre_snap_area.height = c->pre_max_area.height;
-            }
+    /* keep the size it has when not maximized, c->area doesn't have it
+       until the configure below is done.  A window maximized from a
+       snapped one still has it in pre_snap_area */
+    if (!c->snap_edges && !c->pre_max_snap_edges) {
+        c->pre_snap_area = c->area;
+        if (c->max_horz) {
+            c->pre_snap_area.x = c->pre_max_area.x;
+            c->pre_snap_area.width = c->pre_max_area.width;
+        }
+        if (c->max_vert) {
+            c->pre_snap_area.y = c->pre_max_area.y;
+            c->pre_snap_area.height = c->pre_max_area.height;
         }
     }
 
@@ -301,7 +300,10 @@ void snap_drag_unsnap(ObClient *c, gint px, gint py,
         want = c->pre_snap_area;
         c->snap_edges = 0;
     } else {
-        want = c->pre_max_area;
+        /* a window maximized from a snapped one gets its size from before
+           it was snapped */
+        want = c->pre_max_snap_edges ? c->pre_snap_area : c->pre_max_area;
+        c->pre_max_snap_edges = 0;
         if (want.width <= 0 || want.height <= 0) return;
         /* unmaximize without moving, the drag decides where it goes */
         c->max_horz = c->max_vert = FALSE;

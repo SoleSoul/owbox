@@ -11,6 +11,10 @@
 - Fixed: Super+Down (`Unsnap`) didn't restore a window maximized with
   Super+Up, and a window maximized from a snapped one, or snapped from a
   maximized one, went back to the wrong size.
+- A snapped window that is maximized, with the title bar button for
+  example, goes back to its half or quarter when unmaximized, like in GNOME
+  and Windows. It was put back there, but no longer snapped, so Super+Down
+  didn't restore it.
 
 ## 0.4.0 (2026-10-23)
 

@@ -334,6 +334,9 @@ struct _ObClient
     guint snap_edges;
     /*! owbox: the window's area from before it was snapped */
     Rect pre_snap_area;
+    /*! owbox: the edges it was snapped to when it was maximized, which
+      unmaximizing snaps it to again */
+    guint pre_max_snap_edges;
     /*! The window should not be displayed by pagers */
     gboolean skip_pager;
     /*! The window should not be displayed by taskbars */

@@ -2655,8 +2655,15 @@ void client_maximize(ObClient *self, gboolean max, gint dir)
     if (max) {
         /* make sure the window is on some monitor */
         client_find_onscreen(self, &x, &y, w, h, FALSE);
-        /* owbox: a maximized window is not snapped anymore */
+        /* owbox: a maximized window is not snapped anymore, until it is
+           unmaximized */
+        if (self->snap_edges)
+            self->pre_max_snap_edges = self->snap_edges;
         self->snap_edges = 0;
+    } else if (!self->max_horz && !self->max_vert) {
+        /* owbox: back to the snapped area in pre_max_area */
+        self->snap_edges = self->pre_max_snap_edges;
+        self->pre_max_snap_edges = 0;
     }
 
     client_change_state(self); /* change the state hints on the client */

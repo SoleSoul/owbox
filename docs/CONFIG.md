@@ -220,7 +220,9 @@ quarter. `cornerRange` is how far from a corner along the edge counts as the
 corner. The top edge maximizes, if `topMaximize` is on. Edges between two
 monitors don't snap. With `preview` on, owbox shows where the window will
 go. With `dragUnmaximize` on, dragging a maximized or snapped window
-restores its size under the pointer.
+restores its size under the pointer. A snapped window that is maximized
+(not by the top edge) goes back to its half or quarter when unmaximized,
+like in GNOME and Windows.
 
 ```xml
   <desktopLayout rows="2" columns="2" orientation="horizontal"
