@@ -3698,6 +3698,8 @@ void client_set_surface_position(ObClient *self, gint x, gint y)
 void client_set_surface_visible(ObClient *self, gboolean visible)
 {
     wlr_scene_node_set_enabled(&self->surface_tree->node, visible);
+    /* an idle inhibitor works only while its window is seen */
+    seat_update_idle_inhibit();
     if (self->impl->set_visible)
         self->impl->set_visible(self, visible);
 }

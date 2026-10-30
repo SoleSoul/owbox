@@ -1675,6 +1675,8 @@ static void handle_new_shortcuts_inhibitor(struct wl_listener *listener,
 typedef struct {
     struct wlr_idle_inhibitor_v1 *inhibitor;
     struct wl_listener destroy;
+    struct wl_listener map;
+    struct wl_listener unmap;
 } ObIdleInhibitor;
 
 static void idle_inhibitor_destroy(struct wl_listener *listener, void *data)
@@ -1682,7 +1684,14 @@ static void idle_inhibitor_destroy(struct wl_listener *listener, void *data)
     ObIdleInhibitor *i = wl_container_of(listener, i, destroy);
     seat.idle_inhibitors = g_list_remove(seat.idle_inhibitors, i);
     wl_list_remove(&i->destroy.link);
+    wl_list_remove(&i->map.link);
+    wl_list_remove(&i->unmap.link);
     g_free(i);
+    seat_update_idle_inhibit();
+}
+
+static void idle_inhibitor_map(struct wl_listener *listener, void *data)
+{
     seat_update_idle_inhibit();
 }
 
@@ -1694,10 +1703,36 @@ static void handle_new_idle_inhibitor(struct wl_listener *listener,
     i->inhibitor = inhibitor;
     i->destroy.notify = idle_inhibitor_destroy;
     wl_signal_add(&inhibitor->events.destroy, &i->destroy);
+    i->map.notify = idle_inhibitor_map;
+    wl_signal_add(&inhibitor->surface->events.map, &i->map);
+    i->unmap.notify = idle_inhibitor_map;
+    wl_signal_add(&inhibitor->surface->events.unmap, &i->unmap);
     seat.idle_inhibitors = g_list_prepend(seat.idle_inhibitors, i);
     seat_update_idle_inhibit();
 }
 
+/* inhibitors only work while their surface can be seen */
+static gboolean idle_inhibitor_visible(struct wlr_surface *surface)
+{
+    struct wlr_surface *root = wlr_surface_get_root_surface(surface);
+    struct wlr_xdg_popup *popup;
+    ObClient *c;
+
+    if (!root->mapped)
+        return FALSE;
+    /* a menu is seen while its window is */
+    while ((popup = wlr_xdg_popup_try_from_wlr_surface(root)) &&
+           popup->parent)
+        root = wlr_surface_get_root_surface(popup->parent);
+    c = client_from_surface(root);
+    if (c)
+        return c->frame && c->frame->visible && !c->shaded;
+    /* layer surfaces and the like are seen while they're mapped, an
+       unmapped window (like one closed to the tray) is gone */
+    return root->mapped;
+}
+
+/* called when an inhibitor's surface or window is shown or hidden */
 void seat_update_idle_inhibit(void)
 {
     GList *it;
@@ -1705,9 +1740,7 @@ void seat_update_idle_inhibit(void)
 
     for (it = seat.idle_inhibitors; it && !inhibit; it = g_list_next(it)) {
         ObIdleInhibitor *i = it->data;
-        ObClient *c = client_from_surface(i->inhibitor->surface);
-        /* inhibitors only work while their window can be seen */
-        if (!c || (c->frame && c->frame->visible))
+        if (idle_inhibitor_visible(i->inhibitor->surface))
             inhibit = TRUE;
     }
     wlr_idle_notifier_v1_set_inhibited(server.idle_notifier, inhibit);
