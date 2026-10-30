@@ -40,7 +40,8 @@ monitors), plus a few things most Openbox users add on top of it:
 - a built-in applications menu generated from the installed applications
 - **owbox Settings**, one application for all of it: themes (with
   previews), the look of applications (GTK theme, icons, cursor, fonts,
-  light or dark), windows, displays, desktops, keyboard layouts, mouse and
+  light or dark, and title bars drawn by applications that match owbox's
+  buttons and clicks), windows, displays, desktops, keyboard layouts, mouse and
   touchpad, key bindings (press the keys, pick the action) and autostart.
   It edits the same rc.xml, keeps what it doesn't show, and helps moving
   from Openbox

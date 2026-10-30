@@ -129,6 +129,14 @@ also writes it to GTK's settings.ini, which GTK applications on X read
 own settings. Openbox users had LXAppearance, which writes only the X
 files.
 
+**Applications' own title bars are made like owbox's, not replaced.**
+GTK 4 has no server-side decoration protocol, so it always draws its
+header bar. owbox Settings writes org.gnome.desktop.wm.preferences (and
+settings.ini) from rc.xml instead: `button-layout` from the theme's
+`<titleLayout>` and the title bar click actions from the `Titlebar`
+mouse bindings. The keys are shared with GNOME, so it's a switch on the
+Applications page, on by default; turned off, it stops writing them.
+
 **owbox's scale is the theme's.** `<owbox><scale>` makes frames, menus and
 popups larger without making applications larger (an output's scale does
 both). Openbox's window management code takes every size from the theme,

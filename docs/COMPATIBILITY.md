@@ -57,7 +57,10 @@ listed is a bug in owbox: please report it to owbox, not to Openbox.
   `<owbox><decorations>auto`, they're treated like X windows with Motif
   hints asking for no decorations. Their own title bar buttons and window
   menu (right click on their title) work, and the window menu they open is
-  Openbox's client menu.
+  Openbox's client menu. owbox Settings gives their title bars the
+  buttons of the theme's `<titleLayout>` and the clicks of the `Titlebar`
+  mouse bindings, as far as GTK has them (no shade or all-desktops
+  buttons).
 - **Wayland resizes are asynchronous.** A Wayland application chooses its
   size, and owbox shows the frame at the new size once the application has
   drawn it. Terminals snap to whole character cells, as with X size hints.
