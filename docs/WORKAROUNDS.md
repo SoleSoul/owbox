@@ -134,6 +134,56 @@ around in the user's own setup (2026-10-21):
   https://github.com/patrickjaja/claude-desktop-extra/issues. Not reported
   yet.
 
+## Not worked around yet
+
+Bugs that need a workaround, or a report, which haven't been decided on.
+
+### Undecorated GTK 3 windows ask for server-side decorations
+
+- **Problem:** a GTK 3 window made undecorated with
+  `gtk_window_set_decorated(FALSE)` asks the compositor to decorate it:
+  GTK sends `org_kde_kwin_server_decoration.request_mode(SERVER)`, which
+  is what an ordinary GTK 3 window without a header bar sends too, so
+  owbox can't tell them apart and decorates both. Applications that draw
+  their own title bar this way get two. Seen with Unsloth Studio
+  (unsloth-desktop-bin 0.1.910.beta), a Tauri application (WebKitGTK in a
+  GTK 3 window) with a title bar in HTML; Tauri's `decorations: false`
+  probably does the same in every Tauri application. Under X, GTK sets the
+  Motif hints and Openbox leaves the window undecorated.
+- **Cause:** `gtk_window_realize()` in `gtk/gtkwindow.c` calls
+  `gdk_wayland_window_announce_ssd()` for every window that isn't
+  client-decorated, undecorated ones included, and
+  `gdk_wayland_window_set_decorations()` does nothing on Wayland (GTK 3.24.52;
+  the gtk-3-24 branch is the same as of 2026-10). The protocol's `NONE`
+  mode is never used.
+- **What others do:** KWin decorates them too with its default policy
+  (`XdgToplevelWindow::preferredDecorationMode()`), see
+  [this report](https://discuss.kde.org/t/borderless-gtk-windows-in-kde-wayland/44612)
+  (Plasma 6.6). Sway and labwc offer the same protocol, so probably also
+  (not tested). Mutter offers no decoration protocol, so GNOME draws
+  nothing around them, which is probably why applications don't notice.
+- **Reproduction:** in a headless owbox, `WAYLAND_DEBUG=1` on a GTK 3
+  window with `set_decorated(False)` shows `request_mode(2)`, and
+  `--msg windows` shows it with a title bar (`"frame":[1,22,1,1]`):
+
+      import gi; gi.require_version('Gtk', '3.0')
+      from gi.repository import Gtk
+      w = Gtk.Window(title="undecorated"); w.set_decorated(False)
+      w.show_all(); Gtk.main()
+
+- **Possible workarounds:** an `<application>` rule with
+  `<decor>no</decor>` (tested; the border stays with `<keepBorder>`), or
+  `GDK_BACKEND=x11` for the application. Both are per application. Not
+  offering the KDE protocol would make GTK 3 applications without a header
+  bar draw GTK's title bar instead of Openbox's, which is worse.
+- **Real fix:** in GTK 3, request
+  `ORG_KDE_KWIN_SERVER_DECORATION_MODE_NONE` for an undecorated window, as
+  SDL does for borderless ones. owbox already leaves windows in `NONE`
+  mode undecorated (`kde_wants_server()` in `src/xdg.c`). Report at
+  https://gitlab.gnome.org/GNOME/gtk/-/issues, with a merge request (a few
+  lines in `gtk_window_realize()`). No existing issue was found. Not
+  reported yet.
+
 ## Reporting
 
 GitHub issues can be filed with `gh issue create -R <owner>/<repo>`, as
