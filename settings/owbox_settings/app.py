@@ -118,6 +118,8 @@ class SettingsWindow(Gtk.ApplicationWindow):
                  ("autostart", _("Autostart"), self.page_autostart)]
         for name, title, build in pages:
             self.stack.add_titled(build(), name, title)
+        # rc.xml may have changed since, by hand
+        self.sync_titlebars()
 
     # ---- saving ----
 
@@ -135,6 +137,7 @@ class SettingsWindow(Gtk.ApplicationWindow):
             self.error(_("Unable to save %s: %s") % (self.rc.path, e))
             return False
         reconfigure()
+        self.sync_titlebars()
         return False
 
     def error(self, text):
@@ -315,7 +318,9 @@ class SettingsWindow(Gtk.ApplicationWindow):
                                                      w.get_text().upper()))
         box.append(row(_("Buttons"), layout,
                        _("N icon, L title, I iconify, M maximize, C close, "
-                         "S roll up, D all desktops, in their order")))
+                         "S roll up, D all desktops, in their order.  "
+                         "Applications drawing their own title bar follow "
+                         "(see the Applications page).")))
 
         box.append(section(_("Desktop")))
         own = self.own_themes_row()
@@ -386,9 +391,41 @@ class SettingsWindow(Gtk.ApplicationWindow):
                        self.desktop_font("monospace-font-name"),
                        _("Terminals and code")))
 
+        box.append(section(_("Title bars drawn by applications")))
+        follow = Gtk.Switch(active=desktop.titlebars_follow())
+        follow.connect("notify::active", self.on_titlebars_follow)
+        box.append(row(_("Like owbox's title bars"), follow,
+                       _("GTK 4 and libadwaita applications draw their own "
+                         "title bar.  This gives it owbox's buttons, on the "
+                         "same sides, and what double, middle and right "
+                         "clicks on owbox's title bars do.  It writes "
+                         "button-layout and action-*-click-titlebar of "
+                         "org.gnome.desktop.wm.preferences (GNOME's "
+                         "too), and GTK's settings.ini.  Turning it off "
+                         "leaves them as they are.")))
+        self.titlebar_values = label("", css="dim-label")
+        self.titlebar_values.set_selectable(True)
+        box.append(self.titlebar_values)
+
         box.append(section(_("Qt applications")))
         box.append(self.qt_row())
         return scroll
+
+    def sync_titlebars(self):
+        """Make the title bars of applications like owbox's, when they
+        follow them"""
+        values = desktop.titlebar_settings(self.rc)
+        follow = desktop.titlebars_follow()
+        if follow:
+            desktop.set_titlebar_settings(values)
+        self.titlebar_values.set_label(
+            (_("Written: %s") if follow else _("Would write: %s")) %
+            ", ".join("%s '%s'" % (desktop.TITLEBAR_KEYS[k][0], v)
+                      for k, v in values.items()))
+
+    def on_titlebars_follow(self, w, p):
+        desktop.set_titlebars_follow(w.get_active())
+        self.sync_titlebars()
 
     def desktop_set(self, key, value):
         """Write a desktop setting, and let owbox follow it (its cursor and

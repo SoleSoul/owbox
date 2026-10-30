@@ -15,14 +15,19 @@ applications read the preference through the settings portal, which reads
 GSettings too.  GTK applications running on X (Xwayland) read GTK's
 settings.ini instead, so a change is written to both.  Qt applications
 have their own settings (qt5ct, qt6ct); the icon theme is written there
-when they are used."""
+when they are used.
+
+Applications that draw their own title bar (GTK 4 and libadwaita ones)
+take its buttons and what clicks on it do from the window manager's
+settings (org.gnome.desktop.wm.preferences), which are made from owbox's
+when the title bars follow owbox's (owbox-settings.ini)."""
 
 import os
 import re
 
 from gi.repository import Gio, GLib
 
-from .rcxml import config_home
+from .rcxml import config_home, q
 
 SCHEMA = "org.gnome.desktop.interface"
 
@@ -39,12 +44,35 @@ KEYS = {
 
 COLOR_SCHEMES = ("default", "prefer-dark", "prefer-light")
 
+WM_SCHEMA = "org.gnome.desktop.wm.preferences"
 
-def _gsettings():
+# Openbox's titleLayout letters and GTK's buttons; S (roll up) and D (all
+# desktops) have none
+TITLE_BUTTONS = {"N": "icon", "I": "minimize", "M": "maximize",
+                 "C": "close"}
+
+# Openbox's actions and the title bar actions GTK has
+TITLEBAR_ACTIONS = {"ToggleMaximize": "toggle-maximize",
+                    "Iconify": "minimize", "Lower": "lower",
+                    "ShowMenu": "menu"}
+
+# key: (GSettings key, settings.ini key)
+TITLEBAR_KEYS = {
+    "button-layout": ("button-layout", "gtk-decoration-layout"),
+    "double-click": ("action-double-click-titlebar",
+                     "gtk-titlebar-double-click"),
+    "middle-click": ("action-middle-click-titlebar",
+                     "gtk-titlebar-middle-click"),
+    "right-click": ("action-right-click-titlebar",
+                    "gtk-titlebar-right-click"),
+}
+
+
+def _gsettings(schema=SCHEMA):
     src = Gio.SettingsSchemaSource.get_default()
-    if src is None or src.lookup(SCHEMA, True) is None:
+    if src is None or src.lookup(schema, True) is None:
         return None
-    return Gio.Settings.new(SCHEMA)
+    return Gio.Settings.new(schema)
 
 
 def _settings_ini(version):
@@ -114,6 +142,108 @@ class DesktopSettings:
         if key == "icon-theme":
             for qt in ("qt5ct", "qt6ct"):
                 set_qt_icon_theme(qt, value)
+
+
+def button_layout(title_layout):
+    """GTK's button layout for an Openbox titleLayout: the buttons before
+    the title (L) on the left, the others on the right"""
+    left, right = [], []
+    side = left
+    for c in title_layout:
+        if c == "L":
+            side = right
+        elif c in TITLE_BUTTONS and TITLE_BUTTONS[c] not in left + right:
+            side.append(TITLE_BUTTONS[c])
+    return ",".join(left) + ":" + ",".join(right)
+
+
+def _titlebar_action(rc, button, events):
+    """What GTK should do for a click on the title bar: the first action
+    GTK has of Openbox's binding of the button in the Titlebar context
+    (the actions of all the contexts' bindings, as Openbox puts them
+    together)"""
+    actions = []
+    for event in events:
+        for context in rc.root.iter(q("context")):
+            if "titlebar" not in context.get("name", "").lower().split():
+                continue
+            for mb in context.findall(q("mousebind")):
+                if mb.get("button") == button and \
+                        mb.get("action", "").lower() == event.lower():
+                    actions += mb.findall(q("action"))
+    for a in actions:
+        name = a.get("name", "")
+        name = {n.lower(): n for n in TITLEBAR_ACTIONS}.get(name.lower())
+        if name == "ShowMenu":
+            menu = a.find(q("menu"))
+            if menu is None or (menu.text or "").strip() != "client-menu":
+                continue
+        if name:
+            return TITLEBAR_ACTIONS[name]
+    return "none"
+
+
+def titlebar_settings(rc):
+    """The window manager's settings made from an rc.xml"""
+    return {"button-layout": button_layout(rc.get("theme/titleLayout",
+                                                  "NLIMC")),
+            "double-click": _titlebar_action(rc, "Left", ["DoubleClick"]),
+            "middle-click": _titlebar_action(rc, "Middle",
+                                             ["Press", "Click"]),
+            "right-click": _titlebar_action(rc, "Right", ["Press", "Click"])}
+
+
+def set_titlebar_settings(values):
+    """Write the window manager's settings, to GSettings for applications
+    on Wayland and to GTK's settings.ini for applications on X.  Only the
+    changed ones are written."""
+    gs = _gsettings(WM_SCHEMA)
+    if gs is not None:
+        keys = gs.get_property("settings-schema")
+        for key, value in values.items():
+            # the click actions are enums, which are kept as strings
+            gkey = TITLEBAR_KEYS[key][0]
+            if keys.has_key(gkey) and gs.get_string(gkey) != value:
+                gs.set_string(gkey, value)
+        Gio.Settings.sync()
+    for version in ("3.0", "4.0"):
+        path = _settings_ini(version)
+        kf = _read_ini(path)
+        changed = False
+        for key, value in values.items():
+            ini = TITLEBAR_KEYS[key][1]
+            try:
+                old = kf.get_string("Settings", ini)
+            except GLib.Error:
+                old = None
+            if old != value:
+                kf.set_string("Settings", ini, value)
+                changed = True
+        if changed:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            kf.save_to_file(path)
+
+
+def _prefs_path():
+    return os.path.join(config_home(), "owbox", "owbox-settings.ini")
+
+
+def titlebars_follow():
+    """Do applications' title bars follow owbox's (yes unless turned
+    off)"""
+    kf = _read_ini(_prefs_path())
+    try:
+        return kf.get_boolean("Applications", "TitleBarsFollowOwbox")
+    except GLib.Error:
+        return True
+
+
+def set_titlebars_follow(follow):
+    path = _prefs_path()
+    kf = _read_ini(path)
+    kf.set_boolean("Applications", "TitleBarsFollowOwbox", follow)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    kf.save_to_file(path)
 
 
 def qt_config(qt):

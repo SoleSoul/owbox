@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- owbox Settings makes the title bars that applications draw (GTK 4 and
+  libadwaita header bars) like owbox's: the buttons from the theme's
+  `<titleLayout>`, and the double, middle and right clicks from the
+  `Titlebar` mouse bindings, written to GNOME's
+  `org.gnome.desktop.wm.preferences` and GTK's settings.ini. It is a
+  switch on the Applications page, on by default.
 ## 0.4.0 (2026-10-23)
 
 - New windows are placed in the middle of the monitor, cascading down and

@@ -138,13 +138,19 @@ def main():
                        env=dict(os.environ, XDG_CONFIG_HOME=cfg,
                                 GSETTINGS_BACKEND="keyfile"),
                        capture_output=True, text=True)
-    check("the look of applications is read back", r.stdout.strip() ==
-          "WhiteSur-Dark Papirus 32 prefer-dark", r.stdout + r.stderr)
+    check("the look of applications is read back",
+          r.stdout.split("\n")[0] == "WhiteSur-Dark Papirus 32 prefer-dark",
+          r.stdout + r.stderr)
+    check("title bars are like owbox's", r.stdout.split("\n")[1:3] ==
+          ["icon:minimize,maximize,close toggle-maximize lower menu",
+           "close,maximize:minimize,icon minimize none none"], r.stdout + r.stderr)
     ini = open(os.path.join(cfg, "gtk-3.0", "settings.ini")).read()
     check("and written for applications on X", "# mine" in ini and
           "gtk-enable-animations=false" in ini and
           "gtk-theme-name=WhiteSur-Dark" in ini and
-          "gtk-application-prefer-dark-theme=true" in ini, ini)
+          "gtk-application-prefer-dark-theme=true" in ini and
+          "gtk-decoration-layout=close,maximize:minimize,icon" in ini and
+          "gtk-titlebar-double-click=minimize" in ini, ini)
     qt = open(os.path.join(cfg, "qt6ct", "qt6ct.conf")).read()
     check("and the icon theme for Qt", qt ==
           "[Appearance]\nstyle=Fusion\nicon_theme=Papirus\n\n"
@@ -172,6 +178,7 @@ def main():
 
 def desktop_main():
     """Set the look of applications, and print it as read back"""
+    from gi.repository import Gio
     from owbox_settings import desktop
     d = desktop.DesktopSettings()
     d.set("gtk-theme", "WhiteSur-Dark")
@@ -181,7 +188,36 @@ def desktop_main():
     d = desktop.DesktopSettings()
     print(d.get("gtk-theme"), d.get("icon-theme"), d.get("cursor-size"),
           d.get("color-scheme"))
+
+    # the default rc.xml, and one with other buttons and clicks
+    gs = Gio.Settings.new(desktop.WM_SCHEMA)
+    for xml in (DEFAULT_RC, TITLEBAR_RC):
+        path = os.path.join(os.environ["XDG_CONFIG_HOME"], "rc.xml")
+        with open(path, "w") as f:
+            f.write(xml)
+        desktop.set_titlebar_settings(desktop.titlebar_settings(RcXml(path)))
+        print(" ".join(gs.get_string(g)
+                       for g, ini in desktop.TITLEBAR_KEYS.values()))
     return 0
+
+
+DEFAULT_RC = open(os.path.join(ROOT, "data", "rc.xml")).read()
+
+TITLEBAR_RC = """<?xml version="1.0"?>
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+<theme><titleLayout>CMSLDIN</titleLayout></theme>
+<mouse>
+  <context name="Titlebar">
+    <mousebind button="Left" action="DoubleClick">
+      <action name="Raise"/><action name="Iconify"/>
+    </mousebind>
+    <mousebind button="Right" action="Press">
+      <action name="ShowMenu"><menu>root-menu</menu></action>
+    </mousebind>
+  </context>
+</mouse>
+</openbox_config>
+"""
 
 
 if __name__ == "__main__":
