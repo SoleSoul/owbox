@@ -80,6 +80,7 @@ typedef struct {
 typedef struct {
     struct wl_list link;
     struct wlr_input_device *device;
+    gboolean virtual;
     struct wl_listener destroy;
 } ObPointerDevice;
 
@@ -187,6 +188,20 @@ static void update_constraint(void);
 static guint32 now_msec(void)
 {
     return server_now_msec();
+}
+
+/* owbox: input from another program (a virtual keyboard or pointer) gets
+   owbox's time, like XTest's fake events get the X server's.  The program's
+   own time can be on any clock (wlroots-bridge sends the time of day), and
+   focus stealing prevention compares the times of events. */
+static gboolean pointer_is_virtual(struct wlr_pointer *pointer)
+{
+    ObPointerDevice *p;
+
+    wl_list_for_each(p, &seat.pointers, link)
+        if (p->device == &pointer->base)
+            return p->virtual;
+    return FALSE;
 }
 
 static void notify_activity(void)
@@ -489,6 +504,8 @@ static void keyboard_handle_key(struct wl_listener *listener, void *data)
     gboolean used = FALSE;
     gboolean press = ev->state == WL_KEYBOARD_KEY_STATE_PRESSED;
 
+    if (wlr_input_device_get_virtual_keyboard(&kb->wlr_keyboard->base))
+        ev->time_msec = now_msec();
     notify_activity();
 
     e.type = press ? OB_EVENT_KEY_PRESS : OB_EVENT_KEY_RELEASE;
@@ -733,10 +750,12 @@ static void pointer_device_destroy(struct wl_listener *listener, void *data)
     g_free(p);
 }
 
-static void new_pointer_device(struct wlr_input_device *device)
+static void new_pointer_device(struct wlr_input_device *device,
+                               gboolean virtual)
 {
     ObPointerDevice *p = g_new0(ObPointerDevice, 1);
     p->device = device;
+    p->virtual = virtual;
     p->destroy.notify = pointer_device_destroy;
     wl_signal_add(&device->events.destroy, &p->destroy);
     wl_list_insert(&seat.pointers, &p->link);
@@ -755,7 +774,7 @@ static void handle_new_input(struct wl_listener *listener, void *data)
         break;
     case WLR_INPUT_DEVICE_POINTER:
     case WLR_INPUT_DEVICE_TOUCH:
-        new_pointer_device(device);
+        new_pointer_device(device, FALSE);
         break;
     default:
         break;
@@ -775,7 +794,7 @@ static void handle_new_virtual_pointer(struct wl_listener *listener,
                                        void *data)
 {
     struct wlr_virtual_pointer_v1_new_pointer_event *event = data;
-    new_pointer_device(&event->new_pointer->pointer.base);
+    new_pointer_device(&event->new_pointer->pointer.base, TRUE);
     seat_update_capabilities();
 }
 
@@ -1081,6 +1100,8 @@ static void handle_cursor_motion(struct wl_listener *listener, void *data)
     struct wlr_pointer_motion_event *ev = data;
     double dx = ev->delta_x, dy = ev->delta_y;
 
+    if (pointer_is_virtual(ev->pointer))
+        ev->time_msec = now_msec();
     notify_activity();
     wlr_relative_pointer_manager_v1_send_relative_motion(
         server.relative_pointer, server.seat,
@@ -1099,6 +1120,8 @@ static void handle_cursor_motion_absolute(struct wl_listener *listener,
     struct wlr_pointer_motion_absolute_event *ev = data;
     double lx, ly;
 
+    if (pointer_is_virtual(ev->pointer))
+        ev->time_msec = now_msec();
     notify_activity();
     wlr_cursor_absolute_to_layout_coords(server.cursor, &ev->pointer->base,
                                          ev->x, ev->y, &lx, &ly);
@@ -1156,6 +1179,8 @@ static void handle_cursor_button(struct wl_listener *listener, void *data)
     double sx, sy;
     ObNode *node = NULL;
 
+    if (pointer_is_virtual(ev->pointer))
+        ev->time_msec = now_msec();
     notify_activity();
 
     e.type = press ? OB_EVENT_BUTTON_PRESS : OB_EVENT_BUTTON_RELEASE;
@@ -1287,6 +1312,8 @@ static void handle_cursor_axis(struct wl_listener *listener, void *data)
     gboolean forwarded = FALSE;
     gint i;
 
+    if (pointer_is_virtual(ev->pointer))
+        ev->time_msec = now_msec();
     notify_activity();
 
     if (seat.locked || seat.press_owner == PRESS_CLIENT) {
