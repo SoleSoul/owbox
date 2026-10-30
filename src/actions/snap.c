@@ -6,7 +6,8 @@
 #include <wlr/util/edges.h>
 
 /* owbox: snap the window to an edge or corner of its monitor, like dropping
-   it there.  Snapping to the same place again puts it back.
+   it there.  Snapping to the same place again puts it back.  Unsnap also
+   restores a maximized window.
 
    <action name="SnapToEdge"><direction>west</direction></action>
    <action name="Unsnap"/> */
@@ -85,7 +86,12 @@ static gboolean run_unsnap_func(ObActionsData *data, gpointer options)
 {
     if (data->client) {
         actions_client_move(data, TRUE);
-        snap_restore(data->client);
+        /* a window snapped to the top edge is maximized */
+        if (!data->client->snap_edges &&
+            (data->client->max_horz || data->client->max_vert))
+            client_maximize(data->client, FALSE, 0);
+        else
+            snap_restore(data->client);
         actions_client_move(data, FALSE);
     }
     return FALSE;

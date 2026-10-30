@@ -8,6 +8,10 @@
   `Titlebar` mouse bindings, written to GNOME's
   `org.gnome.desktop.wm.preferences` and GTK's settings.ini. It is a
   switch on the Applications page, on by default.
+- Fixed: Super+Down (`Unsnap`) didn't restore a window maximized with
+  Super+Up, and a window maximized from a snapped one, or snapped from a
+  maximized one, went back to the wrong size.
+
 ## 0.4.0 (2026-10-23)
 
 - New windows are placed in the middle of the monitor, cascading down and

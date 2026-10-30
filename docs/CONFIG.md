@@ -274,8 +274,8 @@ which is still what happens without `tap`.)
 `northeast`, `northwest`, `southeast` or `southwest` (or `up`, `down`,
 `left`, `right`). The window fills that half or quarter of its monitor, but
 north maximizes when `topMaximize` is on, like dropping a window at the top
-edge. `Unsnap` restores a snapped window's size and position. The default rc.xml
-binds Super+Left, Super+Right, Super+Up and Super+Down to these.
+edge. `Unsnap` restores a snapped or maximized window's size and position.
+The default rc.xml binds Super+Left, Super+Right, Super+Up and Super+Down to these.
 
 ## Menus owbox adds
 

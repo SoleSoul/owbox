@@ -113,10 +113,31 @@ void snap_client(ObClient *c, guint edges, guint monitor)
 
     /* the top edge is maximize */
     if (edges == WLR_EDGE_TOP && config_snap_top_maximize) {
-        if (c->snap_edges)
-            snap_restore(c);
+        gboolean snapped = c->snap_edges != 0;
+
         client_maximize(c, TRUE, 0);
+        /* unmaximizing gives back the size from before it was snapped */
+        if (snapped && c->max_horz && c->max_vert)
+            c->pre_max_area = c->pre_snap_area;
         return;
+    }
+
+    /* keep the size it has when not maximized or fullscreen, c->area
+       doesn't have it until the configures below are done */
+    if (!c->snap_edges) {
+        if (c->fullscreen)
+            c->pre_snap_area = c->pre_fullscreen_area;
+        else {
+            c->pre_snap_area = c->area;
+            if (c->max_horz) {
+                c->pre_snap_area.x = c->pre_max_area.x;
+                c->pre_snap_area.width = c->pre_max_area.width;
+            }
+            if (c->max_vert) {
+                c->pre_snap_area.y = c->pre_max_area.y;
+                c->pre_snap_area.height = c->pre_max_area.height;
+            }
+        }
     }
 
     if (c->max_horz || c->max_vert)
@@ -124,8 +145,6 @@ void snap_client(ObClient *c, guint edges, guint monitor)
     if (c->fullscreen)
         client_fullscreen(c, FALSE);
 
-    if (!c->snap_edges)
-        c->pre_snap_area = c->area;
     c->snap_edges = edges;
 
     snap_area(edges, monitor, c->desktop, &r);
