@@ -11,6 +11,20 @@ typedef struct {
     gboolean fill;
 } Options;
 
+/* owbox: a Wayland client may choose a smaller size than it is asked for,
+   and a terminal rounds it down to whole cells, without telling its size
+   increments as X clients did.  Openbox skips the edges nearer than a size
+   increment, so a grow that the client stopped short of becomes the
+   increment for the next grow in the same direction, which goes on to the
+   next edge instead of asking for the same one again (labwc does the same,
+   in its snap-constraints.c) */
+static struct {
+    ObClient *client;
+    ObDirection dir;
+    Rect before; /* the client's area before the grow */
+    Rect asked;  /* the area the grow asked for */
+} last_grow;
+
 static gpointer setup_grow_func(xmlNodePtr node);
 static gpointer setup_fill_func(xmlNodePtr node);
 static gpointer setup_shrink_func(xmlNodePtr node);
@@ -21,6 +35,7 @@ static gpointer setup_north_func(xmlNodePtr node);
 static gpointer setup_south_func(xmlNodePtr node);
 static gpointer setup_east_func(xmlNodePtr node);
 static gpointer setup_west_func(xmlNodePtr node);
+static void client_dest(ObClient *client, gpointer data);
 
 void action_growtoedge_startup(void)
 {
@@ -35,6 +50,14 @@ void action_growtoedge_startup(void)
     actions_register("GrowToEdgeSouth", setup_south_func, free_func, run_func);
     actions_register("GrowToEdgeEast", setup_east_func, free_func, run_func);
     actions_register("GrowToEdgeWest", setup_west_func, free_func, run_func);
+
+    client_add_destroy_notify(client_dest, NULL);
+}
+
+static void client_dest(ObClient *client, gpointer data)
+{
+    if (last_grow.client == client)
+        last_grow.client = NULL;
 }
 
 static gpointer setup_func(xmlNodePtr node)
@@ -180,6 +203,46 @@ static void free_func(gpointer o)
     g_slice_free(Options, o);
 }
 
+/*! owbox: how far the client stopped short of the last grow, plus one (an
+  increment that skips the edge it was asked to reach), when it is still
+  where it stopped, else 1.  horz says which increment is asked for. */
+static gint short_of_last_grow(ObClient *c, ObDirection dir, gboolean horz)
+{
+    const Rect *a = &c->area, *b = &last_grow.before, *q = &last_grow.asked;
+
+    if (c != last_grow.client || dir != last_grow.dir ||
+        c->configure_pending)
+        return 1;
+
+    switch (dir) {
+    case OB_DIRECTION_EAST:
+        if (horz && a->x == q->x && a->y == q->y && a->height == q->height &&
+            a->width >= b->width && a->width < q->width)
+            return q->width - a->width + 1;
+        break;
+    case OB_DIRECTION_WEST:
+        if (horz && RECT_RIGHT(*a) == RECT_RIGHT(*q) && a->y == q->y &&
+            a->height == q->height &&
+            a->width >= b->width && a->width < q->width)
+            return q->width - a->width + 1;
+        break;
+    case OB_DIRECTION_SOUTH:
+        if (!horz && a->y == q->y && a->x == q->x && a->width == q->width &&
+            a->height >= b->height && a->height < q->height)
+            return q->height - a->height + 1;
+        break;
+    case OB_DIRECTION_NORTH:
+        if (!horz && RECT_BOTTOM(*a) == RECT_BOTTOM(*q) && a->x == q->x &&
+            a->width == q->width &&
+            a->height >= b->height && a->height < q->height)
+            return q->height - a->height + 1;
+        break;
+    default:
+        break;
+    }
+    return 1;
+}
+
 /* Always return FALSE because its not interactive */
 static gboolean run_func(ObActionsData *data, gpointer options)
 {
@@ -213,15 +276,33 @@ static gboolean run_func(ObActionsData *data, gpointer options)
 
     if (!o->shrink) {
         gint x, y, w, h;
+        ObClient *c = data->client;
+        const Size inc = c->size_inc;
+        const Rect before = c->area;
+
+        /* owbox: the client stopped short of the last grow */
+        c->size_inc.width =
+            MAX(inc.width, short_of_last_grow(c, o->dir, TRUE));
+        c->size_inc.height =
+            MAX(inc.height, short_of_last_grow(c, o->dir, FALSE));
 
         /* Try grow. */
         client_find_resize_directional(data->client,
                                        o->dir,
                                        CLIENT_RESIZE_GROW,
                                        &x, &y, &w, &h);
+        c->size_inc = inc;
 
-        if (do_grow(data, x, y, w, h))
+        if (do_grow(data, x, y, w, h)) {
+            last_grow.client = c;
+            last_grow.dir = o->dir;
+            last_grow.before = before;
+            RECT_SET(last_grow.asked, x, y, w, h);
+            client_try_configure(c, &last_grow.asked.x, &last_grow.asked.y,
+                                 &last_grow.asked.width,
+                                 &last_grow.asked.height, &w, &h, TRUE);
             return FALSE;
+        }
     }
 
     /* We couldn't grow, so try shrink! */

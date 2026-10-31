@@ -12,6 +12,10 @@
 - owbox Settings opens at once the first time too: the themes' previews
   are made in the background, a few at a time, instead of one after
   another before the window could show (seconds on a slow computer).
+- Fixed: GrowToEdge could get stuck short of an edge with a terminal,
+  which rounds its size to whole character cells: the next GrowToEdge
+  asked for the same edge again. It now goes on to the next edge, as
+  labwc does.
 
 ## 0.5.0 (2026-10-31)
 

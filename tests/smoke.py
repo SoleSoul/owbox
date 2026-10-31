@@ -427,6 +427,20 @@ def test_openbox(out):
     x = drag_left_by(a["x"] + 48)
     check("and lets go further on", x == -48, x)
 
+    # GrowToEdge stops at the other window's edge, then the screen's. foot
+    # rounds to whole cells, so it stops short of the first edge, and the
+    # second grow goes on from the edge it was asked to reach.
+    action(out, '<action name="MoveResizeTo"><x>0</x><y>0</y></action>')
+    rights = []
+    for i in range(2):
+        action(out, '<action name="GrowToEdge"><direction>east</direction>'
+               '</action>')
+        w = window(out, a["id"])
+        rights.append(w["x"] + w["frame"][0] + w["width"] + w["frame"][2])
+    check("GrowToEdge grows to the next edge, then the screen's",
+          a["width"] < rights[0] < rights[1] and
+          screen["width"] - 10 < rights[1] <= screen["width"], rights)
+
     # a window that doesn't answer pings gets Openbox's dialog when closed,
     # which goes away when it answers again
     pid = p1.pid  # run.sh execs foot
@@ -445,16 +459,6 @@ def test_openbox(out):
     w = wait_windows(out, 1)
     check("which goes when it responds, and it closes", len(w) == 1 and
           w[0]["id"] == b["id"], w)
-
-    # with no other window in the way (foot, rounding to whole cells, can't
-    # get past an edge nearer than a cell)
-    action(out, '<action name="MoveResizeTo"><x>0</x><y>0</y></action>')
-    action(out, '<action name="GrowToEdge"><direction>east</direction>'
-           '</action>')
-    w = window(out, b["id"])
-    right = w["x"] + w["frame"][0] + w["width"] + w["frame"][2]
-    check("GrowToEdge grows to the screen's edge",
-          screen["width"] - 10 < right <= screen["width"], (w, right))
     inp(out, "key", "alt+F4")
     wait_windows(out, 0)
 
