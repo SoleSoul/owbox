@@ -100,7 +100,7 @@ for clangd. Dependencies are listed in README.md.
 
 The reference sources in `ref/` are gitignored. To recreate them:
 
-    git clone https://github.com/Mikachu/openbox.git ref/openbox
+    git clone https://github.com/Mikachu/openbox.git ref/openbox   # owbox is ported from ebfa727
     git clone -b 0.20.2 https://gitlab.freedesktop.org/wlroots/wlroots.git ref/wlroots
     git clone -b v0.8.4 https://github.com/emersion/xdg-desktop-portal-wlr.git ref/xdg-desktop-portal-wlr
 
@@ -110,6 +110,16 @@ Run the smoke test after changes, and `tests/settings_test.py` after
 changing owbox Settings or the config parser:
 
     tests/smoke.py            # --keep keeps the log and screenshots
+
+CI also checks the Python code with `pyflakes`, and runs the smoke test
+built with AddressSanitizer and UBSan, failing on any report. To run that
+here:
+
+    meson setup build-asan -Db_sanitize=address,undefined -Db_lundef=false \
+        -Dc_args=-fno-sanitize=shift-base
+    ninja -C build-asan && OWBOX_BUILD=build-asan tests/smoke.py
+
+`tools/ci-local.sh` runs all of CI's steps in a clean Arch container.
 
 For manual testing on the headless backend (no hardware, nothing on the
 screen):
@@ -218,9 +228,8 @@ whole release:
 
 1. Choose the version: X.Y+1.0 with new features, X.Y.Z+1 with only
    fixes.
-2. Run the tests, and the steps of `.github/workflows/ci.yml` in a clean
-   `archlinux:latest` container (docker works; mount the source read-only
-   and build in a copy), to catch missing dependencies.
+2. Run `tools/ci-local.sh` (CI's steps in a clean Arch container, which
+   also catches missing dependencies).
 3. Set the version in `meson.build`, the `.TH` line of docs/owbox.1 and
    README.md's status line; rename CHANGELOG.md's `## Unreleased` to
    `## X.Y.Z (date)`, and remove what it ships from ROADMAP.md.

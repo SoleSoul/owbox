@@ -14,6 +14,7 @@ directory (log, screenshots) in place.  Exits non-zero on failure.
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -330,6 +331,164 @@ def test_menus(out):
     check("diagonal moves into a submenu", alive())
 
 
+def open_foot(out, n):
+    """Open a foot window and wait until there are n windows. Returns the
+    process and the new window."""
+    before = {w["id"] for w in windows(out)}
+    p = subprocess.Popen([os.path.join(HERE, "run.sh"), out, "foot"],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    new = [w for w in wait_windows(out, n) if w["id"] not in before]
+    return p, (new[0] if new else None)
+
+
+def window(out, wid):
+    return next((w for w in windows(out) if w["id"] == wid), None)
+
+
+def desktops(out):
+    r = run(out, OWBOX, "--msg", "desktops", timeout=5)
+    return json.loads(r.stdout.splitlines()[0])
+
+
+def test_openbox(out):
+    """Openbox's own features: Alt-Tab, the window menu, desktops, moving
+    and resizing with the keyboard, resistance, GrowToEdge, the dialog for
+    a window that isn't responding"""
+    p1, a = open_foot(out, 1)
+    _, b = open_foot(out, 2)
+    if not a or not b:
+        check("two foot windows map", False, windows(out))
+        return
+    screen = outputs(out)[0]
+    middle = (screen["width"] // 2, screen["height"] // 2)
+
+    # Alt-Tab shows the list while Alt is held, and focuses the other window
+    shot = os.path.join(out, "alttab.png")
+    plain = pixel(out, *middle)
+    inp(out, "keydown", "Alt_L", "key", "Tab", "sleep", 300,
+        "run", "grim " + shot, "keyup", "Alt_L", "sleep", 300)
+    import cairo
+    img = cairo.ImageSurface.create_from_png(shot)
+    d, st = img.get_data(), img.get_stride()
+    o = middle[1] * st + middle[0] * 4
+    check("Alt-Tab shows the window list", tuple(d[o:o + 3][::-1]) != plain)
+    check("Alt-Tab focuses the other window", window(out, a["id"])["focused"])
+
+    # the window menu, with the keyboard
+    inp(out, "key", "alt+space", "sleep", 300, "key", "x", "sleep", 500)
+    check("the window menu maximizes", window(out, a["id"])["maximized"])
+    inp(out, "key", "alt+space", "sleep", 300, "key", "e", "sleep", 500)
+    w = window(out, a["id"])
+    check("and restores", not w["maximized"] and
+          (w["x"], w["y"]) == (a["x"], a["y"]), w)
+    inp(out, "key", "alt+space", "sleep", 300, "key", "s", "sleep", 300,
+        "key", "Down", "key", "Return", "sleep", 500)
+    check("it sends the window to desktop 2",
+          window(out, a["id"])["desktop"] == 1 and
+          desktops(out)["current"] == 0, (window(out, a["id"]), desktops(out)))
+    action(out, '<action name="GoToDesktop"><to>2</to></action>')
+    check("GoToDesktop switches to it", desktops(out)["current"] == 1 and
+          window(out, a["id"])["focused"], desktops(out))
+    action(out, '<action name="SendToDesktop"><to>1</to></action>')
+    check("SendToDesktop brings it back and follows it",
+          window(out, a["id"])["desktop"] == 0 and
+          desktops(out)["current"] == 0, desktops(out))
+
+    # moving and resizing with the keyboard, Escape puts it back
+    action(out, '<action name="Move"/>')
+    inp(out, "key", "Right", "key", "Down", "key", "Return", "sleep", 400)
+    w = window(out, a["id"])
+    check("keyboard move", w["x"] > a["x"] and w["y"] > a["y"], w)
+    moved = w
+    action(out, '<action name="Move"/>')
+    inp(out, "key", "Right", "key", "Escape", "sleep", 400)
+    w = window(out, a["id"])
+    check("Escape cancels it", (w["x"], w["y"]) == (moved["x"], moved["y"]), w)
+    # the first key picks the edge; foot rounds to whole cells, larger
+    # than a step
+    action(out, '<action name="Resize"/>')
+    inp(out, "key", "Right", "key", "Right", "key", "Right", "key", "Right",
+        "sleep", 300, "key", "Return", "sleep", 500)
+    w = window(out, a["id"])
+    check("keyboard resize", w["width"] > a["width"] and
+          w["x"] == moved["x"], w)
+
+    # resistance at the screen's edge: a little past it stays at it
+    def drag_left_by(dx):
+        action(out, '<action name="MoveResizeTo"><x>%d</x><y>%d</y></action>'
+               % (a["x"], a["y"]))
+        x, y = middle
+        inp(out, "keydown", "Alt_L", "move", x, y, "down", "left",
+            "drag", x - 50, y, "drag", x - dx + 5, y, "drag", x - dx, y,
+            "up", "left", "keyup", "Alt_L", "sleep", 300)
+        return window(out, a["id"])["x"]
+    x = drag_left_by(a["x"] + 8)
+    check("the screen's edge resists", x == 0, x)
+    x = drag_left_by(a["x"] + 48)
+    check("and lets go further on", x == -48, x)
+
+    # a window that doesn't answer pings gets Openbox's dialog when closed,
+    # which goes away when it answers again
+    pid = p1.pid  # run.sh execs foot
+    os.kill(pid, signal.SIGSTOP)
+    try:
+        inp(out, "key", "alt+F4")
+        deadline = time.time() + 12
+        while time.time() < deadline and len(windows(out)) < 3:
+            time.sleep(0.5)
+        w = windows(out)
+        check("a window that doesn't respond gets the kill dialog",
+              len(w) == 3 and
+              "Not Responding" in window(out, a["id"])["title"], w)
+    finally:
+        os.kill(pid, signal.SIGCONT)
+    w = wait_windows(out, 1)
+    check("which goes when it responds, and it closes", len(w) == 1 and
+          w[0]["id"] == b["id"], w)
+
+    # with no other window in the way (foot, rounding to whole cells, can't
+    # get past an edge nearer than a cell)
+    action(out, '<action name="MoveResizeTo"><x>0</x><y>0</y></action>')
+    action(out, '<action name="GrowToEdge"><direction>east</direction>'
+           '</action>')
+    w = window(out, b["id"])
+    right = w["x"] + w["frame"][0] + w["width"] + w["frame"][2]
+    check("GrowToEdge grows to the screen's edge",
+          screen["width"] - 10 < right <= screen["width"], (w, right))
+    inp(out, "key", "alt+F4")
+    wait_windows(out, 0)
+
+
+def test_openbox_placement(out):
+    """<owbox><placement>openbox</placement>: Openbox's Smart placement,
+    the middle of an empty screen, then corners"""
+    rc = os.path.join(out, "rc.xml")
+    orig = open(rc).read()
+    with open(rc, "w") as f:
+        f.write(orig.replace("<placement>cascade</placement>",
+                             "<placement>openbox</placement>"))
+    time.sleep(1.5)  # reloaded on change
+    screen = outputs(out)[0]
+    placed = [open_foot(out, n)[1] for n in (1, 2, 3)]
+    with open(rc, "w") as f:
+        f.write(orig)
+    time.sleep(1.5)
+    if None in placed:
+        check("three foot windows map", False, windows(out))
+    else:
+        def corner(w):
+            right = w["x"] + w["frame"][0] + w["width"] + w["frame"][2]
+            bottom = w["y"] + w["frame"][1] + w["height"] + w["frame"][3]
+            return (w["x"] == 0 or right == screen["width"]) and \
+                (w["y"] == 0 or bottom == screen["height"])
+        check("Openbox's placement puts the next windows in corners",
+              not corner(placed[0]) and corner(placed[1]) and
+              corner(placed[2]), placed)
+    for n in (2, 1, 0):
+        inp(out, "key", "alt+F4")
+        wait_windows(out, n)
+
+
 def test_x11(out):
     if not os.path.exists(os.path.join(out, "xdisplay")):
         print("skip X applications: no Xwayland")
@@ -381,6 +540,8 @@ def main():
         test_panels(out)
         test_bars(out)
         test_menus(out)
+        test_openbox(out)
+        test_openbox_placement(out)
         test_x11(out)
         try:
             os.kill(pid, 0)

@@ -5,6 +5,10 @@
 - A user guide, docs/GUIDE.md: installing, starting, configuring, moving
   from Openbox, and the programs that make a complete desktop with owbox.
   It is the ArchWiki draft, readable on GitHub.
+- Fixed: with a panel running, each reload of rc.xml (owbox Settings saves
+  it at each change) left owbox using freed memory for the space the
+  panels reserve, which could give windows the wrong area or crash it. A
+  reload also leaked some memory, a leak that came from Openbox.
 
 ## 0.5.0 (2026-10-31)
 

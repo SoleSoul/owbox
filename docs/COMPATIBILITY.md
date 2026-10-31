@@ -63,7 +63,10 @@ listed is a bug in owbox: please report it to owbox, not to Openbox.
   buttons).
 - **Wayland resizes are asynchronous.** A Wayland application chooses its
   size, and owbox shows the frame at the new size once the application has
-  drawn it. Terminals snap to whole character cells, as with X size hints.
+  drawn it. Terminals snap to whole character cells, but owbox doesn't
+  know the cell's size as it knew X size hints: a keyboard resize step
+  (8 pixels) can be smaller than a cell, and GrowToEdge can stop at an
+  edge nearer than a cell.
 - **The autostart script** is read from the owbox config directories only,
   not `~/.config/openbox/autostart`, because Openbox autostart scripts
   usually start X programs (xcompmgr, xset, tint2, nitrogen) that have

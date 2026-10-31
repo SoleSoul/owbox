@@ -18,6 +18,7 @@ jobs:
             wayland-protocols wlroots0.20 libinput libxkbcommon pixman glib2 \
             libxml2 pango cairo librsvg libsfdo xcb-util-wm wayland \
             xorg-xwayland xterm foot grim waybar python python-cairo python-gobject gtk4 \
+            python-pyflakes \
             ttf-dejavu
 
       - name: Check out repository
@@ -27,6 +28,10 @@ jobs:
         run: |
           meson setup build
           ninja -C build
+
+      # the Python code's names (owbox Settings' callbacks have no tests)
+      - name: Python check
+        run: pyflakes settings/owbox_settings settings/owbox-settings tests tools
 
       - name: Smoke test
         run: |
