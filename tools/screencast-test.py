@@ -8,7 +8,6 @@ share with its chooser (owbox's menu, "owbox --choose-share").  This needs
 xdg-desktop-portal, xdg-desktop-portal-wlr and WirePlumber running, and
 build/owbox-pwcount.  Frames only come when the screen changes."""
 import os, subprocess, sys
-import gi
 from gi.repository import Gio, GLib
 
 types, seconds = int(sys.argv[1]), sys.argv[2]
