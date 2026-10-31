@@ -178,3 +178,14 @@ for any layer-shell bar rather than one program. The launcher runs with
 it, so the second tap can close it instead of starting another. The dim
 is a one pixel buffer stretched over the monitors that clicks go through,
 so a click on a window under it goes to the window.
+
+**wlroots, not a river window manager** (2026-11). River 0.4+ runs the
+window manager as a separate process over a stable protocol, which is
+Openbox's own shape on X, and would take over owbox's input routing,
+backends and asynchronous configure. Not now: it can't hide panels or
+close the launcher (the panels mode), it tells little about X windows
+(no type, role, struts or EWMH states), it would mean rewriting owbox's
+lower half, and river forbids AI-written contributions, so the protocol
+extensions owbox would need can't be asked for the way owbox is
+developed. Revisit if river reaches 1.0 with those extensions, or if
+wlroots upgrades become a burden.
