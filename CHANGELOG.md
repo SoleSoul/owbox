@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 (2026-10-31)
 
 - owbox Settings makes the title bars that applications draw (GTK 4 and
   libadwaita header bars) like owbox's: the buttons from the theme's
@@ -15,6 +15,15 @@
   example, goes back to its half or quarter when unmaximized, like in GNOME
   and Windows. It was put back there, but no longer snapped, so Super+Down
   didn't restore it.
+- Fixed: a window keeping the monitors on (a video, or an Electron
+  application like Claude Desktop) kept them on after it was minimized,
+  moved to another desktop or shaded, until it was closed. Only a window
+  that can be seen keeps them on now, and not one that is unmapped (closed
+  to the tray).
+- Input from other programs, through virtual keyboards and pointers (wtype,
+  computer use tools), is timed by owbox, as X does for fake input. Their
+  own times can be on another clock, which could confuse focus stealing
+  prevention.
 
 ## 0.4.0 (2026-10-23)
 

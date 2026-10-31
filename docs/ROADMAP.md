@@ -66,6 +66,13 @@
 - owbox Settings' Applications page: GTK theme, light or dark, icons,
   cursor and fonts for applications, which Qt follows too
 
+## 0.5.0 (done)
+
+- owbox Settings makes applications' own title bars (GTK 4, libadwaita)
+  follow owbox's buttons and title bar clicks
+- fixes: Unsnap and maximizing snapped windows, monitors kept on by
+  minimized windows, the time of virtual devices' input
+
 ## Next
 
 - **More of owbox Settings**: mouse bindings, the menus, per-application
