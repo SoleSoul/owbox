@@ -93,11 +93,6 @@ void ping_start(ObClient *client, ObPingEventHandler h)
                                        ping_timeout, t, NULL);
 }
 
-void ping_stop(ObClient *client)
-{
-    ping_end(client, NULL);
-}
-
 static gboolean ping_timeout(gpointer data)
 {
     ObPingTarget *t = data;

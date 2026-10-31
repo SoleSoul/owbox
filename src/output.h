@@ -58,13 +58,8 @@ void output_finish(void);
 guint output_count(void);
 /*! The n'th monitor */
 ObOutput* output_nth(guint n);
-/*! The output at a point in the layout, or NULL */
-ObOutput* output_at(gint x, gint y);
 /*! The output for a wlr_output */
 ObOutput* output_from_wlr(struct wlr_output *wlr_output);
-/*! The largest scale of all the outputs, what internal textures are
-  rendered at */
-gfloat output_max_scale(void);
 
 /*! Apply the output settings from the configuration file */
 void output_reconfigure(void);

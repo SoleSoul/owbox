@@ -230,7 +230,11 @@ void layers_arrange_all(void)
     wl_list_for_each(o, &server.outputs, link)
         arrange_output(o);
 
-    if (ob_state() == OB_STATE_RUNNING)
+    /* the screen's strut lists point at the struts freed above, so they
+       are made again whenever the screen is set up (a reconfigure too,
+       which arranges the panels in panels_startup) */
+    if (ob_state() == OB_STATE_RUNNING ||
+        ob_state() == OB_STATE_RECONFIGURING)
         screen_update_areas();
 }
 

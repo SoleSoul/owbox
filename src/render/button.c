@@ -92,4 +92,7 @@ void RrButtonFree(RrButton *b)
     RrAppearanceFree(b->a_unfocused_pressed_toggled);
     RrAppearanceFree(b->a_focused_hover_toggled);
     RrAppearanceFree(b->a_unfocused_hover_toggled);
+
+    /* owbox: Openbox leaked the button itself, at each reconfigure */
+    g_free(b);
 }

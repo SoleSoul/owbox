@@ -81,13 +81,6 @@ ObOutput* output_nth(guint n)
     return g_ptr_array_index(monitors, n);
 }
 
-ObOutput* output_at(gint x, gint y)
-{
-    struct wlr_output *o = wlr_output_layout_output_at(server.output_layout,
-                                                       x, y);
-    return o ? output_from_wlr(o) : NULL;
-}
-
 ObOutput* output_from_wlr(struct wlr_output *wlr_output)
 {
     ObOutput *o;
@@ -95,17 +88,6 @@ ObOutput* output_from_wlr(struct wlr_output *wlr_output)
         if (o->wlr_output == wlr_output)
             return o;
     return NULL;
-}
-
-gfloat output_max_scale(void)
-{
-    gfloat scale = 1.0f;
-    guint i;
-    for (i = 0; monitors && i < monitors->len; ++i) {
-        ObOutput *o = g_ptr_array_index(monitors, i);
-        scale = MAX(scale, o->wlr_output->scale);
-    }
-    return scale;
 }
 
 /* Tell output management clients (wlr-randr, kanshi) about the current

@@ -185,12 +185,6 @@ void fwin_unmap(ObFWin *w)
     wlr_scene_node_set_enabled(&w->tree->node, FALSE);
 }
 
-void fwin_raise(ObFWin *w)
-{
-    if (!w) return;
-    wlr_scene_node_raise_to_top(&w->tree->node);
-}
-
 /* the background goes below the window's children, and above its border */
 static void lower_background(ObFWin *w, struct wlr_scene_node *n)
 {

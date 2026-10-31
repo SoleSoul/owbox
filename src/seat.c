@@ -407,11 +407,6 @@ void seat_focus_surface(struct wlr_surface *surface)
     update_shortcuts_inhibit();
 }
 
-struct wlr_surface* seat_focused_surface(void)
-{
-    return server.seat->keyboard_state.focused_surface;
-}
-
 void seat_surface_gone(struct wlr_surface *surface)
 {
     if (seat.override_focus == surface)

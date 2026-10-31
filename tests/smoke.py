@@ -3,6 +3,7 @@
 
     tests/smoke.py [--keep]
     OWBOX_ARGS=--debug-focus tests/smoke.py --keep   (more owbox options)
+    OWBOX_BUILD=build-asan tests/smoke.py            (another build directory)
 
 Runs build/owbox with data/rc.xml, opens windows with foot (and an X
 application when one is installed), drives them with build/owbox-input and
@@ -20,8 +21,10 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-OWBOX = os.path.join(ROOT, "build", "owbox")
-INPUT = os.path.join(ROOT, "build", "owbox-input")
+BUILD = os.path.abspath(os.environ.get("OWBOX_BUILD",
+                                       os.path.join(ROOT, "build")))
+OWBOX = os.path.join(BUILD, "owbox")
+INPUT = os.path.join(BUILD, "owbox-input")
 
 failures = []
 
@@ -385,11 +388,16 @@ def main():
         except OSError:
             alive = False
         check("owbox is still running", alive)
+    finally:
+        subprocess.run([os.path.join(HERE, "stop.sh"), out])
         log = open(os.path.join(out, "owbox.log"), errors="replace").read()
         bad = [l for l in log.splitlines() if "CRITICAL" in l]
         check("no critical messages in the log", not bad, bad[:3])
-    finally:
-        subprocess.run([os.path.join(HERE, "stop.sh"), out])
+        # reports of a build with -Db_sanitize=address,undefined, the
+        # leaks' at exit
+        bad = [l for l in log.splitlines()
+               if "Sanitizer" in l and "ERROR" in l or "runtime error:" in l]
+        check("no sanitizer reports in the log", not bad, bad[:3])
         if keep or failures:
             print("output in", out)
         else:

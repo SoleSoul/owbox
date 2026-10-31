@@ -86,14 +86,6 @@ ObCursor grab_pointer_cursor(void)
     return pgrab_cursor;
 }
 
-void grab_set_pointer_cursor(ObCursor cur)
-{
-    if (pgrabs) {
-        pgrab_cursor = cur;
-        seat_update_cursor();
-    }
-}
-
 void ungrab_passive_key(void)
 {
 }

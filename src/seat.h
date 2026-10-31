@@ -44,8 +44,6 @@ gboolean seat_focus_client(struct _ObClient *client);
 /*! Give keyboard focus to a surface that isn't a client (layer shell,
   unmanaged Xwayland), NULL to give it back to the focused client */
 void seat_focus_surface(struct wlr_surface *surface);
-/*! The surface with keyboard focus */
-struct wlr_surface* seat_focused_surface(void);
 
 /*! Called by grab.c */
 void seat_keyboard_grabbed(gboolean grabbed);

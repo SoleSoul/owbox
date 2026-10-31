@@ -45,8 +45,6 @@ gboolean grab_on_keyboard(void);
 gboolean grab_on_pointer(void);
 /*! The cursor to show during the pointer grab */
 ObCursor grab_pointer_cursor(void);
-/*! Change the cursor during a pointer grab */
-void grab_set_pointer_cursor(ObCursor cur);
 
 /*! Ends a passive keyboard grab (a key binding being held), there are no
   passive grabs in owbox */

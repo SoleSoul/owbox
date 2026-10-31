@@ -1275,9 +1275,11 @@ void menu_entry_frame_execute(ObMenuEntryFrame *self, guint state)
         ObClient *client = self->frame->client;
         ObMenuFrame *frame = self->frame;
         guint mods = obt_keyboard_only_modmasks(state);
+        GSList *it;
 
         /* hiding the menu can free a dynamic menu's entries */
-        g_slist_foreach(acts, (GFunc)actions_act_ref, NULL);
+        for (it = acts; it; it = g_slist_next(it))
+            actions_act_ref(it->data);
 
         /* release grabs before executing the shit */
         if (!(mods & obt_keyboard_modkey_to_modmask(OBT_KEYBOARD_MODKEY_CONTROL))) {

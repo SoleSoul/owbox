@@ -732,8 +732,6 @@ void client_request_fullscreen(ObClient *self, gboolean fs);
 void client_request_minimize(ObClient *self, gboolean min);
 /*! The client wants to start an interactive move or resize */
 void client_request_moveresize(ObClient *self, guint32 corner);
-/*! The client's surface (keyboard focus target) changed, eg Xwayland */
-void client_focus_surface_changed(ObClient *self);
 
 /*! Returns a client's icon set, or its parents (recursively) if it doesn't
   have one

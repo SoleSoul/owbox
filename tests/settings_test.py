@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests of owbox-settings' rc.xml editing (no GTK needed).
+"""Tests of owbox-settings: its rc.xml editing, and its window.
 
     tests/settings_test.py
 """
@@ -164,9 +164,24 @@ def main():
                    check=True)
     subprocess.run(["sleep", "1"])
     log = open(os.path.join(out, "owbox.log"), errors="replace").read()
-    subprocess.run([os.path.join(HERE, "stop.sh"), out])
     check("owbox loads it", "Loaded config file " + path in log and
           "syntax error" not in log.lower())
+
+    # owbox Settings' window, in that owbox, builds and shows every page
+    cfg = os.path.join(tmp, "window-config")
+    os.makedirs(cfg)
+    r = subprocess.run([os.path.join(HERE, "run.sh"), out, sys.executable,
+                        __file__, "--window", path],
+                       env=dict(os.environ, XDG_CONFIG_HOME=cfg,
+                                GSETTINGS_BACKEND="keyfile",
+                                PATH=os.path.dirname(owbox) + os.pathsep +
+                                os.environ["PATH"]),
+                       capture_output=True, text=True, timeout=60)
+    subprocess.run([os.path.join(HERE, "stop.sh"), out])
+    check("the window shows every page", r.stdout.strip() ==
+          "pages: theme appearance applications windows displays desktops "
+          "keyboard mouse keys autostart" and "Traceback" not in r.stderr,
+          r.stdout + r.stderr[-2000:])
 
     if not failures:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -220,5 +235,34 @@ TITLEBAR_RC = """<?xml version="1.0"?>
 """
 
 
+def window_main():
+    """Open owbox Settings on an rc.xml, show each page, print their names"""
+    from gi.repository import Gio, GLib
+    from owbox_settings import app
+    a = app.SettingsApp(sys.argv[2])
+    # not the user's running owbox Settings
+    a.set_flags(a.get_flags() | Gio.ApplicationFlags.NON_UNIQUE)
+    shown = []
+
+    def show_pages():
+        win = a.props.active_window
+        child = win.stack.get_first_child() if win else None
+        while child:
+            win.stack.set_visible_child(child)
+            while GLib.MainContext.default().iteration(False):
+                pass
+            shown.append(win.stack.get_page(child).get_name())
+            child = child.get_next_sibling()
+        print("pages:", " ".join(shown))
+        a.quit()
+
+    a.connect("activate", lambda *args: GLib.idle_add(show_pages))
+    return a.run([sys.argv[0]])
+
+
 if __name__ == "__main__":
-    sys.exit(desktop_main() if "--desktop" in sys.argv else main())
+    if "--desktop" in sys.argv:
+        sys.exit(desktop_main())
+    if "--window" in sys.argv:
+        sys.exit(window_main())
+    sys.exit(main())

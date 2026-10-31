@@ -86,7 +86,5 @@ void fwin_set_surface(ObFWin *w, cairo_surface_t *s);
 void fwin_input_only(ObFWin *w);
 /*! Like XSetWindowBorderWidth and XSetWindowBorder */
 void fwin_set_border(ObFWin *w, gint width, const RrColor *c);
-/*! Raise the window above its siblings */
-void fwin_raise(ObFWin *w);
 
 #endif

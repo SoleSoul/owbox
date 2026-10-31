@@ -165,7 +165,6 @@ static Rect* choose_monitor(ObClient *c, gboolean client_to_be_foregrounded,
     ObPlaceHead *choice;
     guint i;
     ObClient *p;
-    GSList *it;
 
     choice = g_new(ObPlaceHead, screen_num_monitors);
     for (i = 0; i < screen_num_monitors; ++i) {

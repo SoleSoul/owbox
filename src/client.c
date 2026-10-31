@@ -3739,9 +3739,3 @@ void client_request_moveresize(ObClient *self, guint32 corner)
     moveresize_start(self, x, y, seat_pointer_held_button(), corner);
 }
 
-void client_focus_surface_changed(ObClient *self)
-{
-    if (client_focused(self))
-        seat_focus_client(self);
-}
-

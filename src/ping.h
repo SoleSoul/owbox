@@ -37,6 +37,5 @@ void ping_shutdown(gboolean reconfigure);
 
 /*! Start pinging the client until it answers, if it can be pinged */
 void ping_start(struct _ObClient *c, ObPingEventHandler h);
-void ping_stop(struct _ObClient *c);
 
 #endif

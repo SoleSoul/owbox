@@ -1,4 +1,5 @@
 build/
+build-*/
 ref/
 *.o
 /compile_commands.json

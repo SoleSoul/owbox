@@ -41,3 +41,15 @@ jobs:
           export XDG_RUNTIME_DIR=$(mktemp -d)
           chmod 700 "$XDG_RUNTIME_DIR"
           tests/settings_test.py
+
+      # memory errors and undefined behavior; shift-base is left out
+      # because Openbox's pixel code shifts into the sign bit, which GCC
+      # and clang define
+      - name: Smoke test with AddressSanitizer and UBSan
+        run: |
+          meson setup build-asan -Db_sanitize=address,undefined \
+            -Db_lundef=false -Dc_args=-fno-sanitize=shift-base
+          ninja -C build-asan
+          export XDG_RUNTIME_DIR=$(mktemp -d)
+          chmod 700 "$XDG_RUNTIME_DIR"
+          OWBOX_BUILD=build-asan dbus-run-session -- tests/smoke.py --keep

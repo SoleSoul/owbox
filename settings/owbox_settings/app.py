@@ -13,7 +13,6 @@ import os
 import shutil
 import subprocess
 import sys
-import xml.etree.ElementTree as ET
 from gettext import gettext as _
 
 import gi
@@ -23,8 +22,8 @@ gi.require_version("Pango", "1.0")
 from gi.repository import Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from .rcxml import (RcXml, find_config, running_config, owbox_config_path,  # noqa: E402
-                    reconfigure, config_home, q)
-from .keybinds import (KeyBindings, ACTIONS, ACTION_INFO, key_label,  # noqa: E402
+                    reconfigure, q)
+from .keybinds import (KeyBindings, ACTIONS, key_label,  # noqa: E402
                        key_from_event, TAP_KEYS)
 from . import xkb  # noqa: E402
 from . import autostart  # noqa: E402
