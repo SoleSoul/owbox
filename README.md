@@ -1,15 +1,16 @@
 # owbox — a Wayland compositor based on Openbox
 
-owbox is a stacking Wayland compositor built from
-[Openbox](http://openbox.org)'s window management code, for people who like
-Openbox and want to use Wayland. It aims for Openbox's goals (standards
-compliant, complete, light, sane defaults), and to make moving from Openbox
-easy:
+owbox is a stacking Wayland compositor based on
+[Openbox](http://openbox.org): built from Openbox's window management code,
+for people who like Openbox and want to use Wayland.
 
 > **owbox is not Openbox.** It is an independent project that reuses
 > Openbox's source code under the GPL. It isn't made, endorsed or supported
 > by the Openbox developers: please report problems with owbox here, not to
 > Openbox.
+
+It aims for Openbox's goals (standards compliant, complete, light, sane
+defaults), and to make moving from Openbox easy:
 
 - **Openbox's configuration.** owbox reads `rc.xml` and `menu.xml` from
   `~/.config/owbox/`, or from `~/.config/openbox/` if there is no owbox one.
@@ -26,8 +27,14 @@ easy:
 - **X applications** run through Xwayland and are managed like in Openbox,
   ICCCM and EWMH hints included.
 
-It adds what Openbox left to the X server (keyboard layouts, input devices,
-monitors), plus a few things most Openbox users add on top of it:
+Openbox is a window manager that its users build a desktop around, finding
+and setting up the other programs a session needs. owbox aims to be more
+complete out of the box: an applications menu, a settings application,
+screen locking, monitors that turn off when idle, and keys for the volume,
+brightness and screenshots work from the first login (using the usual
+programs for them, swaylock, grim and the like, when they are installed). It
+adds what Openbox left to the X server (keyboard layouts, input devices,
+monitors), and what most Openbox users add on top of it:
 
 - snapping windows to the screen's halves and quarters by dragging, or with
   Super+arrows
