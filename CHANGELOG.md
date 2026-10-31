@@ -9,6 +9,9 @@
   it at each change) left owbox using freed memory for the space the
   panels reserve, which could give windows the wrong area or crash it. A
   reload also leaked some memory, a leak that came from Openbox.
+- owbox Settings opens at once the first time too: the themes' previews
+  are made in the background, a few at a time, instead of one after
+  another before the window could show (seconds on a slow computer).
 
 ## 0.5.0 (2026-10-31)
 

@@ -17,7 +17,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
 gi.require_version("Pango", "1.0")
-from gi.repository import Gdk, GLib, Gtk, Pango  # noqa: E402
+from gi.repository import Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from .rcxml import reconfigure  # noqa: E402
 from . import desktop  # noqa: E402
@@ -41,6 +41,7 @@ class LookPages:
         flow.set_homogeneous(True)
         current = self.rc.get("theme/name", "Clearlooks")
         self.theme_children = {}
+        pics = []
         for name in themes():
             item = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
             pic = Gtk.Picture()
@@ -52,13 +53,14 @@ class LookPages:
             child = item.get_parent()
             child.theme_name = name
             self.theme_children[name] = child
-            GLib.idle_add(self.load_preview, name, pic)
+            pics.append((name, pic))
             if name == current:
                 flow.select_child(child)
         flow.connect("child-activated",
                      lambda f, c: self.set("theme/name", c.theme_name))
         flow.connect("selected-children-changed", self.on_theme_selected)
         box.append(flow)
+        self.load_previews(pics)
         return scroll
 
     def page_appearance(self):
@@ -298,11 +300,49 @@ class LookPages:
         if sel and sel[0].theme_name != self.rc.get("theme/name"):
             self.set("theme/name", sel[0].theme_name)
 
-    def load_preview(self, name, pic):
-        path = theme_preview(name)
-        if path:
-            pic.set_filename(path)
-        return False
+    def load_previews(self, pics):
+        """Show the themes' previews. Those not in the cache yet are made
+        in the background, a few at a time, so the window isn't held up
+        (a process for each takes a while on a slow computer)."""
+        waiting = []
+        running = set()  # kept, or they are lost before they finish
+        for name, pic in pics:
+            path = theme_preview_path(name)
+            if os.path.isfile(path):
+                pic.set_filename(path)
+            else:
+                waiting.append((name, pic, path))
+
+        def render_next():
+            if not waiting:
+                return
+            name, pic, path = waiting.pop(0)
+            # a preview left half written isn't kept
+            tmp = path + ".part"
+            try:
+                p = Gio.Subprocess.new(
+                    [theme_renderer(), name, tmp, "300"],
+                    Gio.SubprocessFlags.STDOUT_SILENCE |
+                    Gio.SubprocessFlags.STDERR_SILENCE)
+            except GLib.Error:
+                render_next()
+                return
+
+            def rendered(p, result):
+                running.discard(p)
+                try:
+                    ok = p.wait_check_finish(result)
+                except GLib.Error:
+                    ok = False
+                if ok and os.path.isfile(tmp):
+                    os.replace(tmp, path)
+                    pic.set_filename(path)
+                render_next()
+            running.add(p)
+            p.wait_check_async(None, rendered)
+
+        for i in range(min(len(waiting), os.cpu_count() or 2)):
+            render_next()
 
     def font_button(self, places):
         base = "theme/font[place=%s]/" % places[0]
@@ -389,19 +429,15 @@ def themes():
     return sorted(found, key=str.lower)
 
 
-def theme_preview(name):
-    """A picture of the theme's title bars and menu, made by
-    owbox-theme-render and kept in the cache"""
+def theme_preview_path(name):
+    """Where the preview of a theme's title bars and menu is cached"""
     cache = os.path.join(GLib.get_user_cache_dir(), "owbox", "theme-previews")
     os.makedirs(cache, exist_ok=True)
-    path = os.path.join(cache, name + ".png")
-    if os.path.isfile(path):
-        return path
-    render = shutil.which("owbox-theme-render") or os.path.join(
-        os.path.dirname(__file__), "..", "..", "build", "owbox-theme-render")
-    try:
-        subprocess.run([render, name, path, "300"], capture_output=True,
-                       timeout=10)
-    except (OSError, subprocess.SubprocessError):
-        return None
-    return path if os.path.isfile(path) else None
+    return os.path.join(cache, name + ".png")
+
+
+def theme_renderer():
+    """owbox-theme-render, installed or in the source tree's build"""
+    return shutil.which("owbox-theme-render") or os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "..", "build",
+        "owbox-theme-render")

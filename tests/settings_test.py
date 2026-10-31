@@ -173,6 +173,7 @@ def main():
     r = subprocess.run([os.path.join(HERE, "run.sh"), out, sys.executable,
                         __file__, "--window", path],
                        env=dict(os.environ, XDG_CONFIG_HOME=cfg,
+                                XDG_CACHE_HOME=os.path.join(tmp, "cache"),
                                 GSETTINGS_BACKEND="keyfile",
                                 PATH=os.path.dirname(owbox) + os.pathsep +
                                 os.environ["PATH"]),
