@@ -17,12 +17,20 @@ docs/DECISIONS.md for why, and docs/ROADMAP.md for what's next.
 - Match the surrounding code's style: Openbox's C style (4 spaces, glib
   types, `/* */` comments, the emacs mode line and GPL header on each
   file).
+- Say that owbox is *based on* Openbox, never that it is Openbox (in
+  descriptions, release notes, packages, the guide).
 - A workaround for another project's bug goes in docs/WORKAROUNDS.md, with
   where it is, the real fix and where to report it. File reports only
   after the user has approved the text.
-- Document at milestones, not mid-work: README.md, docs/*.md, the man page
-  (docs/owbox.1), and the comments in data/rc.xml for any new `<owbox>`
-  setting.
+
+## Git
+
+- Work on main. Commit finished, tested work without asking. Push, tag
+  and release only when the user asks.
+- The subject says what changed, as the user sees it ("Unsnap restores
+  maximized windows"), with an area prefix for what isn't the compositor
+  (`Settings:`, `Docs:`, `CI:`, `dist/arch:`). Release commits are
+  `owbox X.Y.Z`.
 - End commit messages with a `Co-Authored-By:` line naming the agent's
   model, like `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
@@ -43,6 +51,44 @@ tree has changes it doesn't explain, find out whose they are (ask the
 user, or search your earlier sessions) before committing or reverting
 them.
 
+## Documentation
+
+Development must not depend on any one session or agent: what a later
+session needs goes in the repo, not in an agent's own memory or notes.
+Update the documents when a feature or version is done, not mid-work.
+
+Where things go:
+
+| What | Where |
+|---|---|
+| what owbox is, installing, running | README.md |
+| using it with companion programs (written as an ArchWiki article) | docs/GUIDE.md |
+| `<owbox>` settings, owbox's actions, the control socket | docs/CONFIG.md, the comments in data/rc.xml, docs/owbox.1 |
+| differences from Openbox | docs/COMPATIBILITY.md |
+| how the code works, a map of it | docs/ARCHITECTURE.md |
+| why it is so, with the alternatives | docs/DECISIONS.md |
+| what's next | docs/ROADMAP.md |
+| what changed, for users | CHANGELOG.md, under `## Unreleased` until a release |
+| other projects' bugs | docs/WORKAROUNDS.md |
+| how to work on it (for agents and people) | AGENTS.md |
+| where the last session stopped | HANDOFF.md |
+
+Keep each document short and current:
+- Say each thing once, in the place above, and link to it elsewhere.
+- Write the current state, not history: git and the CHANGELOG keep
+  history. Remove what is done from ROADMAP.md, and fixed workarounds from
+  WORKAROUNDS.md.
+- When changing a document, remove what has become wrong or obsolete, and
+  shorten what can be said in fewer words.
+- Plain, short sentences, saying what happens, as the existing documents
+  do.
+- AGENTS.md is for what an agent can't find out from the code: rules,
+  commands, pitfalls. Add a pitfall when one cost real time.
+- Keep docs/GUIDE.md's recommendations in step with the defaults. To put
+  it on the ArchWiki, convert it to wiki markup (`{{Pkg}}`, `{{AUR}}`,
+  `{{ic}}`, `[[links]]`); the last wiki-markup draft and how to publish it
+  are in `git show cf7e61f:dist/archwiki/`.
+
 ## Building
 
     meson setup build          # once
@@ -50,8 +96,7 @@ them.
 
 This builds `build/owbox`, `build/owbox-input` (the test input tool) and
 `build/owbox-theme-render`. compile_commands.json is symlinked at the top
-for clangd. Dependencies are listed in README.md (Arch: wlroots0.20,
-libsfdo, librsvg, pango, xcb-util-wm, ...).
+for clangd. Dependencies are listed in README.md.
 
 The reference sources in `ref/` are gitignored. To recreate them:
 
@@ -61,7 +106,8 @@ The reference sources in `ref/` are gitignored. To recreate them:
 
 ## Testing
 
-Run the smoke test after changes:
+Run the smoke test after changes, and `tests/settings_test.py` after
+changing owbox Settings or the config parser:
 
     tests/smoke.py            # --keep keeps the log and screenshots
 
@@ -101,6 +147,11 @@ screen):
   run's log is in `~/.cache/owbox/owbox.log`.
 - Tests use `--no-autostart`, so the user's real XDG autostart applications
   don't start in test sessions.
+- The headless backend (pixman) isn't the user's hardware: their daily
+  session is owbox on an NVIDIA GPU (proprietary driver, DRM backend),
+  where capture formats differ (BGR888). Graphics and capture changes need
+  a test there too, or the user's confirmation. Right-to-left problems
+  showed up with a Hebrew locale.
 
 Pitfalls seen before:
 - Never `pkill -f`, `pgrep -f` or `ps | grep` + kill with a pattern that
@@ -112,9 +163,8 @@ Pitfalls seen before:
   session updates the D-Bus/systemd environment, keep it that way.
 - Give `owbox-input` and `--msg` a `timeout`. If owbox hangs, they hang.
 - Clients started with `tests/run.sh $T ... &` can outlive the headless
-  owbox (waybar and foot did, and a stray waybar stays on the user's
-  session bus as a tray host). Keep their PIDs (`$!`) and kill them after
-  `tests/stop.sh`.
+  owbox (a stray waybar stays on the user's session bus as a tray host).
+  Keep their PIDs (`$!`) and kill them after `tests/stop.sh`.
 - Protect `rm` of variable paths: `rm -f "${T:?}"/*.png`.
 - Coordinates in tests depend on the theme and the window's place. Read
   them from `--msg windows` instead of guessing (the frame is at x,y, and
@@ -158,3 +208,28 @@ that, restore it with `git checkout dist/arch/PKGBUILD`. `meson install`
 installs the defaults to
 `$sysconfdir/xdg/owbox`, the session to `$datadir/wayland-sessions`, and
 the themes to `$datadir/owbox/themes`.
+
+## Releasing
+
+owbox is on GitHub (SoleSoul/owbox, whose CI runs the smoke and settings
+tests on Arch) and the AUR (`owbox` from the release tarball, `owbox-git`
+from the latest commit). When the user asks for a new version, do the
+whole release:
+
+1. Choose the version: X.Y+1.0 with new features, X.Y.Z+1 with only
+   fixes.
+2. Run the tests, and the steps of `.github/workflows/ci.yml` in a clean
+   `archlinux:latest` container (docker works; mount the source read-only
+   and build in a copy), to catch missing dependencies.
+3. Set the version in `meson.build`, the `.TH` line of docs/owbox.1 and
+   README.md's status line; rename CHANGELOG.md's `## Unreleased` to
+   `## X.Y.Z (date)`, and remove what it ships from ROADMAP.md.
+4. Commit `owbox X.Y.Z`, tag it (`git tag -a vX.Y.Z -m "owbox X.Y.Z"`),
+   push main and the tag, and check that CI passes.
+5. `gh release create vX.Y.Z --title "owbox X.Y.Z"`, with the CHANGELOG
+   section as the notes.
+6. Update the AUR `owbox` package. Its clone and steps are on the user's
+   machine in `~/ai/AUR` (see its AGENTS.md); pushing needs the user's SSH
+   key unlocked. `owbox-git` needs nothing.
+
+A pushed tag never moves: late fixes go in the next version.

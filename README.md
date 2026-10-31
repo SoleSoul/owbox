@@ -103,19 +103,11 @@ Programs to start with the session go in `~/.config/owbox/autostart`, a shell
 script, as with Openbox. Applications in the XDG autostart directories
 (`~/.config/autostart`) are started too.
 
-A typical session uses a few companion programs:
-
-| What | Program |
-|---|---|
-| wallpaper | `swaybg -i picture.png -m fill &` |
-| panel, taskbar, tray | `waybar` (or any panel using wlr-layer-shell), see `/usr/share/owbox/examples` |
-| launcher | `fuzzel` (or `wofi`, `rofi`, `tofi`, `bemenu`), shown with Super |
-| screen locker | `swaylock` (owbox runs it, and turns the monitors off itself) |
-| monitor setup | owbox Settings, or `wlr-randr`, `kanshi`, `wdisplays` |
-| screenshots | `grim` and `slurp`, which Print Screen runs |
-| media keys | `pactl` (libpulse), `playerctl`, `brightnessctl` |
-| password prompts | a polkit agent (`polkit-gnome`, started by owbox) |
-| notifications | `mako`, `dunst` |
+A complete desktop needs a few other programs: a panel (waybar), a launcher
+(fuzzel), a wallpaper (swaybg), a screen locker (swaylock), notifications,
+screenshots (grim, slurp)... [docs/GUIDE.md](docs/GUIDE.md) recommends one
+for each, and owbox includes example configurations for waybar and fuzzel
+in `/usr/share/owbox/examples`.
 
 ## Configuration
 
@@ -145,6 +137,8 @@ decorations, snapping and Xwayland. The installed `rc.xml` documents each of the
 
 ## Documentation
 
+- [docs/GUIDE.md](docs/GUIDE.md): a user guide, with the programs that make
+  a complete desktop with owbox
 - [docs/CONFIG.md](docs/CONFIG.md): the `<owbox>` settings and the control
   socket
 - [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md): differences from Openbox
@@ -154,7 +148,8 @@ decorations, snapping and Xwayland. The installed `rc.xml` documents each of the
 - [docs/WORKAROUNDS.md](docs/WORKAROUNDS.md): workarounds for other
   projects' bugs, and where to report them
 - [docs/ROADMAP.md](docs/ROADMAP.md): what's next
-- [CLAUDE.md](CLAUDE.md): development notes (building, testing, debugging)
+- [AGENTS.md](AGENTS.md): how to work on owbox (building, testing,
+  documenting, releasing), for people and AI agents
 
 ## License
 

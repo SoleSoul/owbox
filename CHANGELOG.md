@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- A user guide, docs/GUIDE.md: installing, starting, configuring, moving
+  from Openbox, and the programs that make a complete desktop with owbox.
+  It is the ArchWiki draft, readable on GitHub.
+
 ## 0.5.0 (2026-10-31)
 
 - owbox Settings makes the title bars that applications draw (GTK 4 and

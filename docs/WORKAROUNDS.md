@@ -90,8 +90,8 @@ issue's link and when it was reported.
 
 ### Chromium and Electron find no keyring
 
-- **Where:** docs/CONFIG.md ("The session") and the ArchWiki draft
-  (`dist/archwiki/owbox.mediawiki`, "Troubleshooting").
+- **Where:** docs/CONFIG.md ("The session") and docs/GUIDE.md
+  ("Troubleshooting").
 - **Problem:** Chromium and Electron choose a password store from the
   desktop's name and use none (plain text) for desktops they don't know,
   such as `XDG_CURRENT_DESKTOP=owbox`, even when a Secret Service
