@@ -9,3 +9,6 @@
 #
 # The keyboard layout can also be set in rc.xml's <owbox><keyboard>.
 #export XKB_DEFAULT_LAYOUT=us
+#
+# The terminal emulator the menu and applications run (owbox-terminal).
+#export TERMINAL=alacritty

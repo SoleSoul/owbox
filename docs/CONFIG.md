@@ -284,8 +284,8 @@ The default rc.xml binds Super+Left, Super+Right, Super+Up and Super+Down to the
 `<menu id="applications-menu"/>` in menu.xml is a submenu with the installed
 applications (their desktop entries), by category. It updates when
 applications are installed or removed. Applications that run in a terminal
-are started with `owbox-terminal`, which uses `$TERMINAL` or the first
-terminal emulator it finds.
+are started with `owbox-terminal`, which uses `$TERMINAL`, else
+`xdg-terminal-exec`, else the first terminal emulator it finds.
 
 Openbox's `client-list-menu` and `client-list-combined-menu` work as in
 Openbox. Pipe menus work too.

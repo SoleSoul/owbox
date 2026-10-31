@@ -108,7 +108,7 @@ protocols. (Packages are in the official repositories unless marked AUR.)
 |---|---|---|---|
 | Panel, taskbar, tray | `waybar` | | `/usr/share/owbox/examples/waybar` has a configuration made for owbox. Enable `waybar.service` to start it with the session. |
 | Launcher | `fuzzel` | `wofi`, `rofi` | Tapping Super shows it, see [Panels on Super](#panels-on-super). `/usr/share/owbox/examples/fuzzel` has a matching configuration. |
-| Terminal | `foot` | `alacritty` | The menu's *Terminal* runs `$TERMINAL` or the first one installed. |
+| Terminal | `foot` | any | The menu's *Terminal* and applications that run in a terminal use `$TERMINAL` (set it in `~/.config/owbox/environment`, like `export TERMINAL=alacritty`), else the default terminal of `xdg-terminal-exec` if it is installed, else the first one installed. |
 | Wallpaper | `swaybg` | | Without one, owbox fills the desktop with `<owbox><background>`. |
 | Notifications | `mako` | `swaync`, `dunst` | Any daemon that provides `org.freedesktop.Notifications` works. The volume and brightness keys show their level through it. |
 | Screen locker | `swaylock` | `gtklock` | owbox runs it when the monitors turn off, before suspending, and from the menu's *Lock Screen*. No *swayidle* is needed. |
