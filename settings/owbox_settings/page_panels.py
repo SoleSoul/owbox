@@ -6,8 +6,8 @@
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 
-"""The Panels page: the panel program, and the panels key (the key, the
-launcher, dimming and hiding)."""
+"""The Launcher & Panels page: the launcher and panels key (the key, the
+launcher, dimming), and the panels (the program, hiding them)."""
 
 import os
 from gettext import gettext as _
@@ -84,20 +84,23 @@ class PanelsPages:
     def page_panels(self):
         scroll, box = page_box()
 
-        box.append(section(_("Panel")))
-        self.panel_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        box.append(self.panel_box)
-
-        box.append(section(_("The panels key")))
-        box.append(label(_("Tap a key to bring up the panels and a launcher "
+        box.append(section(_("The launcher and panels key")))
+        box.append(label(_("Tap a key to open a launcher, with the panels "
                            "above the dimmed windows.  Escape, a click "
                            "elsewhere or picking a window puts them away."),
                          css="dim-label"))
         self.panels_key_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         box.append(self.panels_key_box)
 
-        self.fill_panel()
+        box.append(section(_("Panels")))
+        box.append(label(_("Bars along an edge of the screen, with the "
+                           "windows, the desktops, the time and the tray."),
+                         css="dim-label"))
+        self.panel_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        box.append(self.panel_box)
+
         self.fill_panels()
+        self.fill_panel()
         return scroll
 
     # ---- the panel program ----
@@ -110,23 +113,23 @@ class PanelsPages:
         choices = [("", _("None"))] + panels.installed()
         if cmd and cmd not in [c[0] for c in choices]:
             choices.append((cmd, cmd))
-        if svc is not None:
+        if other:
+            hint = _("Started when you log in, from Autostart")
+        elif svc is not None:
             hint = _("Started when you log in, by its service (%s)") % \
                 svc.name
         elif cmd:
             hint = _("Started when you log in, from Autostart.  A change "
                      "applies at the next login.")
         else:
-            hint = _("A bar along an edge of the screen, like waybar")
+            hint = _("None is started when you log in")
         dd = choice_dropdown(choices, OTHER if other else (cmd or ""),
                              self.set_panel, lambda: self.fill_panel(True))
         box.append(row(_("Panel program"), dd, hint))
         if other:
             box.append(other_row(_("Command"), "", self.set_panel))
         if len(choices) == 1 and not other:
-            box.append(label(_("Install waybar for a panel with the "
-                               "windows, the desktops, the time and the "
-                               "tray."), css="dim-label"))
+            box.append(label(_("Install waybar for one."), css="dim-label"))
         examples = examples_dir("waybar")
         conf = os.path.join(os.environ.get("XDG_CONFIG_HOME") or
                             os.path.expanduser("~/.config"), "waybar")
@@ -137,6 +140,14 @@ class PanelsPages:
                              (examples, conf.replace(os.path.expanduser("~"),
                                                      "~", 1)),
                              css="dim-label"))
+
+        hide = self.switch("owbox/panels/autoHide", False)
+        b = self.panels_binding()
+        hide.set_sensitive(b is not None)
+        box.append(row(_("Hide the panels the rest of the time"), hide,
+                       _("Only the key shows them, and the windows get the "
+                         "whole screen") if b else
+                       _("Choose a key first, it's what shows them")))
 
     def set_panel(self, cmd):
         """Start cmd with the session instead of the panel started now
@@ -199,8 +210,8 @@ class PanelsPages:
         return None
 
     def fill_panels(self, other=False):
-        """The key, the launcher (TogglePanels' binding), dimming and
-        hiding.  other: show the launcher command to type"""
+        """The key, the launcher (TogglePanels' binding) and dimming.
+        other: show the launcher command to type"""
         box = self.panels_key_box
         clear(box)
         b = self.panels_binding()
@@ -231,13 +242,6 @@ class PanelsPages:
                 ("60", _("Much"))]
         box.append(row(_("Dim the windows"),
                        self.dropdown("owbox/panels/dim", dims, "40")))
-
-        hide = self.switch("owbox/panels/autoHide", False)
-        hide.set_sensitive(b is not None)
-        box.append(row(_("Hide the panels the rest of the time"), hide,
-                       _("Only the key shows them, and the windows get the "
-                         "whole screen") if b else
-                       _("Choose a key first, it's what shows them")))
 
     def set_launcher(self, cmd):
         b = self.panels_binding()

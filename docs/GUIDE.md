@@ -107,7 +107,7 @@ protocols. (Packages are in the official repositories unless marked AUR.)
 
 | Purpose | Recommended | Alternatives | Notes |
 |---|---|---|---|
-| Panel, taskbar, tray | `waybar` | | `/usr/share/owbox/examples/waybar` has a configuration made for owbox. Start it with the session in owbox Settings' *Panels* page (it enables `waybar.service`). |
+| Panel, taskbar, tray | `waybar` | | `/usr/share/owbox/examples/waybar` has a configuration made for owbox. Start it with the session in owbox Settings' *Launcher & Panels* page (it enables `waybar.service`). |
 | Launcher | `fuzzel` | `wofi`, `rofi` | Tapping Super shows it, see [Panels on Super](#panels-on-super). `/usr/share/owbox/examples/fuzzel` has a matching configuration. |
 | Terminal | `foot` | any | The menu's *Terminal* and applications that run in a terminal use `$TERMINAL` (set it in `~/.config/owbox/environment`, like `export TERMINAL=alacritty`), else the default terminal of `xdg-terminal-exec` if it is installed, else the first one installed. |
 | Wallpaper | `swaybg` | | Without one, owbox fills the desktop with `<owbox><background>`. |
@@ -133,9 +133,9 @@ protocols. (Packages are in the official repositories unless marked AUR.)
 
 Tapping Super (pressing and releasing it alone) shows the panels and the
 launcher over the dimmed windows, until Escape, a click elsewhere, or
-switching to a window. owbox Settings' *Panels* page chooses the panel,
-the key, the launcher, the dimming and whether the panels stay hidden the
-rest of the time. In `~/.config/owbox/rc.xml`, keeping them hidden, so
+switching to a window. owbox Settings' *Launcher & Panels* page chooses the
+panel, the key, the launcher, the dimming and whether the panels stay hidden
+the rest of the time. In `~/.config/owbox/rc.xml`, keeping them hidden, so
 windows have the whole screen, is:
 
 ```xml

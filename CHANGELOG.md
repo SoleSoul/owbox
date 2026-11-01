@@ -16,11 +16,14 @@
   which rounds its size to whole character cells: the next GrowToEdge
   asked for the same edge again. It now goes on to the next edge, as
   labwc does.
-- owbox Settings has a Panels page: the panel program started with the
-  session (waybar by its service, other panels from the autostart), and
-  the panels key (the key, the launcher, dimming and hiding), which were
-  spread over the Appearance and Key Bindings pages. Any command can be
-  the panel or the launcher.
+- owbox Settings has a Launcher & Panels page: the launcher and panels
+  key (the key, the launcher, dimming), and the panels (the program
+  started with the session, waybar by its service and others from the
+  autostart, and hiding them), which were spread over the Appearance and
+  Key Bindings pages. Any command can be the panel or the launcher.
+- Fixed: tapping Super again didn't close rofi, which opens again when
+  owbox closes it. The launcher TogglePanels started now ends with the
+  panels.
 - A tap of two modifiers together, like Ctrl+Super (`C-Super_L` with
   `tap="yes"`), runs in either order, and owbox Settings can record it.
 - owbox Settings' Autostart page also lists the applications of XDG

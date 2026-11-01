@@ -333,6 +333,7 @@ class InputPages:
     def bindings_changed(self):
         self.fill_keys()
         self.fill_panels()
+        self.fill_panel()
 
     def save_binding(self, binding, key, action, option):
         self.ensure_user_file()
