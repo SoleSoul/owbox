@@ -140,7 +140,8 @@ The monitors turn off after `screenOff` minutes without input, unless a
 visible window asks to keep them on (video players and calls do, with the
 idle-inhibit protocol) or an application asks through D-Bus
 (`org.freedesktop.ScreenSaver`, which owbox serves, and the portal's
-Inhibit), and turn on with the next input. A monitor that is
+Inhibit) or logind (`systemd-inhibit --what=idle`), and turn on with the
+next input. A monitor that is
 off keeps its place and its windows. With `lock` on, the screen is locked
 when the monitors turn off, before suspending, and when logind is asked to
 (`loginctl lock-session`, Lock Screen in the menu). owbox runs the screen

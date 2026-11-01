@@ -227,18 +227,74 @@ for line in sys.stdin:
     print("done", flush=True)
 """
 
+# a logind on the test's system bus: prints the session hints owbox sets
+# ("SetIdleHint True"), and takes BlockInhibited ("idle" or "") from its
+# input
+MOCK_LOGIND = r"""
+import sys
+from gi.repository import Gio, GLib
+XML = '''<node>
+<interface name="org.freedesktop.login1.Manager">
+  <method name="GetSession">
+    <arg type="s" direction="in"/><arg type="o" direction="out"/>
+  </method>
+  <property name="BlockInhibited" type="s" access="read"/>
+</interface>
+<interface name="org.freedesktop.login1.Session">
+  <method name="SetIdleHint"><arg type="b" direction="in"/></method>
+  <method name="SetLockedHint"><arg type="b" direction="in"/></method>
+</interface>
+</node>'''
+SESSION = "/org/freedesktop/login1/session/test"
+bus = Gio.bus_get_sync(Gio.BusType.SYSTEM)
+info = Gio.DBusNodeInfo.new_for_xml(XML)
+block = [""]
+def call(conn, sender, path, iface, method, params, inv):
+    if method == "GetSession":
+        inv.return_value(GLib.Variant("(o)", (SESSION,)))
+    else:
+        print(method, params.unpack()[0], flush=True)
+        inv.return_value(None)
+def get(conn, sender, path, iface, prop):
+    return GLib.Variant("s", block[0])
+bus.register_object("/org/freedesktop/login1", info.interfaces[0], call,
+                    get, None)
+bus.register_object(SESSION, info.interfaces[1], call, None, None)
+Gio.bus_own_name_on_connection(bus, "org.freedesktop.login1", 0,
+                               lambda *a: print("ready", flush=True), None)
+def read(ch, cond):
+    line = sys.stdin.readline()
+    if not line:
+        loop.quit()
+        return False
+    block[0] = line.strip()
+    bus.emit_signal(None, "/org/freedesktop/login1",
+                    "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                    GLib.Variant("(sa{sv}as)", (
+                        "org.freedesktop.login1.Manager",
+                        {"BlockInhibited": GLib.Variant("s", block[0])},
+                        [])))
+    return True
+GLib.io_add_watch(sys.stdin, GLib.IO_IN | GLib.IO_HUP, read)
+loop = GLib.MainLoop()
+loop.run()
+"""
 
-def test_screensaver(out):
-    """Applications keep the monitors on through D-Bus
-    (org.freedesktop.ScreenSaver), with an owbox on its own session bus"""
+
+def test_idle_dbus(out):
+    """Keeping the monitors on through D-Bus (org.freedesktop.ScreenSaver,
+    logind's idle inhibitors) and logind's session hints, with an owbox on
+    its own session and system buses"""
     if not shutil.which("dbus-daemon"):
-        print("skip org.freedesktop.ScreenSaver, no dbus-daemon")
+        print("skip D-Bus idle tests, no dbus-daemon")
         return
-    bus = subprocess.run(["dbus-daemon", "--session", "--fork",
-                          "--print-address=1", "--print-pid=1"],
-                         capture_output=True, text=True, check=True)
-    address, bus_pid = bus.stdout.split()
-    o = os.path.join(out, "screensaver")
+    buses = []
+    for i in range(2):
+        r = subprocess.run(["dbus-daemon", "--session", "--fork",
+                            "--print-address=1", "--print-pid=1"],
+                           capture_output=True, text=True, check=True)
+        buses.append(r.stdout.split())
+    o = os.path.join(out, "idle-dbus")
     os.mkdir(o)
     rc = os.path.join(o, "rc.xml")
     with open(rc, "w") as f:
@@ -247,57 +303,84 @@ def test_screensaver(out):
                          "<screenOff>0.05</screenOff>")
                 .replace("<lockCommand></lockCommand>",
                          "<lockCommand>true</lockCommand>"))
-    env = dict(os.environ, DBUS_SESSION_BUS_ADDRESS=address,
-               OWBOX_TEST_SCREENSAVER="1")
-    clients = []
+    env = dict(os.environ, DBUS_SESSION_BUS_ADDRESS=buses[0][0],
+               DBUS_SYSTEM_BUS_ADDRESS=buses[1][0], OWBOX_TEST_BUSES="1")
+    procs = []
 
-    def client():
-        p = subprocess.Popen([sys.executable, "-c", SCREENSAVER_CLIENT],
-                             env=env, stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE, text=True)
-        clients.append(p)
+    def start(script):
+        p = subprocess.Popen([sys.executable, "-c", script], env=env,
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             text=True)
+        procs.append(p)
         p.stdout.readline()
         return p
 
+    def say(p, line):
+        p.stdin.write(line + "\n")
+        p.stdin.flush()
+
+    def power():
+        return outputs(o)[0]["power"]
+
     def wait_off():
         deadline = time.time() + 8
-        while time.time() < deadline and outputs(o)[0]["power"]:
+        while time.time() < deadline and power():
             time.sleep(0.5)
-        return not outputs(o)[0]["power"]
+        return not power()
 
     try:
+        logind = start(MOCK_LOGIND)
         subprocess.run([os.path.join(HERE, "headless.sh"), o,
                         "--config-file", rc], env=env, check=True)
         time.sleep(0.5)
-        c = client()
+        hints = [logind.stdout.readline().strip() for i in range(2)]
+        check("owbox resets logind's hints at the start",
+              sorted(hints) == ["SetIdleHint False", "SetLockedHint False"],
+              hints)
+
+        c = start(SCREENSAVER_CLIENT)
         time.sleep(5)
-        check("Inhibit keeps the monitors on", outputs(o)[0]["power"],
+        check("ScreenSaver's Inhibit keeps the monitors on", power(),
               outputs(o)[0])
-        c.stdin.write("\n")
-        c.stdin.flush()
+        say(c, "")
         c.stdout.readline()
         check("UnInhibit lets them turn off", wait_off())
+        check("and tells logind the session is idle",
+              logind.stdout.readline().strip() == "SetIdleHint True")
         r = subprocess.run(["gdbus", "call", "--session", "--dest",
                             "org.freedesktop.ScreenSaver", "--object-path",
                             "/org/freedesktop/ScreenSaver", "--method",
                             "org.freedesktop.ScreenSaver.GetActive"],
                            env=env, capture_output=True, text=True,
                            timeout=5)
-        check("and GetActive says so", r.stdout.strip() == "(true,)",
-              r.stdout + r.stderr)
+        check("GetActive says the screen saver is on",
+              r.stdout.strip() == "(true,)", r.stdout + r.stderr)
         inp(o, "move", "200", "200")
         time.sleep(0.3)
-        c = client()
+        check("input ends the session's idle",
+              logind.stdout.readline().strip() == "SetIdleHint False")
+
+        c = start(SCREENSAVER_CLIENT)
         time.sleep(1)
         c.stdin.close()
         c.wait(timeout=5)
         check("an application that quits doesn't keep them on", wait_off())
+        inp(o, "move", "300", "300")
+        time.sleep(0.3)
+
+        say(logind, "idle")
+        time.sleep(5)
+        check("logind's idle inhibitor keeps them on", power(),
+              outputs(o)[0])
+        say(logind, "")
+        check("and its end lets them turn off", wait_off())
     finally:
-        for c in clients:
-            if c.poll() is None:
-                c.kill()
+        for p in procs:
+            if p.poll() is None:
+                p.kill()
         subprocess.run([os.path.join(HERE, "stop.sh"), o])
-        os.kill(int(bus_pid), signal.SIGTERM)
+        for address, pid in buses:
+            os.kill(int(pid), signal.SIGTERM)
         log = open(os.path.join(o, "owbox.log"), errors="replace").read()
         bad = [l for l in log.splitlines() if "CRITICAL" in l or
                "Sanitizer" in l and "ERROR" in l or "runtime error:" in l]
@@ -671,7 +754,7 @@ def main():
         test_xdg(out)
         test_scale(out)
         test_idle(out)
-        test_screensaver(out)
+        test_idle_dbus(out)
         test_panels(out)
         test_bars(out)
         test_menus(out)

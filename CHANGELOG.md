@@ -8,6 +8,8 @@
 - Applications can keep the monitors on through D-Bus: owbox serves
   `org.freedesktop.ScreenSaver` (VLC, Steam, Chromium), and the portal's
   Inhibit goes to the GTK portal, which uses it (GTK 4 applications).
+- logind's idle inhibitors (`systemd-inhibit --what=idle`) keep the
+  monitors on too.
 - owbox tells logind when the session is idle and when it is locked
   (`loginctl` shows it, logind's `IdleAction` works).
 - An X application launched with startup notification opens on the desktop
