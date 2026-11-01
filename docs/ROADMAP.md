@@ -29,3 +29,5 @@ What is done is in [CHANGELOG.md](../CHANGELOG.md).
 - a dock for X dockapps under Xwayland
 - per-monitor desktops, as an option
 - live window thumbnails in the Alt-Tab dialog
+- screenshots and screen sharing of a powered-off monitor (wlroots refuses
+  a disabled output; it needs rendering the capture offscreen)
