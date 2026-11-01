@@ -208,8 +208,11 @@ See docs/ARCHITECTURE.md for the map. Quick pointers:
   `src/config.c`
 - new actions: `src/actions/`, registered in `src/actions/all.c`
 - the scene graph's order: `server_init()` in `src/server.c`
-- idle, locking and logind: `src/idle.c` (logind only on the DRM backend,
-  so tests don't lock the user's session)
+- idle, locking and logind: `src/idle.c` (logind and
+  org.freedesktop.ScreenSaver only on the DRM backend, so tests don't lock
+  or keep awake the user's session; `OWBOX_TEST_SCREENSAVER=1` serves the
+  latter for a test with its own bus, as `test_screensaver` in the smoke
+  test does)
 - the panels mode (Super tap): `src/panels.c`, the panels themselves in
   `src/layers.c` (`layers_is_panel`), tap bindings in `src/keyboard.c`
 

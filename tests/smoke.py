@@ -208,6 +208,103 @@ def test_idle(out):
     time.sleep(1.5)
 
 
+# keeps the screen on through org.freedesktop.ScreenSaver, prints the cookie,
+# lets it go on each line read, quits at the end of its input
+SCREENSAVER_CLIENT = r"""
+import sys
+from gi.repository import Gio, GLib
+bus = Gio.bus_get_sync(Gio.BusType.SESSION)
+def call(method, args, reply):
+    return bus.call_sync("org.freedesktop.ScreenSaver",
+                         "/org/freedesktop/ScreenSaver",
+                         "org.freedesktop.ScreenSaver", method, args, reply,
+                         Gio.DBusCallFlags.NONE, 3000, None)
+cookie = call("Inhibit", GLib.Variant("(ss)", ("smoke", "testing")),
+              GLib.VariantType("(u)")).unpack()[0]
+print(cookie, flush=True)
+for line in sys.stdin:
+    call("UnInhibit", GLib.Variant("(u)", (cookie,)), None)
+    print("done", flush=True)
+"""
+
+
+def test_screensaver(out):
+    """Applications keep the monitors on through D-Bus
+    (org.freedesktop.ScreenSaver), with an owbox on its own session bus"""
+    if not shutil.which("dbus-daemon"):
+        print("skip org.freedesktop.ScreenSaver, no dbus-daemon")
+        return
+    bus = subprocess.run(["dbus-daemon", "--session", "--fork",
+                          "--print-address=1", "--print-pid=1"],
+                         capture_output=True, text=True, check=True)
+    address, bus_pid = bus.stdout.split()
+    o = os.path.join(out, "screensaver")
+    os.mkdir(o)
+    rc = os.path.join(o, "rc.xml")
+    with open(rc, "w") as f:
+        f.write(open(os.path.join(out, "rc.xml")).read()
+                .replace("<screenOff>10</screenOff>",
+                         "<screenOff>0.05</screenOff>")
+                .replace("<lockCommand></lockCommand>",
+                         "<lockCommand>true</lockCommand>"))
+    env = dict(os.environ, DBUS_SESSION_BUS_ADDRESS=address,
+               OWBOX_TEST_SCREENSAVER="1")
+    clients = []
+
+    def client():
+        p = subprocess.Popen([sys.executable, "-c", SCREENSAVER_CLIENT],
+                             env=env, stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE, text=True)
+        clients.append(p)
+        p.stdout.readline()
+        return p
+
+    def wait_off():
+        deadline = time.time() + 8
+        while time.time() < deadline and outputs(o)[0]["power"]:
+            time.sleep(0.5)
+        return not outputs(o)[0]["power"]
+
+    try:
+        subprocess.run([os.path.join(HERE, "headless.sh"), o,
+                        "--config-file", rc], env=env, check=True)
+        time.sleep(0.5)
+        c = client()
+        time.sleep(5)
+        check("Inhibit keeps the monitors on", outputs(o)[0]["power"],
+              outputs(o)[0])
+        c.stdin.write("\n")
+        c.stdin.flush()
+        c.stdout.readline()
+        check("UnInhibit lets them turn off", wait_off())
+        r = subprocess.run(["gdbus", "call", "--session", "--dest",
+                            "org.freedesktop.ScreenSaver", "--object-path",
+                            "/org/freedesktop/ScreenSaver", "--method",
+                            "org.freedesktop.ScreenSaver.GetActive"],
+                           env=env, capture_output=True, text=True,
+                           timeout=5)
+        check("and GetActive says so", r.stdout.strip() == "(true,)",
+              r.stdout + r.stderr)
+        inp(o, "move", "200", "200")
+        time.sleep(0.3)
+        c = client()
+        time.sleep(1)
+        c.stdin.close()
+        c.wait(timeout=5)
+        check("an application that quits doesn't keep them on", wait_off())
+    finally:
+        for c in clients:
+            if c.poll() is None:
+                c.kill()
+        subprocess.run([os.path.join(HERE, "stop.sh"), o])
+        os.kill(int(bus_pid), signal.SIGTERM)
+        log = open(os.path.join(o, "owbox.log"), errors="replace").read()
+        bad = [l for l in log.splitlines() if "CRITICAL" in l or
+               "Sanitizer" in l and "ERROR" in l or "runtime error:" in l]
+        check("no critical messages or sanitizer reports in its log",
+              not bad, bad[:3])
+
+
 def test_panels(out):
     """Tapping Super shows the panels over the dimmed windows, Escape and
     clicks end it, Super with another key isn't a tap"""
@@ -574,6 +671,7 @@ def main():
         test_xdg(out)
         test_scale(out)
         test_idle(out)
+        test_screensaver(out)
         test_panels(out)
         test_bars(out)
         test_menus(out)

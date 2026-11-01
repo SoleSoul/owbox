@@ -32,10 +32,12 @@ void idle_reconfigure(void);
 
 /*! There was input */
 void idle_activity(void);
-/*! A visible window keeps the screen on (a video) or stopped doing so */
+/*! A visible window keeps the screen on (a video) or stopped doing so
+  (the idle-inhibit protocol).  Applications can also ask through D-Bus
+  (org.freedesktop.ScreenSaver's Inhibit, which the portal uses too). */
 void idle_set_inhibited(gboolean inhibited);
-/*! The session became locked */
-void idle_locked(void);
+/*! The session became locked or unlocked */
+void idle_set_locked(gboolean locked);
 
 /*! Run the screen locker, unless the screen is locked */
 void idle_lock(void);

@@ -1765,7 +1765,6 @@ void seat_update_idle_inhibit(void)
         if (idle_inhibitor_visible(i->inhibitor->surface))
             inhibit = TRUE;
     }
-    wlr_idle_notifier_v1_set_inhibited(server.idle_notifier, inhibit);
     idle_set_inhibited(inhibit);
 }
 
@@ -1774,8 +1773,8 @@ void seat_update_idle_inhibit(void)
 void seat_set_locked(gboolean locked)
 {
     seat.locked = locked;
+    idle_set_locked(locked);
     if (locked) {
-        idle_locked();
         panels_hide();
         wlr_seat_keyboard_notify_clear_focus(server.seat);
         wlr_seat_pointer_notify_clear_focus(server.seat);

@@ -5,6 +5,13 @@
 - Explicit synchronization (linux-drm-syncobj), when the GPU's driver
   supports it, as NVIDIA's does: Vulkan applications and Xwayland use it
   there instead of implicit synchronization.
+- Applications can keep the monitors on through D-Bus: owbox serves
+  `org.freedesktop.ScreenSaver` (VLC, Steam, Chromium), and the portal's
+  Inhibit goes to the GTK portal, which uses it (GTK 4 applications).
+- owbox tells logind when the session is idle and when it is locked
+  (`loginctl` shows it, logind's `IdleAction` works).
+- An X application launched with startup notification opens on the desktop
+  it was launched from, as in Openbox.
 - layer-shell version 5 (panels can choose their exclusive edge) and
   wl_fixes.
 
