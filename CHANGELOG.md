@@ -21,6 +21,8 @@
   started with the session, waybar by its service and others from the
   autostart, and hiding them), which were spread over the Appearance and
   Key Bindings pages. Any command can be the panel or the launcher.
+- Fixed: `owbox --msg` (used by owbox-screenshot and scripts) replaced
+  the running owbox's log, ~/.cache/owbox/owbox.log, with an empty one.
 - Fixed: tapping Super again didn't close rofi, which opens again when
   owbox closes it. The launcher TogglePanels started now ends with the
   panels.

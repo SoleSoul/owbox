@@ -153,8 +153,9 @@ screen):
   restart xdg-desktop-portal-wlr.service afterwards), use
   `WLR_RENDERER=gles2` to test the GPU's formats, and keep something
   changing on the screen.
-- Logs: `--debug` (the test scripts use it) and `--debug-wlroots`. The last
-  run's log is in `~/.cache/owbox/owbox.log`.
+- Logs: `--debug` (the test scripts use it) and `--debug-wlroots`. The
+  user's session logs to `~/.cache/owbox/owbox.log`; headless.sh gives
+  test runs their own cache, so they don't replace it.
 - Tests use `--no-autostart`, so the user's real XDG autostart applications
   don't start in test sessions.
 - The headless backend (pixman) isn't the user's hardware: their daily

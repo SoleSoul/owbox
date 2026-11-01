@@ -190,13 +190,27 @@ static void load_theme(void)
         ob_exit_with_error(_("Unable to load a theme."));
 }
 
+/* owbox: whether this only sends a command to the running owbox */
+static gboolean sends_command(gint argc, gchar **argv)
+{
+    gint i;
+
+    for (i = 1; i < argc; ++i)
+        if (!strcmp(argv[i], "--msg"))
+            return TRUE;
+    return FALSE;
+}
+
 gint main(gint argc, gchar **argv)
 {
     gchar *program_name;
 
     ob_set_state(OB_STATE_STARTING);
 
-    ob_debug_startup();
+    /* owbox: owbox --msg (scripts, panels) leaves the running owbox's log
+       alone, it would replace it */
+    if (!sends_command(argc, argv))
+        ob_debug_startup();
 
     /* initialize the locale */
     if (!(ob_locale_msg = setlocale(LC_MESSAGES, "")))

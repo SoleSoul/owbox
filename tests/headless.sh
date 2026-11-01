@@ -15,11 +15,12 @@ here=$(dirname "$0")
 bin=${OWBOX:-$here/../build/owbox}
 
 # the themes in the source tree first (data/themes), so that tests don't
-# depend on an installed owbox
+# depend on an installed owbox; its own cache, so that owbox's log of the
+# user's session (~/.cache/owbox/owbox.log) stays
 XDG_DATA_DIRS="$(cd "$here/../data" && pwd):${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" \
 WLR_BACKENDS=headless WLR_RENDERER=${WLR_RENDERER:-pixman} \
 WLR_HEADLESS_OUTPUTS=${OUTPUTS:-1} WLR_LIBINPUT_NO_DEVICES=1 \
-XDG_CURRENT_DESKTOP=owbox \
+XDG_CURRENT_DESKTOP=owbox XDG_CACHE_HOME="$out/cache" \
     "$bin" --debug --no-autostart "$@" > "$out/owbox.log" 2>&1 &
 echo $! > "$out/pid"
 
