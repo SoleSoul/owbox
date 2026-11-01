@@ -191,3 +191,20 @@ lower half, and river forbids AI-written contributions, so the protocol
 extensions owbox would need can't be asked for the way owbox is
 developed. Revisit if river reaches 1.0 with those extensions, or if
 wlroots upgrades become a burden.
+
+**The applications menu goes by category, not by the Desktop Menu
+Specification** (2026-11). The specification builds menus from
+`applications.menu` files, which desktop environments install (each its
+own) and which need merge rules to read. owbox lists the desktop entries
+under their main category, as Openbox's menu generators do: it works with
+no menu package installed, and each application is in it once. Revisit if
+people ask for their desktop environment's menu layout.
+
+**Protocols left out** (2026-11). color-management and color-representation
+(HDR and wide color): wlroots' support is new, and owbox's decorations and
+menus would need color handling too. drm-lease (VR headsets): nothing to
+test it on. transient-seat (a separate seat for each remote desktop
+user): owbox has one seat, as Openbox has one pointer and keyboard.
+xdg-toplevel-tag: tags for window rules, which few applications set;
+owbox's per-application rules match the class, title and role. Revisit
+each when applications or users need it.

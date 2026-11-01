@@ -67,6 +67,7 @@ Where things go:
 | using it with companion programs (written as an ArchWiki article) | docs/GUIDE.md |
 | `<owbox>` settings, owbox's actions, the control socket | docs/CONFIG.md, the comments in data/rc.xml, docs/owbox.1 |
 | differences from Openbox | docs/COMPATIBILITY.md |
+| standards followed, and how far | docs/STANDARDS.md |
 | how the code works, a map of it | docs/ARCHITECTURE.md |
 | why it is so, with the alternatives | docs/DECISIONS.md |
 | what's next | docs/ROADMAP.md |

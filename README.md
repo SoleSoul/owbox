@@ -149,6 +149,8 @@ decorations, snapping and Xwayland. The installed `rc.xml` documents each of the
 - [docs/CONFIG.md](docs/CONFIG.md): the `<owbox>` settings and the control
   socket
 - [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md): differences from Openbox
+- [docs/STANDARDS.md](docs/STANDARDS.md): the standards owbox follows
+  (Wayland protocols, EWMH, freedesktop.org, systemd), and how far
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how Openbox's code was
   brought to Wayland, a map of the source
 - [docs/DECISIONS.md](docs/DECISIONS.md): design decisions and why
