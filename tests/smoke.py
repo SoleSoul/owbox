@@ -11,6 +11,7 @@ checks the results with "owbox --msg windows".  --keep leaves the output
 directory (log, screenshots) in place.  Exits non-zero on failure.
 """
 
+import importlib.util
 import json
 import os
 import shutil
@@ -285,8 +286,9 @@ def test_idle_dbus(out):
     """Keeping the monitors on through D-Bus (org.freedesktop.ScreenSaver,
     logind's idle inhibitors) and logind's session hints, with an owbox on
     its own session and system buses"""
-    if not shutil.which("dbus-daemon"):
-        print("skip D-Bus idle tests, no dbus-daemon")
+    if not shutil.which("dbus-daemon") or \
+            not importlib.util.find_spec("gi"):
+        print("skip D-Bus idle tests, no dbus-daemon or python-gobject")
         return
     buses = []
     for i in range(2):
