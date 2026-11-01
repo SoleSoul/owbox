@@ -269,7 +269,8 @@ installed of fuzzel, wofi, rofi, tofi and bemenu.
 A key binding with `tap="yes"` runs when its key is released, if no other
 key or button was pressed while it was down. It is meant for a modifier
 alone: Super tapped runs the binding, while Super+E and Super+drag do what
-they always did. (Openbox runs a binding of a modifier when it is pressed,
+they always did. Two modifiers tapped together (`C-Super_L`) run it in
+either order. (Openbox runs a binding of a modifier when it is pressed,
 which is still what happens without `tap`.)
 
 `SnapToEdge` takes the direction `north`, `south`, `east`, `west`,

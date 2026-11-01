@@ -493,6 +493,39 @@ def test_openbox_placement(out):
         wait_windows(out, n)
 
 
+def test_modifier_taps(out):
+    """A tap of two modifiers (Ctrl+Super) runs in either order, and not
+    with another key in between"""
+    rc = os.path.join(out, "rc.xml")
+    orig = open(rc).read()
+    flag = os.path.join(out, "tapped")
+    with open(rc, "w") as f:
+        f.write(orig.replace("<keyboard>", """<keyboard>
+  <keybind key="C-Super_L" tap="yes">
+    <action name="Execute"><command>touch %s</command></action>
+  </keybind>""" % flag, 1))
+    time.sleep(1.5)  # reloaded on change
+
+    def tapped(*keys):
+        if os.path.exists(flag):
+            os.remove(flag)
+        inp(out, *keys)
+        time.sleep(0.5)
+        return os.path.exists(flag)
+    check("Ctrl then Super taps", tapped(
+        "keydown", "Control_L", "keydown", "Super_L", "keyup", "Super_L",
+        "keyup", "Control_L"))
+    check("Super then Ctrl taps", tapped(
+        "keydown", "Super_L", "keydown", "Control_L", "keyup", "Control_L",
+        "keyup", "Super_L"))
+    check("a key in between isn't a tap", not tapped(
+        "keydown", "Super_L", "keydown", "Control_L", "key", "F12",
+        "keyup", "Control_L", "keyup", "Super_L"))
+    with open(rc, "w") as f:
+        f.write(orig)
+    time.sleep(1.5)
+
+
 def test_x11(out):
     if not os.path.exists(os.path.join(out, "xdisplay")):
         print("skip X applications: no Xwayland")
@@ -546,6 +579,7 @@ def main():
         test_menus(out)
         test_openbox(out)
         test_openbox_placement(out)
+        test_modifier_taps(out)
         test_x11(out)
         try:
             os.kill(pid, 0)

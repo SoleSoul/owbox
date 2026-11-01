@@ -55,6 +55,48 @@ static void grab_keys(gboolean grab)
 static KeyBindingTree *tap_binding = NULL;
 static guint tap_keycode = 0;
 
+/* owbox: the modifier a modifier key sets, for taps of two modifiers */
+static guint keysym_modmask(guint sym)
+{
+    switch (sym) {
+    case XKB_KEY_Shift_L: case XKB_KEY_Shift_R:
+        return obt_keyboard_modkey_to_modmask(OBT_KEYBOARD_MODKEY_SHIFT);
+    case XKB_KEY_Control_L: case XKB_KEY_Control_R:
+        return obt_keyboard_modkey_to_modmask(OBT_KEYBOARD_MODKEY_CONTROL);
+    case XKB_KEY_Alt_L: case XKB_KEY_Alt_R:
+        return obt_keyboard_modkey_to_modmask(OBT_KEYBOARD_MODKEY_ALT);
+    case XKB_KEY_Meta_L: case XKB_KEY_Meta_R:
+        return obt_keyboard_modkey_to_modmask(OBT_KEYBOARD_MODKEY_META);
+    case XKB_KEY_Super_L: case XKB_KEY_Super_R:
+        return obt_keyboard_modkey_to_modmask(OBT_KEYBOARD_MODKEY_SUPER);
+    case XKB_KEY_Hyper_L: case XKB_KEY_Hyper_R:
+        return obt_keyboard_modkey_to_modmask(OBT_KEYBOARD_MODKEY_HYPER);
+    }
+    return 0;
+}
+
+/* owbox: a tap of modifiers is the same in any order: C-Super_L also
+   taps when Super is pressed first and then Ctrl */
+static KeyBindingTree* tap_other_order(const ObEvent *e, guint mods)
+{
+    KeyBindingTree *p;
+    guint key;
+
+    if (curpos || !e->modmask) return NULL;
+    for (p = keyboard_firstnode; p; p = p->next_sibling) {
+        if (!p->tap || p->first_child || (p->key & OB_KEY_IS_KEYCODE))
+            continue;
+        key = keysym_modmask(p->key);
+        /* this key is one of the binding's modifiers, and the binding's
+           key is held with the others */
+        if (key && (e->modmask & p->state) == e->modmask &&
+            !(e->modmask & key) &&
+            mods == ((p->state & ~e->modmask) | key))
+            return p;
+    }
+    return NULL;
+}
+
 gboolean keyboard_in_chain(void)
 {
     return curpos != NULL;
@@ -296,6 +338,11 @@ gboolean keyboard_event(ObClient *client, const ObEvent *e)
             break;
         }
         p = p->next_sibling;
+    }
+
+    if (!used && !repeating && (p = tap_other_order(e, mods))) {
+        tap_binding = p;
+        tap_keycode = e->keycode;
     }
 
     /* in a key chain all keys are grabbed by owbox */
