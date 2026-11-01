@@ -29,6 +29,7 @@
 #include "xdg.h"
 #include "debug.h"
 
+#include <string.h>
 #include <wlr/types/wlr_ext_foreign_toplevel_list_v1.h>
 #include <wlr/types/wlr_ext_image_capture_source_v1.h>
 #include <wlr/types/wlr_ext_workspace_v1.h>
@@ -419,9 +420,27 @@ static void handle_activation_request(struct wl_listener *l, void *data)
     client_activate(c, TRUE, FALSE, TRUE, TRUE, user);
 }
 
+/* what Openbox's startup notification knew about a launch: when it was
+   asked for and on which desktop */
+typedef struct {
+    struct wlr_xdg_activation_token_v1 *token;
+    guint32 time;
+    guint desktop;
+    struct wl_listener destroy;
+} ObLaunch;
+
+static void launch_destroy(struct wl_listener *l, void *data)
+{
+    ObLaunch *la = wl_container_of(l, la, destroy);
+    la->token->data = NULL;
+    wl_list_remove(&la->destroy.link);
+    g_free(la);
+}
+
 const gchar* toplevel_launch_token(const gchar *app_id)
 {
     struct wlr_xdg_activation_token_v1 *token;
+    ObLaunch *la;
 
     token = wlr_xdg_activation_token_v1_create(server.xdg_activation);
     if (!token) return NULL;
@@ -430,17 +449,55 @@ const gchar* toplevel_launch_token(const gchar *app_id)
     token->serial = 0;
     if (app_id)
         token->app_id = g_strdup(app_id);
+
+    la = g_new0(ObLaunch, 1);
+    la->token = token;
+    la->time = event_time();
+    /* launch it on the current desktop */
+    la->desktop = screen_desktop;
+    token->data = la;
+    la->destroy.notify = launch_destroy;
+    wl_signal_add(&token->events.destroy, &la->destroy);
     return wlr_xdg_activation_token_v1_get_name(token);
+}
+
+/* the launch a new window comes from, as sn_app_started finds it: by its
+   startup id (an X window's _NET_STARTUP_ID, the token owbox gave it), or
+   else by its class (an X window's WM_CLASS, a Wayland window's app_id) */
+static ObLaunch* launch_find(ObClient *c)
+{
+    struct wlr_xdg_activation_token_v1 *t;
+    ObLaunch *found = NULL;
+
+    if (c->startup_id) {
+        t = wlr_xdg_activation_v1_find_token(server.xdg_activation,
+                                             c->startup_id);
+        return t ? t->data : NULL;
+    }
+    wl_list_for_each(t, &server.xdg_activation->tokens, link) {
+        ObLaunch *la = t->data;
+        if (la && t->app_id &&
+            (!strcmp(t->app_id, c->class) || !strcmp(t->app_id, c->name)) &&
+            (!found || event_time_after(la->time, found->time)))
+            found = la;
+    }
+    return found;
 }
 
 guint32 toplevel_activation_time(ObClient *c)
 {
-    return 0;
+    ObLaunch *la = launch_find(c);
+    return la ? la->time : 0;
 }
 
 gboolean toplevel_activation_desktop(ObClient *c, guint *desktop)
 {
-    return FALSE;
+    ObLaunch *la;
+
+    /* as sn_get_desktop, only by the startup id */
+    if (!c->startup_id || !(la = launch_find(c))) return FALSE;
+    *desktop = la->desktop;
+    return TRUE;
 }
 
 /* ---- dialogs ---- */

@@ -85,6 +85,8 @@ listed is a bug in owbox: please report it to owbox, not to Openbox.
 - **Startup notification** uses xdg-activation tokens:
   `<startupnotify><enabled>yes` in Execute gives the launched application a
   token, so it is focused (with focus stealing prevention) when it opens.
+  An X application that gives the token back (`_NET_STARTUP_ID`) opens on
+  the desktop it was launched from, as in Openbox.
 
 ## Not supported (yet)
 

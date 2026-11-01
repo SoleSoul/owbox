@@ -78,6 +78,7 @@ static GSList  *client_destroy_notifies = NULL;
 static RrImage *client_default_icon     = NULL;
 
 static void client_get_all(ObClient *self, gboolean real);
+static void client_get_startup_id(ObClient *self);
 static void client_get_session_ids(ObClient *self);
 static void client_get_area(ObClient *self);
 static void client_get_desktop(ObClient *self);
@@ -1029,6 +1030,7 @@ static void client_get_all(ObClient *self, gboolean real)
     client_update_wmhints(self);
     client_update_transient_for(self);
 
+    client_get_startup_id(self);
     client_get_desktop(self);/* uses transient data/group/startup id if a
                                 desktop is not specified */
 
@@ -1539,6 +1541,13 @@ void client_update_icon_geometry(ObClient *self)
 {
     /* taskbars tell us where the window's button is through the foreign
        toplevel protocol, see toplevel.c */
+}
+
+static void client_get_startup_id(ObClient *self)
+{
+    g_free(self->startup_id);
+    self->startup_id = self->impl->get_startup_id ?
+        self->impl->get_startup_id(self) : NULL;
 }
 
 static void client_get_session_ids(ObClient *self)

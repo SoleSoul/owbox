@@ -104,6 +104,8 @@ typedef struct {
 
 static struct wl_listener new_surface;
 static struct wl_listener ready;
+/*! All the X windows by their id, managed or not (group leaders) */
+static GHashTable *windows = NULL;
 /*! The _NET_WM_PING atom, which wlroots doesn't share */
 static xcb_atom_t net_wm_ping = XCB_ATOM_NONE;
 
@@ -230,6 +232,22 @@ static void xw_get_class(ObClient *self)
     self->name = g_strdup(xs->instance ? xs->instance : "");
     self->class = g_strdup(xs->class ? xs->class : "");
     self->role = g_strdup(xs->role ? xs->role : "");
+}
+
+static gchar* xw_get_startup_id(ObClient *self)
+{
+    struct wlr_xwayland_surface *xs = XW(self)->xs;
+    const gchar *id = xs->startup_id;
+
+    /* or the group leader's (GTK sets it there) */
+    if ((!id || !*id) && xs->hints &&
+        (xs->hints->flags & XCB_ICCCM_WM_HINT_WINDOW_GROUP))
+    {
+        ObXwSurface *leader = g_hash_table_lookup(
+            windows, GUINT_TO_POINTER(xs->hints->window_group));
+        if (leader) id = leader->xs->startup_id;
+    }
+    return id && *id ? g_strdup(id) : NULL;
 }
 
 static gchar* xw_get_title(ObClient *self)
@@ -412,6 +430,7 @@ static const ObClientImpl xwayland_client_impl = {
     .get_area = xw_get_area,
     .get_state = xw_get_state,
     .get_class = xw_get_class,
+    .get_startup_id = xw_get_startup_id,
     .get_title = xw_get_title,
     .get_parent = xw_get_parent,
     .get_desktop = xw_get_desktop,
@@ -905,6 +924,7 @@ static void handle_destroy(struct wl_listener *l, void *data)
     ObXwSurface *x = wl_container_of(l, x, destroy);
 
     unmap_window(x);
+    g_hash_table_remove(windows, GUINT_TO_POINTER(x->xs->window_id));
     wl_list_remove(&x->destroy.link);
     wl_list_remove(&x->associate.link);
     wl_list_remove(&x->dissociate.link);
@@ -953,6 +973,7 @@ static void handle_new_surface(struct wl_listener *l, void *data)
     x->node.owner = &x->obwin;
     x->xs = xs;
     xs->data = x;
+    g_hash_table_insert(windows, GUINT_TO_POINTER(xs->window_id), x);
     x->tree = wlr_scene_tree_create(server.unmanaged_tree);
 
 #define LISTEN(sig, l, f) do { x->l.notify = (f); wl_signal_add((sig), &x->l); } while (0)
@@ -1074,6 +1095,7 @@ void xwayland_init(void)
         g_message("Unable to start Xwayland, X applications won't run");
         return;
     }
+    windows = g_hash_table_new(g_direct_hash, g_direct_equal);
     new_surface.notify = handle_new_surface;
     wl_signal_add(&server.xwayland->events.new_surface, &new_surface);
     ready.notify = handle_ready;
@@ -1111,4 +1133,6 @@ void xwayland_finish(void)
     wl_list_remove(&ready.link);
     wlr_xwayland_destroy(server.xwayland);
     server.xwayland = NULL;
+    g_hash_table_destroy(windows);
+    windows = NULL;
 }

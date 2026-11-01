@@ -88,6 +88,9 @@ struct _ObClientImpl
     gchar* (*get_title)(ObClient *self);
     /*! The client's parent window (the transient-for), or NULL */
     ObClient* (*get_parent)(ObClient *self);
+    /*! The client's startup notification id (_NET_STARTUP_ID), newly
+      allocated, or NULL; may be NULL */
+    gchar* (*get_startup_id)(ObClient *self);
     /*! Get a desktop requested by the client, returns FALSE if none */
     gboolean (*get_desktop)(ObClient *self, guint *desktop);
     /*! Fill in the strut, may be NULL */
