@@ -37,19 +37,21 @@ docs/DECISIONS.md for why, and docs/ROADMAP.md for what's next.
 ## Handoff between sessions
 
 `HANDOFF.md` at the top (local, excluded from git in `.git/info/exclude`)
-says where the last session left off, whichever agent ran it. Read it
-before starting. Before finishing (a task done, or work left
-uncommitted), rewrite it:
+says where the last session left off, whichever agent ran it. It holds
+only transient work left to be done that doesn't belong in the tracked
+docs, and is empty otherwise. Read it before starting. Before finishing
+(a task done, or work left uncommitted), rewrite it with what is left:
 
 - the git state: unpushed commits, and each uncommitted change with what
   it is, which request it came from and whether the user approved it;
 - open threads: unfinished work, questions waiting for the user, things
   left untested.
 
-Keep it the current state, not a log: drop what is done.  If the working
-tree has changes it doesn't explain, find out whose they are (ask the
-user, or search your earlier sessions) before committing or reverting
-them.
+Keep it the current state, not a log: drop what is done, and leave the
+file empty when nothing is left. Durable context goes in the tracked
+docs, not here. If the working tree has changes it doesn't explain, find
+out whose they are (ask the user, or search your earlier sessions)
+before committing or reverting them.
 
 ## Documentation
 
