@@ -52,9 +52,10 @@ user services that belong to the graphical session (for example
 Run `owbox-settings` (also in owbox's root menu). It covers the theme, the
 look of applications (GTK theme, icons, cursor, fonts, light or dark, and
 the buttons and clicks of title bars that applications draw), window
-behavior, monitors, desktops, keyboard layouts, mouse and touchpad, key
-bindings, idle and locking, and autostart. Changes are saved to `rc.xml`
-and applied immediately.
+behavior, the panels, monitors, desktops, keyboard layouts, mouse and
+touchpad, key bindings, idle and locking, and what starts with the session
+(owbox's autostart, XDG autostart applications and systemd user services).
+Changes are saved to `rc.xml` and applied immediately.
 
 ### Configuration files
 
@@ -106,7 +107,7 @@ protocols. (Packages are in the official repositories unless marked AUR.)
 
 | Purpose | Recommended | Alternatives | Notes |
 |---|---|---|---|
-| Panel, taskbar, tray | `waybar` | | `/usr/share/owbox/examples/waybar` has a configuration made for owbox. Enable `waybar.service` to start it with the session. |
+| Panel, taskbar, tray | `waybar` | | `/usr/share/owbox/examples/waybar` has a configuration made for owbox. Start it with the session in owbox Settings' *Panels* page (it enables `waybar.service`). |
 | Launcher | `fuzzel` | `wofi`, `rofi` | Tapping Super shows it, see [Panels on Super](#panels-on-super). `/usr/share/owbox/examples/fuzzel` has a matching configuration. |
 | Terminal | `foot` | any | The menu's *Terminal* and applications that run in a terminal use `$TERMINAL` (set it in `~/.config/owbox/environment`, like `export TERMINAL=alacritty`), else the default terminal of `xdg-terminal-exec` if it is installed, else the first one installed. |
 | Wallpaper | `swaybg` | | Without one, owbox fills the desktop with `<owbox><background>`. |

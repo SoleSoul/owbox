@@ -15,7 +15,8 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
 from gi.repository import Gdk, Gtk  # noqa: E402
 
-from .keybinds import (ACTIONS, key_label, key_from_event, TAP_KEYS)  # noqa: E402
+from .keybinds import (ACTIONS, key_label, key_from_event, TAP_KEYS,  # noqa: E402
+                       launcher_choices)
 from . import xkb  # noqa: E402
 from .widgets import label, row, section, page_box  # noqa: E402
 
@@ -305,7 +306,7 @@ class InputPages:
         for b in self.keys.missing_defaults():
             self.keys.add_copy(b)
         self.changed()
-        self.fill_keys()
+        self.bindings_changed()
         self.fill_defaults()
 
     def selected_binding(self):
@@ -318,15 +319,20 @@ class InputPages:
             self.ensure_user_file()
             self.keys.remove(b)
             self.changed()
-            self.fill_keys()
+            self.bindings_changed()
 
-    def edit_binding(self, binding):
+    def edit_binding(self, binding, action=None):
+        """action: the action a new binding starts with"""
         if binding is not None and not binding.is_simple():
             self.error(_("This binding does more than the settings can show. "
                          "You can change it in %s, or remove it here.")
                        % self.rc.path)
             return
-        BindingDialog(self, binding).present()
+        BindingDialog(self, binding, action).present()
+
+    def bindings_changed(self):
+        self.fill_keys()
+        self.fill_panels()
 
     def save_binding(self, binding, key, action, option):
         self.ensure_user_file()
@@ -340,13 +346,13 @@ class InputPages:
             binding.key = key
             binding.set_action(action, option)
         self.changed()
-        self.fill_keys()
+        self.bindings_changed()
 
 
 class BindingDialog(Gtk.Window):
     """Choose the keys and the action of a binding"""
 
-    def __init__(self, win, binding):
+    def __init__(self, win, binding, action=None):
         super().__init__(title=_("Key Binding"), transient_for=win,
                          modal=True, default_width=460)
         self.win = win
@@ -368,9 +374,11 @@ class BindingDialog(Gtk.Window):
         box.append(row(_("Action"), self.action))
         self.option_box = Gtk.Box()
         box.append(self.option_box)
+        names = [a[0].lower() for a in ACTIONS]
         if binding:
-            names = [a[0].lower() for a in ACTIONS]
             self.action.set_selected(names.index(binding.action_name().lower()))
+        elif action:
+            self.action.set_selected(names.index(action.lower()))
         self.action.connect("notify::selected", lambda w, p:
                             self.show_option(None))
         self.show_option(binding.option() if binding else None)
@@ -408,6 +416,19 @@ class BindingDialog(Gtk.Window):
             w.connect("changed", lambda e: self.update())
             self.option_widget = w
             title = _("Command")
+        elif kind == "launcher":
+            # TogglePanels' launcher, none when the option is left out of a
+            # binding, owbox-launcher for a new one
+            if value is None and (self.binding is None or
+                                  self.binding.action_name().lower() !=
+                                  "togglepanels"):
+                value = "owbox-launcher"
+            choices = launcher_choices(value or "")
+            self.option_values = [c[0] for c in choices]
+            w = Gtk.DropDown.new_from_strings([c[1] for c in choices])
+            w.set_selected(self.option_values.index(value or ""))
+            self.option_widget = w
+            title = _("Launcher")
         elif kind in ("choice", "desktop"):
             choices = list(info[4])
             if kind == "desktop":

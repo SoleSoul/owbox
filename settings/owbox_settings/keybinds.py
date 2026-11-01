@@ -13,6 +13,7 @@ finalactions) are kept as they are and shown as advanced."""
 
 import copy
 import os
+import shutil
 import xml.etree.ElementTree as ET
 from gettext import gettext as _
 
@@ -41,6 +42,27 @@ MENUS = [("root-menu", _("Root menu")), ("client-menu", _("Window menu")),
 
 # (action name, label, option element, option kind, choices)
 # option kinds: None, "text", "command", "desktop", "choice"
+# what TogglePanels can run with the panels: (command, name), the first
+# ones always offered, the others when they are installed
+LAUNCHERS = [("owbox-launcher", _("The first installed of fuzzel, wofi, "
+                                  "rofi, tofi and bemenu")),
+             ("", _("None, only the panels"))]
+KNOWN_LAUNCHERS = [("fuzzel", "fuzzel"), ("wofi --show drun", "wofi"),
+                   ("rofi -show drun", "rofi"),
+                   ("tofi-drun --drun-launch=true", "tofi"),
+                   ("bemenu-run", "bemenu")]
+
+
+def launcher_choices(current=None):
+    """The launchers to choose from, with the current one even when it's
+    none of them"""
+    choices = LAUNCHERS + [(c, n) for c, n in KNOWN_LAUNCHERS
+                           if shutil.which(c.split()[0])]
+    if current is not None and current not in [c[0] for c in choices]:
+        choices.append((current, current))
+    return choices
+
+
 ACTIONS = [
     ("Execute", _("Run a command"), "command", "command", None),
     ("ShowMenu", _("Show a menu"), "menu", "choice", MENUS),
@@ -65,7 +87,7 @@ ACTIONS = [
      "choice", EDGES),
     ("Unsnap", _("Unsnap the window"), None, None, None),
     ("TogglePanels", _("Show the panels, and a launcher"), "launcher",
-     "text", None),
+     "launcher", None),
     ("Raise", _("Raise the window"), None, None, None),
     ("Lower", _("Lower the window"), None, None, None),
     ("ToggleShowDesktop", _("Show the desktop"), None, None, None),

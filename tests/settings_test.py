@@ -156,6 +156,8 @@ def main():
           "[Appearance]\nstyle=Fusion\nicon_theme=Papirus\n\n"
           "[Fonts]\nfixed=x\n", qt)
 
+    check_autostart(tmp)
+
     # owbox reads the result without complaints
     owbox = os.path.join(ROOT, "build", "owbox")
     out = os.path.join(tmp, "run")
@@ -180,8 +182,10 @@ def main():
                        capture_output=True, text=True, timeout=60)
     subprocess.run([os.path.join(HERE, "stop.sh"), out])
     check("the window shows every page", r.stdout.strip() ==
-          "pages: theme appearance applications windows displays desktops "
-          "keyboard mouse keys autostart" and "Traceback" not in r.stderr,
+          "pages: theme appearance applications windows panels displays "
+          "desktops keyboard mouse keys autostart\n"
+          "the panels key keeps its launcher: owbox-launcher" and
+          "Traceback" not in r.stderr,
           r.stdout + r.stderr[-2000:])
 
     if not failures:
@@ -190,6 +194,79 @@ def main():
         print("output in", tmp)
     print("%d failed" % len(failures) if failures else "all passed")
     return 1 if failures else 0
+
+
+def check_autostart(tmp):
+    """The applications and services the Autostart page lists, and turning
+    them off and on"""
+    from owbox_settings import autostart, services
+    saved = {k: os.environ.get(k) for k in
+             ("XDG_CONFIG_HOME", "XDG_CONFIG_DIRS", "XDG_CURRENT_DESKTOP")}
+    home = os.path.join(tmp, "auto-home")
+    system = os.path.join(tmp, "auto-system")
+    os.environ.update(XDG_CONFIG_HOME=home, XDG_CONFIG_DIRS=system,
+                      XDG_CURRENT_DESKTOP="owbox")
+
+    def write(path, text):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            f.write(text)
+    entry = "[Desktop Entry]\nType=Application\nName=%s\nExec=true\n"
+    write(os.path.join(system, "autostart", "a.desktop"), entry % "A")
+    write(os.path.join(system, "autostart", "gnome.desktop"),
+          entry % "G" + "OnlyShowIn=GNOME;\n")
+    write(os.path.join(system, "autostart", "missing.desktop"),
+          entry % "M" + "TryExec=/nonexistent\n")
+    write(os.path.join(home, "autostart", "d.desktop"),
+          entry % "D" + "Hidden=true\n")
+
+    def listed():
+        return [(e.name, e.on) for e in autostart.xdg_entries()]
+    check("lists the applications meant for owbox", listed() ==
+          [("A", True), ("D", False)], listed())
+    a = autostart.xdg_entries()[0]
+    autostart.set_xdg_on(a, False)
+    check("turns a system's application off with a copy", listed() ==
+          [("A", False), ("D", False)] and
+          "Hidden=true" in open(os.path.join(home, "autostart",
+                                             "a.desktop")).read(), listed())
+    autostart.set_xdg_on(autostart.xdg_entries()[0], True)
+    check("and on again, removing the copy", listed()[0] == ("A", True) and
+          not os.path.exists(os.path.join(home, "autostart", "a.desktop")),
+          listed())
+    autostart.set_xdg_on(autostart.xdg_entries()[1], True)
+    check("turns the user's application on", listed()[1] == ("D", True) and
+          "Hidden" not in open(os.path.join(home, "autostart",
+                                            "d.desktop")).read(), listed())
+
+    units = os.path.join(tmp, "auto-units")
+    unit = "[Unit]\nDescription=%s\n\n[Service]\nExecStart=true\n\n" \
+        "[Install]\nWantedBy=%s\n"
+    write(os.path.join(units, "bar.service"),
+          unit % ("A bar", "graphical-session.target"))
+    write(os.path.join(units, "other.service"),
+          unit % ("Other", "default.target"))
+    write(os.path.join(units, "dock.service"),
+          unit % ("A dock", "graphical-session.target"))
+    wants = os.path.join(home, "systemd", "user",
+                         "graphical-session.target.wants")
+    os.makedirs(wants)
+    os.symlink(os.path.join(units, "bar.service"),
+               os.path.join(wants, "bar.service"))
+    saved_dirs = services.SYSTEM_DIRS
+    services.SYSTEM_DIRS = [os.path.join(tmp, "auto-etc"), units]
+    found = [(s.name, s.description, s.enabled)
+             for s in services.session_services()]
+    services.SYSTEM_DIRS = saved_dirs
+    check("lists the services of the session", found ==
+          [("bar.service", "A bar", "user"),
+           ("dock.service", "A dock", None)], found)
+
+    for k, v in saved.items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
 
 
 def desktop_main():
@@ -255,6 +332,11 @@ def window_main():
             shown.append(win.stack.get_page(child).get_name())
             child = child.get_next_sibling()
         print("pages:", " ".join(shown))
+        # the key's dialog keeps TogglePanels' launcher
+        from owbox_settings.page_input import BindingDialog
+        d = BindingDialog(win, win.panels_binding())
+        print("the panels key keeps its launcher:", d.option())
+        d.destroy()
         a.quit()
 
     a.connect("activate", lambda *args: GLib.idle_add(show_pages))

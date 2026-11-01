@@ -25,14 +25,15 @@ from .widgets import label, SAVE_DELAY  # noqa: E402
 from .page_look import LookPages  # noqa: E402
 from .page_windows import WindowsPages  # noqa: E402
 from .page_input import InputPages  # noqa: E402
+from .page_panels import PanelsPages  # noqa: E402
 from .page_autostart import AutostartPages  # noqa: E402
 
 
 APP_ID = "org.owbox.Settings"
 
 
-class SettingsWindow(LookPages, WindowsPages, InputPages, AutostartPages,
-                     Gtk.ApplicationWindow):
+class SettingsWindow(LookPages, WindowsPages, PanelsPages, InputPages,
+                     AutostartPages, Gtk.ApplicationWindow):
     def __init__(self, app, path):
         super().__init__(application=app, title=_("owbox Settings"))
         self.set_default_size(820, 620)
@@ -63,6 +64,7 @@ class SettingsWindow(LookPages, WindowsPages, InputPages, AutostartPages,
                  ("applications", _("Applications"),
                   self.page_applications),
                  ("windows", _("Windows"), self.page_windows),
+                 ("panels", _("Panels"), self.page_panels),
                  ("displays", _("Displays"), self.page_displays),
                  ("desktops", _("Desktops"), self.page_desktops),
                  ("keyboard", _("Keyboard"), self.page_keyboard),

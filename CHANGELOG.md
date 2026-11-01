@@ -16,6 +16,14 @@
   which rounds its size to whole character cells: the next GrowToEdge
   asked for the same edge again. It now goes on to the next edge, as
   labwc does.
+- owbox Settings has a Panels page: starting waybar with the session, and
+  the panels on a key (the key, the launcher, hiding and dimming), which
+  were spread over the Appearance and Key Bindings pages.
+- owbox Settings' Autostart page also lists the applications of XDG
+  autostart (~/.config/autostart) and the systemd user services that
+  start with the session, like waybar, each with a switch.
+- Fixed: changing the Super key's binding in owbox Settings removed its
+  launcher, so tapping Super showed the panels without it.
 
 ## 0.5.0 (2026-10-31)
 

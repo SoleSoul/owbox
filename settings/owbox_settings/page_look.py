@@ -71,18 +71,6 @@ class LookPages:
                          "keep their size, the Displays page scales "
                          "everything.")))
 
-        box.append(section(_("Panels")))
-        box.append(row(_("Hide the panels until Super is tapped"),
-                       self.switch("owbox/panels/autoHide", False),
-                       _("Bars along the screen's edges (like waybar) come up "
-                         "with the launcher when Super is pressed alone, and "
-                         "go with Escape, a click elsewhere or switching to "
-                         "a window")))
-        dims = [("0", _("No")), ("20", _("A little")), ("40", _("Some")),
-                ("60", _("Much"))]
-        box.append(row(_("Dim the windows meanwhile"),
-                       self.dropdown("owbox/panels/dim", dims, "40")))
-
         box.append(section(_("Title bar")))
         layout = Gtk.Entry(text=self.rc.get("theme/titleLayout", "NLIMC"))
         layout.connect("changed", lambda w: self.set("theme/titleLayout",

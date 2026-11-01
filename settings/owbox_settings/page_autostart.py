@@ -13,9 +13,9 @@ from gettext import gettext as _
 
 import gi
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk  # noqa: E402
+from gi.repository import GLib, Gtk  # noqa: E402
 
-from . import autostart  # noqa: E402
+from . import autostart, services  # noqa: E402
 from .widgets import label, section, page_box  # noqa: E402
 
 
@@ -27,15 +27,11 @@ class AutostartPages:
     def page_autostart(self):
         scroll, box = page_box()
         box.append(section(_("Programs to start")))
-        box.append(label(_("These run when owbox starts (from %s). "
-                           "Applications in ~/.config/autostart start too.")
+        box.append(label(_("These run when owbox starts (from %s).")
                          % autostart.user_path().replace(
                              os.path.expanduser("~"), "~", 1),
                          css="dim-label"))
-        self.auto_list = Gtk.ListBox()
-        self.auto_list.add_css_class("boxed-list")
-        self.auto_list.set_selection_mode(Gtk.SelectionMode.NONE)
-        self.auto_list.set_margin_top(6)
+        self.auto_list = self.boxed_list()
         box.append(self.auto_list)
         add_box = Gtk.Box(spacing=6)
         add_box.set_margin_top(6)
@@ -54,15 +50,33 @@ class AutostartPages:
         add_box.append(add)
         box.append(add_box)
 
+        box.append(section(_("Applications")))
+        box.append(label(_("Applications set to start when you log in "
+                           "(in ~/.config/autostart, or for all users)."),
+                         css="dim-label"))
+        self.xdg_list = self.boxed_list()
+        box.append(self.xdg_list)
+
+        box.append(section(_("Services")))
+        box.append(label(_("Programs that start with the session and stop "
+                           "when it ends, like a panel (systemd user "
+                           "services)."), css="dim-label"))
+        self.services_list = self.boxed_list()
+        box.append(self.services_list)
+
+        more = label(_("owbox also starts an authentication agent (for "
+                       "administrator passwords) if one is installed.  "
+                       "Notifications, file choosers and the launcher start "
+                       "when they are needed."), css="dim-label")
+        more.set_margin_top(12)
+        box.append(more)
+
         if os.path.isfile(autostart.openbox_path()):
             box.append(section(_("From Openbox")))
             box.append(label(_("Your Openbox autostart has these. Programs "
                                "made for X are marked with what to use "
                                "instead."), css="dim-label"))
-            ob = Gtk.ListBox()
-            ob.add_css_class("boxed-list")
-            ob.set_selection_mode(Gtk.SelectionMode.NONE)
-            ob.set_margin_top(6)
+            ob = self.boxed_list()
             for cmd, note in autostart.openbox_commands():
                 r = Gtk.Box(spacing=6)
                 for side in ("start", "end", "top", "bottom"):
@@ -82,13 +96,75 @@ class AutostartPages:
                 ob.append(r)
             box.append(ob)
         self.fill_autostart()
+        self.fill_xdg()
+        self.fill_services()
         return scroll
 
-    def fill_autostart(self):
-        child = self.auto_list.get_first_child()
+    @staticmethod
+    def boxed_list():
+        lb = Gtk.ListBox()
+        lb.add_css_class("boxed-list")
+        lb.set_selection_mode(Gtk.SelectionMode.NONE)
+        lb.set_margin_top(6)
+        return lb
+
+    @staticmethod
+    def switch_row(title, subtitle, active, on_toggled, sensitive=True):
+        r = Gtk.Box(spacing=6)
+        for side in ("start", "end", "top", "bottom"):
+            getattr(r, "set_margin_" + side)(6)
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        texts.set_hexpand(True)
+        texts.append(label(title))
+        if subtitle:
+            texts.append(label(subtitle, css="dim-label"))
+        r.append(texts)
+        sw = Gtk.Switch(active=active, valign=Gtk.Align.CENTER)
+        sw.set_sensitive(sensitive)
+        sw.connect("notify::active", lambda w, p: on_toggled(w.get_active()))
+        r.append(sw)
+        return r
+
+    @staticmethod
+    def clear(lb):
+        child = lb.get_first_child()
         while child:
-            self.auto_list.remove(child)
-            child = self.auto_list.get_first_child()
+            lb.remove(child)
+            child = lb.get_first_child()
+
+    def fill_xdg(self):
+        self.clear(self.xdg_list)
+        entries = autostart.xdg_entries()
+        if not entries:
+            self.xdg_list.append(label(_("None"), css="dim-label"))
+        for e in entries:
+            self.xdg_list.append(self.switch_row(
+                e.name, e.filename, e.on,
+                lambda on, e=e: self.set_xdg_on(e, on)))
+
+    def set_xdg_on(self, entry, on):
+        try:
+            autostart.set_xdg_on(entry, on)
+        except (OSError, GLib.Error) as e:
+            self.error(_("Unable to change %s: %s") % (entry.filename, e))
+            self.fill_xdg()
+
+    def fill_services(self):
+        self.clear(self.services_list)
+        svcs = services.session_services()
+        if not svcs:
+            self.services_list.append(label(_("None"), css="dim-label"))
+        for s in svcs:
+            sub = s.description or s.name
+            if s.enabled == "system":
+                sub += "\n" + _("Turned on for all users by the system")
+            self.services_list.append(self.switch_row(
+                s.program, sub, bool(s.enabled),
+                lambda on, s=s: self.set_service(s, on, self.fill_panel),
+                sensitive=s.enabled != "system"))
+
+    def fill_autostart(self):
+        self.clear(self.auto_list)
         cmds = autostart.commands()
         if not cmds:
             self.auto_list.append(label(_("Nothing"), css="dim-label"))

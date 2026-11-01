@@ -7,13 +7,19 @@
 # (at your option) any later version.
 
 """owbox's autostart script (~/.config/owbox/autostart), one program a
-line, and what to do with the programs of an Openbox autostart."""
+line; the applications of XDG autostart (~/.config/autostart) that owbox
+runs; and what to do with the programs of an Openbox autostart."""
 
 import os
 import re
+import shutil
 from gettext import gettext as _
 
-from .rcxml import config_home
+import gi
+gi.require_version("GLib", "2.0")
+from gi.repository import GLib  # noqa: E402
+
+from .rcxml import config_home, config_dirs  # noqa: E402
 
 # programs made for X that Openbox setups start, and what does their job
 # under Wayland
@@ -126,3 +132,115 @@ def openbox_commands():
         prog = _program(cmd)
         out.append((cmd, X_PROGRAMS.get(prog)))
     return out
+
+
+# ---- XDG autostart, run by owbox like openbox-xdg-autostart does ----
+
+GROUP = "Desktop Entry"
+
+
+class Entry:
+    def __init__(self, filename, path, name, on):
+        self.filename = filename
+        self.path = path
+        self.name = name
+        self.on = on
+
+
+def _xdg_user_dir():
+    return os.path.join(config_home(), "autostart")
+
+
+def _desktops():
+    return [d.lower() for d in
+            (os.environ.get("XDG_CURRENT_DESKTOP") or "owbox").split(":")]
+
+
+def _load(path):
+    kf = GLib.KeyFile()
+    try:
+        kf.load_from_file(path, GLib.KeyFileFlags.KEEP_COMMENTS |
+                          GLib.KeyFileFlags.KEEP_TRANSLATIONS)
+    except GLib.Error:
+        return None
+    return kf if kf.has_group(GROUP) else None
+
+
+def _get(kf, key, kind="string"):
+    try:
+        return getattr(kf, "get_" + kind)(GROUP, key)
+    except GLib.Error:
+        return None
+
+
+def _for_owbox(kf):
+    """Whether owbox runs the entry when it isn't Hidden: meant for this
+    desktop, and installed"""
+    mine = _desktops()
+    only = _get(kf, "OnlyShowIn", "string_list")
+    if only is not None and not any(d.lower() in mine for d in only):
+        return False
+    nots = _get(kf, "NotShowIn", "string_list")
+    if nots is not None and any(d.lower() in mine for d in nots):
+        return False
+    tryexec = _get(kf, "TryExec")
+    if tryexec:
+        if os.path.isabs(tryexec):
+            return os.access(tryexec, os.X_OK)
+        return shutil.which(tryexec) is not None
+    return True
+
+
+def xdg_entries():
+    """The applications owbox starts from XDG autostart, and those turned
+    off (Hidden), sorted by name.  A file in the user's directory replaces
+    the system's one with the same name."""
+    seen = {}
+    for d in config_dirs():
+        d = os.path.join(d, "autostart")
+        try:
+            names = sorted(os.listdir(d))
+        except OSError:
+            continue
+        for fn in names:
+            if not fn.endswith(".desktop") or fn in seen:
+                continue
+            path = os.path.join(d, fn)
+            seen[fn] = None
+            kf = _load(path)
+            if kf is None or not _for_owbox(kf):
+                continue
+            name = _get(kf, "Name", "locale_string") or fn[:-8]
+            seen[fn] = Entry(fn, path, name,
+                             not _get(kf, "Hidden", "boolean"))
+    return sorted((e for e in seen.values() if e),
+                  key=lambda e: e.name.lower())
+
+
+def set_xdg_on(entry, on):
+    """Turn an application on or off, as the specification says: with
+    Hidden in a file of the same name in the user's directory"""
+    user = os.path.join(_xdg_user_dir(), entry.filename)
+    kf = _load(entry.path)
+    if kf is None:
+        return
+    if on:
+        try:
+            kf.remove_key(GROUP, "Hidden")
+        except GLib.Error:
+            pass
+    else:
+        kf.set_boolean(GROUP, "Hidden", True)
+    os.makedirs(_xdg_user_dir(), exist_ok=True)
+    kf.save_to_file(user)
+    entry.path = user
+    entry.on = on
+    # a copy that is the same as the system's isn't needed
+    for d in config_dirs()[1:]:
+        system = os.path.join(d, "autostart", entry.filename)
+        if os.path.isfile(system):
+            sk = _load(system)
+            if sk is not None and sk.to_data()[0] == kf.to_data()[0]:
+                os.remove(user)
+                entry.path = system
+            break
