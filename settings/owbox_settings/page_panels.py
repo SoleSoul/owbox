@@ -6,8 +6,8 @@
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 
-"""The Panels page: the panel program, and the panels mode (the key,
-the launcher, hiding and dimming)."""
+"""The Panels page: the panel program, and the panels key (the key, the
+launcher, dimming and hiding)."""
 
 import os
 from gettext import gettext as _
@@ -16,11 +16,12 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gio, GLib, Gtk  # noqa: E402
 
-from . import services  # noqa: E402
+from . import autostart, panels, services  # noqa: E402
 from .keybinds import key_label, launcher_choices  # noqa: E402
 from .widgets import label, row, section, page_box  # noqa: E402
 
-PANEL = "waybar"
+# the choice that asks for a command
+OTHER = "\0other"
 
 
 def examples_dir(name):
@@ -34,6 +35,49 @@ def examples_dir(name):
     return None
 
 
+def clear(box):
+    child = box.get_first_child()
+    while child:
+        box.remove(child)
+        child = box.get_first_child()
+
+
+def other_row(title, text, on_use):
+    """A command to type, used with Enter or the button"""
+    entry = Gtk.Entry(text=text or "", hexpand=True,
+                      placeholder_text=_("A command"))
+    use = Gtk.Button(label=_("Use"))
+    box = Gtk.Box(spacing=6)
+    box.append(entry)
+    box.append(use)
+
+    def used(*args):
+        if entry.get_text().strip():
+            on_use(entry.get_text().strip())
+    entry.connect("activate", used)
+    use.connect("clicked", used)
+    return row(title, box)
+
+
+def choice_dropdown(choices, current, on_choose, on_other):
+    """A dropdown of (value, name), and Other command… at the end"""
+    choices = list(choices) + [(OTHER, _("Other command…"))]
+    values = [c[0] for c in choices]
+    dd = Gtk.DropDown.new_from_strings([c[1] for c in choices])
+    if current in values:
+        dd.set_selected(values.index(current))
+
+    def chosen(w, p):
+        v = values[w.get_selected()]
+        # the page is rebuilt after a change, not while in its signal
+        if v == OTHER:
+            GLib.idle_add(lambda: on_other() and False)
+        elif v != current:
+            GLib.idle_add(lambda: on_choose(v) and False)
+    dd.connect("notify::selected", chosen)
+    return dd
+
+
 class PanelsPages:
     """Panels"""
 
@@ -44,99 +88,83 @@ class PanelsPages:
         self.panel_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         box.append(self.panel_box)
 
-        box.append(section(_("Panels on a key")))
-        box.append(label(_("A key brings the panels above the dimmed "
-                           "windows, with a launcher.  They go with Escape, "
-                           "a click elsewhere or switching to a window."),
+        box.append(section(_("The panels key")))
+        box.append(label(_("Tap a key to bring up the panels and a launcher "
+                           "above the dimmed windows.  Escape, a click "
+                           "elsewhere or picking a window puts them away."),
                          css="dim-label"))
         self.panels_key_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         box.append(self.panels_key_box)
-        box.append(row(_("Hide the panels until then"),
-                       self.switch("owbox/panels/autoHide", False),
-                       _("The windows get the whole screen")))
-        dims = [("0", _("No")), ("20", _("A little")), ("40", _("Some")),
-                ("60", _("Much"))]
-        box.append(row(_("Dim the windows meanwhile"),
-                       self.dropdown("owbox/panels/dim", dims, "40")))
 
         self.fill_panel()
         self.fill_panels()
         return scroll
 
-    def fill_panel(self):
-        """The panel program, and whether it starts with the session"""
+    # ---- the panel program ----
+
+    def fill_panel(self, other=False):
+        """other: show the command to type"""
         box = self.panel_box
-        child = box.get_first_child()
-        while child:
-            box.remove(child)
-            child = box.get_first_child()
-        svc = services.find(PANEL + ".service")
-        if svc is None:
-            box.append(label(_("Install waybar for a panel: a bar along an "
-                               "edge of the screen with the windows, the "
-                               "desktops, the time and the tray."),
-                             css="dim-label"))
-            return
-        sw = Gtk.Switch(active=bool(svc.enabled))
-        sw.set_sensitive(svc.enabled != "system")
-        sw.connect("notify::active", lambda w, p: self.set_service(
-            svc, w.get_active(), self.fill_panel))
-        box.append(row(_("Start waybar with the session"), sw,
-                       _("Turned on for all users by the system")
-                       if svc.enabled == "system" else
-                       _("The waybar service, also listed in Autostart")))
-        examples = examples_dir(PANEL)
+        clear(box)
+        cmd, svc = panels.current()
+        choices = [("", _("None"))] + panels.installed()
+        if cmd and cmd not in [c[0] for c in choices]:
+            choices.append((cmd, cmd))
+        if svc is not None:
+            hint = _("Started when you log in, by its service (%s)") % \
+                svc.name
+        elif cmd:
+            hint = _("Started when you log in, from Autostart.  A change "
+                     "applies at the next login.")
+        else:
+            hint = _("A bar along an edge of the screen, like waybar")
+        dd = choice_dropdown(choices, OTHER if other else (cmd or ""),
+                             self.set_panel, lambda: self.fill_panel(True))
+        box.append(row(_("Panel program"), dd, hint))
+        if other:
+            box.append(other_row(_("Command"), "", self.set_panel))
+        if len(choices) == 1 and not other:
+            box.append(label(_("Install waybar for a panel with the "
+                               "windows, the desktops, the time and the "
+                               "tray."), css="dim-label"))
+        examples = examples_dir("waybar")
         conf = os.path.join(os.environ.get("XDG_CONFIG_HOME") or
-                            os.path.expanduser("~/.config"), PANEL)
-        if examples and not os.path.isdir(conf):
+                            os.path.expanduser("~/.config"), "waybar")
+        if cmd == "waybar" and examples and not os.path.isdir(conf):
             box.append(label(_("owbox's configuration for waybar, made for "
-                               "the panels on a key, is in %s.  Copy it to "
-                               "%s to use it.") %
+                               "the panels key, is in %s.  Copy it to %s to "
+                               "use it.") %
                              (examples, conf.replace(os.path.expanduser("~"),
                                                      "~", 1)),
                              css="dim-label"))
 
-    def panels_binding(self):
-        for b in self.keys.bindings():
-            if b.action_name().lower() == "togglepanels":
-                return b
-        return None
+    def set_panel(self, cmd):
+        """Start cmd with the session instead of the panel started now
+        ("" for none)"""
+        old, old_svc = panels.current()
+        if cmd == (old or ""):
+            self.fill_panel()
+            return
+        new_svc = panels.service_of(cmd)
 
-    def fill_panels(self):
-        """The key and the launcher (TogglePanels' binding)"""
-        box = self.panels_key_box
-        child = box.get_first_child()
-        while child:
-            box.remove(child)
-            child = box.get_first_child()
-        b = self.panels_binding()
+        def refresh():
+            self.fill_panel()
+            self.fill_autostart()
 
-        keys = Gtk.Box(spacing=12)
-        name = label(key_label(b.key) if b else _("None"),
-                     css=None if b else "dim-label")
-        name.set_wrap(False)
-        keys.append(name)
-        change = Gtk.Button(label=_("Change…") if b else _("Choose…"))
-        change.connect("clicked", lambda w: self.edit_binding(
-            b, action="TogglePanels"))
-        keys.append(change)
-        box.append(row(_("Key"), keys,
-                       _("A key alone, like Super, works when it's tapped")))
-
-        current = b.option() if b else None
-        choices = launcher_choices(current or "")
-        values = [c[0] for c in choices]
-        dd = Gtk.DropDown.new_from_strings([c[1] for c in choices])
-        dd.set_selected(values.index(current or ""))
-        dd.set_sensitive(b is not None and b.is_simple())
-
-        def on_launcher(w, p):
-            self.ensure_user_file()
-            b.set_action("TogglePanels", values[w.get_selected()])
-            self.changed()
-            self.fill_keys()
-        dd.connect("notify::selected", on_launcher)
-        box.append(row(_("Launcher"), dd))
+        def start_new():
+            try:
+                autostart.set_panel(None if new_svc else cmd)
+            except OSError as e:
+                self.error(_("Unable to save %s: %s") %
+                           (autostart.user_path(), e))
+            if new_svc is not None:
+                self.set_service(new_svc, True, refresh)
+            else:
+                refresh()
+        if old_svc is not None:
+            self.set_service(old_svc, False, start_new)
+        else:
+            start_new()
 
     def set_service(self, svc, on, done):
         """Turn a service on or off with systemctl, then call done()"""
@@ -158,11 +186,64 @@ class PanelsPages:
                 self.error((_("Unable to turn %s on: %s") if on else
                             _("Unable to turn %s off: %s")) %
                            (svc.program, (err or "").strip()))
-            self.services_changed()
+            self.fill_services()
             done()
         proc.communicate_utf8_async(None, None, finished)
 
-    def services_changed(self):
-        if getattr(self, "fill_services", None):
-            self.fill_services()
+    # ---- the panels key ----
 
+    def panels_binding(self):
+        for b in self.keys.bindings():
+            if b.action_name().lower() == "togglepanels":
+                return b
+        return None
+
+    def fill_panels(self, other=False):
+        """The key, the launcher (TogglePanels' binding), dimming and
+        hiding.  other: show the launcher command to type"""
+        box = self.panels_key_box
+        clear(box)
+        b = self.panels_binding()
+
+        keys = Gtk.Box(spacing=12)
+        name = label(key_label(b.key) if b else _("None"),
+                     css=None if b else "dim-label")
+        name.set_wrap(False)
+        keys.append(name)
+        change = Gtk.Button(label=_("Change…") if b else _("Choose…"))
+        change.connect("clicked", lambda w: self.edit_binding(
+            b, action="TogglePanels"))
+        keys.append(change)
+        box.append(row(_("Key"), keys,
+                       _("A key alone, like Super, or two together, like "
+                         "Ctrl+Super")))
+
+        current = (b.option() or "") if b else ""
+        dd = choice_dropdown(launcher_choices(current),
+                             OTHER if other else current, self.set_launcher,
+                             lambda: self.fill_panels(True))
+        dd.set_sensitive(b is not None and b.is_simple())
+        box.append(row(_("Launcher"), dd))
+        if other:
+            box.append(other_row(_("Command"), current, self.set_launcher))
+
+        dims = [("0", _("No")), ("20", _("A little")), ("40", _("Some")),
+                ("60", _("Much"))]
+        box.append(row(_("Dim the windows"),
+                       self.dropdown("owbox/panels/dim", dims, "40")))
+
+        hide = self.switch("owbox/panels/autoHide", False)
+        hide.set_sensitive(b is not None)
+        box.append(row(_("Hide the panels the rest of the time"), hide,
+                       _("Only the key shows them, and the windows get the "
+                         "whole screen") if b else
+                       _("Choose a key first, it's what shows them")))
+
+    def set_launcher(self, cmd):
+        b = self.panels_binding()
+        if b is None:
+            return
+        self.ensure_user_file()
+        b.set_action("TogglePanels", cmd)
+        self.changed()
+        self.bindings_changed()

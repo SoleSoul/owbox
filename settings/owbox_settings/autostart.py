@@ -86,10 +86,16 @@ def _command_lines(lines):
     return [l for l in lines if l.strip() and not l.strip().startswith("#")]
 
 
+# the comment that marks the panel's line
+PANEL_MARK = "# panel"
+
+
 def _plain(line):
     """The command of a line, without the & that puts it in the
-    background"""
+    background, and the panel's mark"""
     line = line.strip()
+    if line.endswith(PANEL_MARK):
+        line = line[:-len(PANEL_MARK)].rstrip()
     return line[:-1].rstrip() if line.endswith("&") else line
 
 
@@ -112,6 +118,37 @@ def remove(cmd):
     lines = [l for l in _read(user_path())
              if not (l.strip() and not l.strip().startswith("#") and
                      _plain(l) == cmd)]
+    _write(lines)
+
+
+def panel():
+    """The panel the autostart starts: the command marked as the panel, or
+    the first known panel"""
+    from .panels import KNOWN_PANELS
+    lines = _command_lines(_read(user_path()))
+    for l in lines:
+        if l.strip().endswith(PANEL_MARK):
+            return _plain(l)
+    for l in lines:
+        if _program(_plain(l)) in [p[0] for p in KNOWN_PANELS]:
+            return _plain(l)
+    return None
+
+
+def set_panel(cmd):
+    """Start cmd as the panel instead of the one started now (None for
+    none)"""
+    old = panel()
+    lines = _read(user_path())
+    if old is not None:
+        lines = [l for l in lines
+                 if not (l.strip() and not l.strip().startswith("#") and
+                         _plain(l) == old)]
+    if cmd:
+        if not lines:
+            lines = ["# Programs to run when owbox starts, written by owbox "
+                     "Settings."]
+        lines.append(cmd + " & " + PANEL_MARK)
     _write(lines)
 
 

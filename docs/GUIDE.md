@@ -133,8 +133,10 @@ protocols. (Packages are in the official repositories unless marked AUR.)
 
 Tapping Super (pressing and releasing it alone) shows the panels and the
 launcher over the dimmed windows, until Escape, a click elsewhere, or
-switching to a window. To keep the panels hidden the rest of the time, so
-windows have the whole screen, in `~/.config/owbox/rc.xml`:
+switching to a window. owbox Settings' *Panels* page chooses the panel,
+the key, the launcher, the dimming and whether the panels stay hidden the
+rest of the time. In `~/.config/owbox/rc.xml`, keeping them hidden, so
+windows have the whole screen, is:
 
 ```xml
 <owbox>
@@ -145,7 +147,8 @@ windows have the whole screen, in `~/.config/owbox/rc.xml`:
 </owbox>
 ```
 
-The binding is an ordinary key binding with the `tap` attribute:
+The binding is an ordinary key binding with the `tap` attribute (any key,
+or two modifiers together like `C-Super_L`):
 
 ```xml
 <keybind key="Super_L" tap="yes">

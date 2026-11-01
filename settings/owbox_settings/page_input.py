@@ -16,7 +16,7 @@ gi.require_version("Gdk", "4.0")
 from gi.repository import Gdk, Gtk  # noqa: E402
 
 from .keybinds import (ACTIONS, key_label, key_from_event, TAP_KEYS,  # noqa: E402
-                       launcher_choices)
+                       launcher_choices, tap_from_keys)
 from . import xkb  # noqa: E402
 from .widgets import label, row, section, page_box  # noqa: E402
 
@@ -359,6 +359,7 @@ class BindingDialog(Gtk.Window):
         self.binding = binding
         self.key = binding.key if binding else ""
         self.recording = False
+        self.held = []
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         for side in ("start", "end", "top", "bottom"):
@@ -473,6 +474,7 @@ class BindingDialog(Gtk.Window):
 
     def start_recording(self, *args):
         self.recording = True
+        self.held = []
         self.key_button.set_label(_("Press the keys… (Escape to cancel)"))
         # owbox's own bindings would take the keys, ask it to let this
         # window have them while choosing
@@ -493,9 +495,13 @@ class BindingDialog(Gtk.Window):
         if not self.recording:
             return False
         name = Gdk.keyval_name(Gdk.keyval_to_lower(keyval)) or ""
-        # a modifier alone is a key when it's released without another key
-        # (a tap, like Super for the panels)
-        self.lone_key = name if name in TAP_KEYS else None
+        # modifiers alone are a key when they're released without another
+        # key (a tap, like Super for the panels, or Ctrl+Super)
+        if name in TAP_KEYS:
+            if name not in self.held:
+                self.held.append(name)
+        else:
+            self.held = []
         if name in ("Shift_L", "Shift_R", "Control_L", "Control_R", "Alt_L",
                     "Alt_R", "Super_L", "Super_R", "Meta_L", "Meta_R",
                     "ISO_Level3_Shift", "Hyper_L", "Hyper_R", "Caps_Lock",
@@ -517,10 +523,10 @@ class BindingDialog(Gtk.Window):
 
     def on_key_released(self, controller, keyval, keycode, state):
         name = Gdk.keyval_name(Gdk.keyval_to_lower(keyval)) or ""
-        if not self.recording or name != getattr(self, "lone_key", None):
+        if not self.recording or name not in self.held:
             return
-        self.key = name
-        self.lone_key = None
+        self.key = tap_from_keys(self.held)
+        self.held = []
         self.stop_recording()
         self.update()
 

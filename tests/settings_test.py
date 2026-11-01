@@ -15,7 +15,8 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "settings"))
 
 from owbox_settings.rcxml import RcXml  # noqa: E402
-from owbox_settings.keybinds import KeyBindings, key_label  # noqa: E402
+from owbox_settings.keybinds import (KeyBindings, key_label,  # noqa: E402
+                                    tap_from_keys)
 
 failures = []
 
@@ -88,8 +89,13 @@ def main():
     b = KeyBindings(RcXml(path)).find("Super_R")
     check("a modifier alone is bound as a tap",
           b is not None and b.elem.get("tap") == "yes" and
-          b.option() == "fuzzel" and key_label("Super_R") == "Right Super (alone)",
+          b.option() == "fuzzel" and key_label("Super_R") == "Right Super (tap)",
           b.elem.attrib if b is not None else None)
+    check("modifiers together are a tap",
+          tap_from_keys(["Control_L", "Super_L"]) == "C-Super_L" and
+          tap_from_keys(["Super_L", "Alt_L"]) == "W-Alt_L" and
+          key_label("C-Super_L") == "Ctrl+Super (tap)",
+          (tap_from_keys(["Control_L", "Super_L"]), key_label("C-Super_L")))
     check("media key labels", key_label("XF86AudioMute") == "Mute" and
           key_label("S-Print") == "Shift+Print Screen",
           key_label("S-Print"))
@@ -238,6 +244,18 @@ def check_autostart(tmp):
     check("turns the user's application on", listed()[1] == ("D", True) and
           "Hidden" not in open(os.path.join(home, "autostart",
                                             "d.desktop")).read(), listed())
+
+    autostart.add("swaybg -i x.jpg")
+    autostart.set_panel("mybar --top")
+    autostart.set_panel("yambar")
+    check("the panel's autostart line is replaced", autostart.panel() ==
+          "yambar" and autostart.commands() == ["swaybg -i x.jpg", "yambar"],
+          autostart.commands())
+    autostart.set_panel(None)
+    autostart.add("waybar")
+    check("a known panel in the autostart is the panel",
+          autostart.panel() == "waybar", autostart.panel())
+    autostart.remove("waybar")
 
     units = os.path.join(tmp, "auto-units")
     unit = "[Unit]\nDescription=%s\n\n[Service]\nExecStart=true\n\n" \

@@ -128,11 +128,18 @@ KEY_NAMES = {
 }
 
 
+def is_tap(key):
+    """A modifier alone, or with other modifiers (C-Super_L), is a tap"""
+    return key.split("-")[-1] in TAP_KEYS
+
+
 def key_label(key):
-    """'W-A-Left' -> 'Super+Alt+Left'"""
-    if key in TAP_KEYS:
-        return _("%s (alone)") % TAP_KEYS[key]
+    """'W-A-Left' -> 'Super+Alt+Left', 'C-Super_L' -> 'Ctrl+Super (tap)'"""
     parts = key.split("-")
+    if is_tap(key):
+        names = dict(MODIFIERS)
+        return _("%s (tap)") % "+".join(
+            [names.get(p, p) for p in parts[:-1]] + [TAP_KEYS[parts[-1]]])
     # a key that is a minus sign: 'C--'
     if key.endswith("--"):
         parts = key[:-2].split("-") + ["-"]
@@ -143,6 +150,22 @@ def key_label(key):
         k = k.upper()
     k = KEY_NAMES.get(k, k)
     return "+".join(out + [k])
+
+
+# the prefix of each modifier key, for taps of modifiers together
+MODIFIER_PREFIX = {"Control": "C", "Alt": "A", "Shift": "S", "Super": "W"}
+
+
+def tap_from_keys(held):
+    """The binding for modifier keys pressed together and released, in the
+    order they were pressed: [Control_L, Super_L] -> 'C-Super_L'"""
+    mods = []
+    for k in held[:-1]:
+        m = MODIFIER_PREFIX.get(k.split("_")[0])
+        if m and m not in mods:
+            mods.append(m)
+    order = "CASW"
+    return "-".join(sorted(mods, key=order.index) + [held[-1]])
 
 
 def key_from_event(keyname, ctrl, alt, shift, super_):
@@ -165,8 +188,8 @@ class Binding:
     @key.setter
     def key(self, value):
         self.elem.set("key", value)
-        # a modifier alone works when it's tapped
-        if value in TAP_KEYS:
+        # a modifier alone (or modifiers together) works when it's tapped
+        if is_tap(value):
             self.elem.set("tap", "yes")
         elif "tap" in self.elem.attrib:
             del self.elem.attrib["tap"]
