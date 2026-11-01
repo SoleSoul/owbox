@@ -15,7 +15,6 @@ What is done is in [CHANGELOG.md](../CHANGELOG.md).
   factor), so they're sharp on outputs at scale 2 and fractional scales.
 - **Touchpad gestures as bindings**, for example
   `<mousebind button="Swipe3Left" action="Gesture">` in rc.xml.
-- **xdg-toplevel-icon**, so Wayland clients can set their window icon.
 - **Text input / input methods** (text-input-v3, input-method-v2) for
   CJK input.
 - **Tablets** (tablet-v2).

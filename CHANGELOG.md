@@ -12,6 +12,9 @@
   monitors on too.
 - owbox tells logind when the session is idle and when it is locked
   (`loginctl` shows it, logind's `IdleAction` works).
+- Wayland applications can set their window icon (xdg-toplevel-icon), as
+  Qt and SDL applications do; owbox shows it in the title bar, the window
+  lists and Alt-Tab, instead of the desktop entry's.
 - An X application launched with startup notification opens on the desktop
   it was launched from, as in Openbox.
 - layer-shell version 5 (panels can choose their exclusive edge) and

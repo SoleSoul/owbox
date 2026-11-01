@@ -35,14 +35,18 @@
 #include "toplevel.h"
 #include "debug.h"
 #include "layers.h"
+#include "icons.h"
 #include "xdg-shell-protocol.h"
 
+#include <drm_fourcc.h>
+#include <wlr/interfaces/wlr_buffer.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_server_decoration.h>
 #include <wlr/types/wlr_xdg_decoration_v1.h>
 #include <wlr/types/wlr_xdg_shell.h>
+#include <wlr/types/wlr_xdg_toplevel_icon_v1.h>
 #include <wlr/util/edges.h>
 
 typedef struct {
@@ -60,6 +64,9 @@ typedef struct {
 
     /*! The minimum and maximum size last seen, to notice changes */
     gint min_w, min_h, max_w, max_h;
+
+    /*! The icon the client set (xdg-toplevel-icon), or NULL */
+    struct wlr_xdg_toplevel_icon_v1 *icon;
 
     struct wl_listener map;
     struct wl_listener unmap;
@@ -92,6 +99,7 @@ static struct wl_listener new_toplevel;
 static struct wl_listener new_popup;
 static struct wl_listener new_decoration;
 static struct wl_listener new_kde_decoration;
+static struct wl_listener set_icon;
 static GList *kde_decorations = NULL;
 
 #define XDG(c) ((ObXdgToplevel*)(c)->impl_data)
@@ -300,9 +308,71 @@ static ObClient* xdg_get_parent(ObClient *self)
     return NULL;
 }
 
+/* an icon's pixels, which are premultiplied, as _NET_WM_ICON's (which
+   RrPixel32 is) aren't */
+static RrPixel32* icon_pixels(struct wlr_buffer *buffer, gint *size)
+{
+    void *data;
+    uint32_t format;
+    size_t stride;
+    RrPixel32 *pixels = NULL;
+    gint x, y;
+
+    if (!wlr_buffer_begin_data_ptr_access(buffer,
+                                          WLR_BUFFER_DATA_PTR_ACCESS_READ,
+                                          &data, &format, &stride))
+        return NULL;
+    if ((format == DRM_FORMAT_ARGB8888 || format == DRM_FORMAT_XRGB8888) &&
+        buffer->width > 0 && buffer->width <= 1024)
+    {
+        *size = buffer->width;
+        pixels = g_new(RrPixel32, *size * *size);
+        for (y = 0; y < *size; ++y) {
+            const guint32 *row = (const guint32*)((guint8*)data + y * stride);
+            for (x = 0; x < *size; ++x) {
+                guint32 p = row[x];
+                guint32 a = format == DRM_FORMAT_XRGB8888 ? 0xff : p >> 24;
+                guint32 r = (p >> 16) & 0xff, g = (p >> 8) & 0xff,
+                    b = p & 0xff;
+                if (a && a < 0xff) {
+                    r = MIN(r * 0xff / a, 0xff);
+                    g = MIN(g * 0xff / a, 0xff);
+                    b = MIN(b * 0xff / a, 0xff);
+                }
+                pixels[y * *size + x] = (a << 24) | (r << 16) | (g << 8) | b;
+            }
+        }
+    }
+    wlr_buffer_end_data_ptr_access(buffer);
+    return pixels;
+}
+
 static RrImage* xdg_get_icon(ObClient *self)
 {
-    return toplevel_find_icon(self);
+    struct wlr_xdg_toplevel_icon_v1 *icon = XDG(self)->icon;
+    struct wlr_xdg_toplevel_icon_v1_buffer *b;
+    RrImage *img = NULL;
+
+    if (icon) {
+        /* its name in the icon theme, or else its pixels */
+        if (icon->name)
+            img = icons_load(icon->name, ob_scaled(64));
+        if (!img)
+            wl_list_for_each(b, &icon->buffers, link) {
+                RrPixel32 *pixels;
+                gint size;
+                if (!(pixels = icon_pixels(b->buffer, &size)))
+                    continue;
+                if (!img)
+                    img = RrImageNewFromData(ob_rr_icons, pixels, size,
+                                             size);
+                else
+                    RrImageAddFromData(img, pixels, size, size);
+                g_free(pixels);
+            }
+    }
+    /* or the icon of the application's desktop entry */
+    return img ? img : toplevel_find_icon(self);
 }
 
 static gboolean xdg_configure(ObClient *self, gint x, gint y, gint w, gint h)
@@ -521,6 +591,8 @@ static void handle_destroy(struct wl_listener *l, void *data)
 
     if (x->client->managed)
         client_unmanage(x->client);
+    if (x->icon)
+        wlr_xdg_toplevel_icon_v1_unref(x->icon);
     if (x->decoration) {
         wl_list_remove(&x->decoration_request_mode.link);
         wl_list_remove(&x->decoration_destroy.link);
@@ -755,6 +827,23 @@ static void handle_new_popup(struct wl_listener *l, void *data)
     xdg_popup_add(popup, parent_tree);
 }
 
+static void handle_set_icon(struct wl_listener *l, void *data)
+{
+    struct wlr_xdg_toplevel_icon_manager_v1_set_icon_event *ev = data;
+    struct wlr_scene_tree *tree = ev->toplevel->base->data;
+    ObNode *node = tree ? tree->node.data : NULL;
+    ObXdgToplevel *x;
+
+    if (!node || !node->owner || !WINDOW_IS_CLIENT(node->owner)) return;
+    x = XDG(WINDOW_AS_CLIENT(node->owner));
+    if (x->icon)
+        wlr_xdg_toplevel_icon_v1_unref(x->icon);
+    /* NULL goes back to the desktop entry's */
+    x->icon = ev->icon ? wlr_xdg_toplevel_icon_v1_ref(ev->icon) : NULL;
+    if (x->client->managed)
+        client_update_icons(x->client);
+}
+
 void xdg_init(void)
 {
     server.xdg_shell = wlr_xdg_shell_create(server.display, 7);
@@ -781,6 +870,11 @@ void xdg_init(void)
     new_kde_decoration.notify = handle_new_kde_decoration;
     wl_signal_add(&server.kde_decoration->events.new_decoration,
                   &new_kde_decoration);
+
+    server.toplevel_icon =
+        wlr_xdg_toplevel_icon_manager_v1_create(server.display, 1);
+    set_icon.notify = handle_set_icon;
+    wl_signal_add(&server.toplevel_icon->events.set_icon, &set_icon);
 }
 
 void xdg_finish(void)
@@ -789,4 +883,5 @@ void xdg_finish(void)
     wl_list_remove(&new_popup.link);
     wl_list_remove(&new_decoration.link);
     wl_list_remove(&new_kde_decoration.link);
+    wl_list_remove(&set_icon.link);
 }

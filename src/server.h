@@ -66,8 +66,6 @@ struct wlr_tearing_control_manager_v1;
 struct wlr_output_power_manager_v1;
 struct wlr_gamma_control_manager_v1;
 struct wlr_xdg_output_manager_v1;
-struct wlr_text_input_manager_v3;
-struct wlr_input_method_manager_v2;
 struct wlr_virtual_keyboard_manager_v1;
 struct wlr_virtual_pointer_manager_v1;
 struct wlr_data_device_manager;
@@ -146,8 +144,6 @@ struct _ObServer {
     struct wlr_keyboard_shortcuts_inhibit_manager_v1 *shortcuts_inhibit;
     struct wlr_virtual_keyboard_manager_v1 *virtual_keyboard;
     struct wlr_virtual_pointer_manager_v1 *virtual_pointer;
-    struct wlr_text_input_manager_v3 *text_input;
-    struct wlr_input_method_manager_v2 *input_method;
 
     struct wlr_foreign_toplevel_manager_v1 *foreign_toplevel;
     struct wlr_ext_foreign_toplevel_list_v1 *ext_foreign_toplevel;
