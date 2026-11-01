@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.0 (2026-11-02)
 
 - Explicit synchronization (linux-drm-syncobj), when the GPU's driver
   supports it, as NVIDIA's does: Vulkan applications and Xwayland use it
@@ -19,6 +19,7 @@
   it was launched from, as in Openbox.
 - layer-shell version 5 (panels can choose their exclusive edge) and
   wl_fixes.
+- docs/STANDARDS.md lists the standards owbox follows, and how far.
 
 ## 0.6.0 (2026-11-02)
 
