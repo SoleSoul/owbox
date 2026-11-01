@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Explicit synchronization (linux-drm-syncobj), when the GPU's driver
+  supports it, as NVIDIA's does: Vulkan applications and Xwayland use it
+  there instead of implicit synchronization.
+- layer-shell version 5 (panels can choose their exclusive edge) and
+  wl_fixes.
+
 ## 0.6.0 (2026-11-02)
 
 - owbox Settings has a Launcher & Panels page: the launcher and panels

@@ -45,12 +45,14 @@
 #include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_drm.h>
 #include <wlr/types/wlr_export_dmabuf_v1.h>
+#include <wlr/types/wlr_fixes.h>
 #include <wlr/types/wlr_ext_data_control_v1.h>
 #include <wlr/types/wlr_ext_image_capture_source_v1.h>
 #include <wlr/types/wlr_ext_image_copy_capture_v1.h>
 #include <wlr/types/wlr_fractional_scale_v1.h>
 #include <wlr/types/wlr_gamma_control_v1.h>
 #include <wlr/types/wlr_linux_dmabuf_v1.h>
+#include <wlr/types/wlr_linux_drm_syncobj_v1.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_presentation_time.h>
 #include <wlr/types/wlr_primary_selection_v1.h>
@@ -206,6 +208,14 @@ void server_init(void)
         linux_dmabuf = wlr_linux_dmabuf_v1_create_with_renderer(
             server.display, 5, server.renderer);
     }
+    /* explicit synchronization, which Vulkan clients and Xwayland use on
+       NVIDIA's driver; the scene waits for the buffers and signals their
+       release */
+    if (server.renderer->features.timeline &&
+        server.backend->features.timeline &&
+        wlr_renderer_get_drm_fd(server.renderer) >= 0)
+        wlr_linux_drm_syncobj_manager_v1_create(
+            server.display, 1, wlr_renderer_get_drm_fd(server.renderer));
 
     server.allocator = wlr_allocator_autocreate(server.backend,
                                                 server.renderer);
@@ -215,6 +225,7 @@ void server_init(void)
     server.compositor = wlr_compositor_create(server.display, 6,
                                               server.renderer);
     wlr_subcompositor_create(server.display);
+    wlr_fixes_create(server.display, 1);
     server.data_device = wlr_data_device_manager_create(server.display);
     wlr_primary_selection_v1_device_manager_create(server.display);
     wlr_data_control_manager_v1_create(server.display);

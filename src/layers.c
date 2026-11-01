@@ -586,7 +586,7 @@ static void handle_new_lock(struct wl_listener *l, void *data)
 
 void layers_init(void)
 {
-    server.layer_shell = wlr_layer_shell_v1_create(server.display, 4);
+    server.layer_shell = wlr_layer_shell_v1_create(server.display, 5);
     new_surface.notify = handle_new_surface;
     wl_signal_add(&server.layer_shell->events.new_surface, &new_surface);
 
