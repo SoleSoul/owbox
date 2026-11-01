@@ -28,8 +28,11 @@
 #include "buffer.h"
 
 #include <cairo.h>
+#include <signal.h>
+#include <wayland-server-core.h>
 
 #include <wlr/types/wlr_buffer.h>
+#include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_scene.h>
 #include <xkbcommon/xkbcommon.h>
@@ -52,6 +55,8 @@ static ObClient *focus_at_show = NULL;
 static GList *launchers = NULL;
 /*! Ignore the launchers closing, owbox closes them */
 static gboolean closing = FALSE;
+/*! The launcher's process, the last one TogglePanels started */
+static GPid launcher_pid = 0;
 
 static void set_buffer_opacity(struct wlr_scene_buffer *buffer, gint sx,
                                gint sy, gpointer data)
@@ -144,7 +149,7 @@ void panels_show(const gchar *launcher)
         GError *e = NULL;
         if (!g_shell_parse_argv(launcher, NULL, &argv, &e) ||
             !g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
-                           NULL, &e))
+                           &launcher_pid, &e))
         {
             g_message("Unable to run the launcher %s: %s", launcher,
                       e->message);
@@ -168,10 +173,22 @@ void panels_hide(void)
     close = launchers;
     launchers = NULL;
     closing = TRUE;
-    for (it = close; it; it = g_list_next(it))
-        layers_close(it->data);
+    for (it = close; it; it = g_list_next(it)) {
+        ObLayerSurface *s = it->data;
+        pid_t pid = 0;
+
+        wl_client_get_credentials(
+            wl_resource_get_client(s->layer_surface->resource),
+            &pid, NULL, NULL);
+        layers_close(s);
+        /* some launchers (rofi) make a new surface when theirs is closed,
+           so the launcher owbox started ends too */
+        if (launcher_pid > 0 && pid == launcher_pid)
+            kill(pid, SIGTERM);
+    }
     closing = FALSE;
     g_list_free(close);
+    launcher_pid = 0;
 
     start_fade();
 }
