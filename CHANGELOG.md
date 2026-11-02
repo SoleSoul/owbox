@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Drawing tablets (tablet-v2): applications that support them, such as
+  Krita and GIMP, get the pen's pressure, tilt, rotation and buttons, and
+  the tablet's buttons. For owbox and other applications the pen is the
+  mouse pointer.
+- Input methods, such as fcitx5 (text-input-v3 and input-method-v2):
+  owbox passes the keys to the input method, its text to the application,
+  and shows its candidates below the text cursor.
+
 ## 0.7.0 (2026-11-02)
 
 - Explicit synchronization (linux-drm-syncobj), when the GPU's driver

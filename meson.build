@@ -220,6 +220,8 @@ owbox_sources = files(
 	'src/session.c',
 	'src/idle.c',
 	'src/panels.c',
+	'src/tablet.c',
+  'src/ime.c',
 	'src/snap.c',
 	'src/stacking.c',
 	'src/toplevel.c',

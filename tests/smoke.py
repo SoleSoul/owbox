@@ -708,6 +708,70 @@ def test_modifier_taps(out):
     time.sleep(1.5)
 
 
+def test_ime(out):
+    """An input method (fcitx5) types into foot, through text-input-v3 and
+    input-method-v2, and its candidates show below the text cursor"""
+    if not shutil.which("fcitx5") or not shutil.which("dbus-daemon"):
+        print("skip input method tests, no fcitx5 or dbus-daemon")
+        return
+    o = os.path.join(out, "ime")
+    os.makedirs(os.path.join(o, "fcitx5"))
+    with open(os.path.join(o, "fcitx5", "profile"), "w") as f:
+        f.write("[Groups/0]\nName=Default\nDefault Layout=us\n"
+                "DefaultIM=keyboard-us\n\n[Groups/0/Items/0]\n"
+                "Name=keyboard-us\nLayout=\n\n[GroupOrder]\n0=Default\n")
+    # its own bus, so it isn't on the session's
+    bus = subprocess.run(["dbus-daemon", "--session", "--fork",
+                          "--print-address=1", "--print-pid=1"],
+                         capture_output=True, text=True,
+                         check=True).stdout.split()
+    env = dict(os.environ, DBUS_SESSION_BUS_ADDRESS=bus[0],
+               XDG_CONFIG_HOME=o)
+    log = open(os.path.join(out, "fcitx5.log"), "w")
+    im = subprocess.Popen([os.path.join(HERE, "run.sh"), out, "fcitx5",
+                           "--disable=all", "--enable=wayland,waylandim,"
+                           "keyboard,unicode,classicui"],
+                          env=env, stdout=log, stderr=subprocess.STDOUT)
+    text = os.path.join(o, "typed")
+    try:
+        deadline = time.time() + 8
+        owlog = os.path.join(out, "owbox.log")
+        while time.time() < deadline and \
+                "An input method started" not in open(owlog).read():
+            time.sleep(0.2)
+        subprocess.Popen([os.path.join(HERE, "run.sh"), out, "foot", "sh",
+                          "-c", "cat > " + text],
+                         stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL)
+        w = wait_windows(out, 1)
+        if not w:
+            check("foot maps", False)
+            return
+        w = w[0]
+        inp(out, "type", "ab ", "sleep", "300", "key", "ctrl+shift+u",
+            "sleep", "300", "type", "5d0", "key", "Return", "sleep", "300")
+        # below the text cursor
+        x = w["x"] + w["frame"][0] + 60
+        y = w["y"] + w["frame"][1] + 50
+        before = pixel(out, x, y)
+        inp(out, "key", "ctrl+alt+shift+u", "sleep", "300", "type", "alpha",
+            "sleep", "500")
+        shown = pixel(out, x, y)
+        check("the input method's candidates show below the text cursor",
+              shown != before, (before, shown))
+        inp(out, "key", "Escape", "sleep", "300",
+            "key", "Return", "key", "ctrl+d")
+        wait_windows(out, 0)
+        typed = open(text).read() if os.path.exists(text) else None
+        check("the input method types into foot", typed == "ab א\n",
+              repr(typed))
+    finally:
+        im.terminate()
+        im.wait()
+        os.kill(int(bus[1]), signal.SIGTERM)
+        log.close()
+
+
 def test_x11(out):
     if not os.path.exists(os.path.join(out, "xdisplay")):
         print("skip X applications: no Xwayland")
@@ -763,6 +827,7 @@ def main():
         test_openbox(out)
         test_openbox_placement(out)
         test_modifier_taps(out)
+        test_ime(out)
         test_x11(out)
         try:
             os.kill(pid, 0)

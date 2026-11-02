@@ -122,6 +122,8 @@ struct _ObServer {
     struct wlr_scene_tree *panels_tree;
     /*! Popups of layer shell surfaces, above all windows */
     struct wlr_scene_tree *layer_popup_tree;
+    /*! The input method's popups (the candidates) */
+    struct wlr_scene_tree *ime_tree;
     /*! Drag and drop icons */
     struct wlr_scene_tree *drag_tree;
     /*! The session lock (screen locker) surfaces, above everything */

@@ -30,6 +30,8 @@
 struct _ObClient;
 struct wlr_surface;
 struct wlr_input_device;
+struct wlr_tablet_v2_tablet;
+struct wlr_tablet_v2_tablet_tool;
 
 void seat_init(void);
 void seat_finish(void);
@@ -78,6 +80,17 @@ void seat_client_gone(struct _ObClient *client);
 /*! Set the session lock state */
 void seat_set_locked(gboolean locked);
 gboolean seat_is_locked(void);
+
+/*! A tablet tool moved, or its tip (BTN_LEFT) or a button (BTN_MIDDLE,
+  BTN_RIGHT, BTN_SIDE) changed.  It acts as the pointer, and talks to the
+  clients that take it with the tablet protocol. */
+void seat_tool_motion(struct wlr_tablet_v2_tablet_tool *tool,
+                      struct wlr_tablet_v2_tablet *tablet, guint32 time);
+void seat_tool_button(struct wlr_tablet_v2_tablet_tool *tool,
+                      struct wlr_tablet_v2_tablet *tablet, guint32 time,
+                      guint32 button, gboolean press);
+/*! A client asked for a cursor for a tablet tool over it */
+void seat_tool_set_cursor(struct wlr_surface *surface, gint hx, gint hy);
 
 /*! Inhibit idleness (idle-inhibit protocol) */
 void seat_update_idle_inhibit(void);

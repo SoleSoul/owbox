@@ -15,9 +15,6 @@ What is done is in [CHANGELOG.md](../CHANGELOG.md).
   factor), so they're sharp on outputs at scale 2 and fractional scales.
 - **Touchpad gestures as bindings**, for example
   `<mousebind button="Swipe3Left" action="Gesture">` in rc.xml.
-- **Text input / input methods** (text-input-v3, input-method-v2) for
-  CJK input.
-- **Tablets** (tablet-v2).
 - **Optional eye candy**, off by default: rounded corners, shadows,
   window open/close and iconify animations, opacity rules per application.
 - **Publish [GUIDE.md](GUIDE.md) on the ArchWiki** (see AGENTS.md).

@@ -36,6 +36,8 @@ src/
   idle.c            monitors off when idle, locking (logind: Lock, suspend,
                     hints), org.freedesktop.ScreenSaver
   panels.c          showing the panels over the dimmed windows (TogglePanels)
+  tablet.c          drawing tablets (tablet-v2): pens, pads
+  ime.c             input methods (input-method-v2) and text-input-v3
   render/           Openbox's obrender, drawing into cairo surfaces
   obt/              the parts of Openbox's libobt still needed (paths, xml,
                     keyboard helpers)
@@ -113,7 +115,8 @@ From the bottom up (server.c):
 7. layer shell overlay
 8. `xwayland_tree`: X override-redirect windows (menus, tooltips)
 9. stacking layer INTERNAL: Openbox's menus and popups
-10. layer shell popups, drag icons, the lock screen
+10. layer shell popups, input method popups (`ime_tree`), drag icons, the
+    lock screen
 
 A managed client's surface tree is reparented into its frame's ObFWin, under
 the frame's decorations, at the client's offset (the frame's size). The tree's
@@ -137,6 +140,14 @@ each event, the way the X server's grabs and event masks did:
   bindings work.
 - The state given to bindings has its button masks removed, like Openbox's
   `event_hack_mods()`.
+- Keys that owbox doesn't use go to the input method while it holds the
+  keyboard (ime.c), except those of its own virtual keyboard, which go to
+  the client.
+- A tablet's pen moves the cursor and is a pointer for owbox: its tip is
+  the left button, its buttons are the middle, right and side buttons, so
+  bindings, frames and menus work with it. A client surface that supports
+  tablet-v2 gets the pen's events (`notify_enter`, `notify_button` in
+  seat.c), others get pointer events.
 
 ## Configures
 

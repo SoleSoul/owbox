@@ -1,7 +1,7 @@
 # Builds owbox from this git checkout (the committed HEAD):
 #   cd dist/arch && makepkg -si
 pkgname=owbox-git
-pkgver=0.3.0.r4.9341590
+pkgver=0.7.0.r4.ed4f4b2
 pkgrel=1
 pkgdesc="Stacking Wayland compositor based on Openbox, compatible with its config and themes (not Openbox itself)"
 arch=('x86_64' 'aarch64')

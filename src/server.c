@@ -272,6 +272,7 @@ void server_init(void)
     server.stack_tree[OB_STACKING_LAYER_INTERNAL] =
         wlr_scene_tree_create(&server.scene->tree);
     server.layer_popup_tree = wlr_scene_tree_create(&server.scene->tree);
+    server.ime_tree = wlr_scene_tree_create(&server.scene->tree);
     server.drag_tree = wlr_scene_tree_create(&server.scene->tree);
     server.lock_tree = wlr_scene_tree_create(&server.scene->tree);
 

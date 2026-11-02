@@ -33,6 +33,8 @@
 #include "menuframe.h"
 #include "mouse.h"
 #include "screen.h"
+#include "tablet.h"
+#include "ime.h"
 #include "debug.h"
 #include "obt/keyboard.h"
 
@@ -62,6 +64,7 @@
 #include <wlr/types/wlr_relative_pointer_v1.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_seat.h>
+#include <wlr/types/wlr_tablet_v2.h>
 #include <wlr/types/wlr_touch.h>
 #include <wlr/types/wlr_virtual_keyboard_v1.h>
 #include <wlr/types/wlr_virtual_pointer_v1.h>
@@ -146,6 +149,11 @@ static struct {
 
     gboolean locked;
 
+    /*! The tablet tool whose event is being handled, when it talks to
+      clients with the tablet protocol rather than as the pointer */
+    struct wlr_tablet_v2_tablet_tool *tool;
+    struct wlr_tablet_v2_tablet *tool_tablet;
+
     struct wlr_pointer_constraint_v1 *active_constraint;
     GList *shortcut_inhibitors;
     GList *idle_inhibitors;
@@ -197,6 +205,9 @@ static guint32 now_msec(void)
 static gboolean pointer_is_virtual(struct wlr_pointer *pointer)
 {
     ObPointerDevice *p;
+
+    /* emulated (touch, tablet) */
+    if (!pointer) return FALSE;
 
     wl_list_for_each(p, &seat.pointers, link)
         if (p->device == &pointer->base)
@@ -425,6 +436,7 @@ void seat_pointer_grabbed(gboolean grabbed)
         /* the client loses the pointer during a grab, like the LeaveNotify
            NotifyGrab in X */
         wlr_seat_pointer_notify_clear_focus(server.seat);
+        tablet_tools_leave();
         seat.press_owner = PRESS_OWBOX;
     } else if (!seat.buttons) {
         /* the grab ended with no buttons held (a menu closed with the
@@ -558,7 +570,8 @@ static void keyboard_handle_key(struct wl_listener *listener, void *data)
         }
     }
 
-    if (!used) {
+    /* owbox: the input method gets the keys while it asks for them */
+    if (!used && !(!seat.locked && ime_key(kb->wlr_keyboard, ev))) {
         wlr_seat_set_keyboard(server.seat, kb->wlr_keyboard);
         wlr_seat_keyboard_notify_key(server.seat, ev->time_msec,
                                      ev->keycode, ev->state);
@@ -569,6 +582,9 @@ static void keyboard_handle_modifiers(struct wl_listener *listener,
                                       void *data)
 {
     ObKeyboard *kb = wl_container_of(listener, kb, modifiers);
+
+    if (!seat.locked && ime_modifiers(kb->wlr_keyboard))
+        return;
     wlr_seat_set_keyboard(server.seat, kb->wlr_keyboard);
     wlr_seat_keyboard_notify_modifiers(server.seat,
                                        &kb->wlr_keyboard->modifiers);
@@ -771,6 +787,12 @@ static void handle_new_input(struct wl_listener *listener, void *data)
     case WLR_INPUT_DEVICE_TOUCH:
         new_pointer_device(device, FALSE);
         break;
+    case WLR_INPUT_DEVICE_TABLET:
+        tablet_new(device);
+        break;
+    case WLR_INPUT_DEVICE_TABLET_PAD:
+        tablet_pad_new(device);
+        break;
     default:
         break;
     }
@@ -935,6 +957,75 @@ static gboolean other_surface(ObNode *node, struct wlr_surface *surface)
     return node->owner == NULL || WINDOW_IS_UNMANAGED(node->owner);
 }
 
+/* ---- the pointer's events for a surface, or a tablet tool's ---- */
+
+/* the tablet's stylus buttons, which owbox and clients without the tablet
+   protocol see as middle and right, as X does */
+static guint32 stylus_button(guint32 button)
+{
+    switch (button) {
+    case BTN_MIDDLE: return BTN_STYLUS;
+    case BTN_RIGHT:  return BTN_STYLUS2;
+    case BTN_SIDE:   return BTN_STYLUS3;
+    default:         return button;
+    }
+}
+
+static void tool_leave(void)
+{
+    if (seat.tool && seat.tool->focused_surface)
+        wlr_tablet_v2_tablet_tool_notify_proximity_out(seat.tool);
+}
+
+/* The pointer enters the surface (if it isn't in it) and moves to sx,sy.
+   A tablet tool does that with the tablet protocol when the surface takes
+   it, and the client's pointer leaves then, as in GNOME. */
+static void notify_enter(struct wlr_surface *surface, double sx, double sy,
+                         guint32 time, gboolean motion)
+{
+    if (seat.tool && wlr_surface_accepts_tablet_v2(surface, seat.tool_tablet))
+    {
+        wlr_seat_pointer_notify_clear_focus(server.seat);
+        if (seat.tool->focused_surface != surface)
+            wlr_tablet_v2_tablet_tool_notify_proximity_in(
+                seat.tool, seat.tool_tablet, surface);
+        wlr_tablet_v2_tablet_tool_notify_motion(seat.tool, sx, sy);
+        return;
+    }
+    tool_leave();
+    wlr_seat_pointer_notify_enter(server.seat, surface, sx, sy);
+    if (motion)
+        wlr_seat_pointer_notify_motion(server.seat, time, sx, sy);
+}
+
+static void notify_clear_focus(void)
+{
+    tool_leave();
+    wlr_seat_pointer_notify_clear_focus(server.seat);
+}
+
+static void notify_button(guint32 time, guint32 button,
+                          enum wl_pointer_button_state state)
+{
+    gboolean press = state == WL_POINTER_BUTTON_STATE_PRESSED;
+
+    if (seat.tool && seat.tool->focused_surface) {
+        /* the tip is the left button */
+        if (button == BTN_LEFT) {
+            if (press)
+                wlr_tablet_v2_tablet_tool_notify_down(seat.tool);
+            else
+                wlr_tablet_v2_tablet_tool_notify_up(seat.tool);
+        } else
+            wlr_tablet_v2_tablet_tool_notify_button(
+                seat.tool, stylus_button(button),
+                press ? ZWP_TABLET_PAD_V2_BUTTON_STATE_PRESSED :
+                ZWP_TABLET_PAD_V2_BUTTON_STATE_RELEASED);
+        return;
+    }
+    wlr_seat_pointer_notify_button(server.seat, time, button, state);
+}
+
 static void pointer_update(guint32 time, gboolean motion)
 {
     ObEvent e = {0};
@@ -973,12 +1064,10 @@ static void pointer_update(guint32 time, gboolean motion)
     if (seat.locked) {
         node = window_at(server.cursor->x, server.cursor->y, &surface,
                          &sx, &sy);
-        if (surface && layers_surface_is_lock(surface)) {
-            wlr_seat_pointer_notify_enter(server.seat, surface, sx, sy);
-            if (motion)
-                wlr_seat_pointer_notify_motion(server.seat, time, sx, sy);
-        } else {
-            wlr_seat_pointer_notify_clear_focus(server.seat);
+        if (surface && layers_surface_is_lock(surface))
+            notify_enter(surface, sx, sy, time, motion);
+        else {
+            notify_clear_focus();
             seat_set_cursor(OB_CURSOR_POINTER);
         }
         return;
@@ -1001,11 +1090,15 @@ static void pointer_update(guint32 time, gboolean motion)
         return;
     }
 
-    /* a client has the pointer while its buttons are held */
+    /* a client has the pointer (or the tablet tool) while its buttons are
+       held */
     if (seat.press_owner == PRESS_CLIENT &&
-        server.seat->pointer_state.focused_surface)
+        ((seat.tool && seat.tool->focused_surface) ||
+         server.seat->pointer_state.focused_surface))
     {
-        struct wlr_surface *fs = server.seat->pointer_state.focused_surface;
+        struct wlr_surface *fs = seat.tool && seat.tool->focused_surface ?
+            seat.tool->focused_surface :
+            server.seat->pointer_state.focused_surface;
         gint lx = 0, ly = 0;
         /* find where the focused surface is */
         node = window_at(server.cursor->x, server.cursor->y, &surface,
@@ -1018,7 +1111,9 @@ static void pointer_update(guint32 time, gboolean motion)
                 sy = server.cursor->y - ly;
             }
         }
-        if (motion)
+        if (seat.tool && seat.tool->focused_surface)
+            wlr_tablet_v2_tablet_tool_notify_motion(seat.tool, sx, sy);
+        else if (motion)
             wlr_seat_pointer_notify_motion(server.seat, time, sx, sy);
         return;
     }
@@ -1037,14 +1132,12 @@ static void pointer_update(guint32 time, gboolean motion)
 
     client_surface = surface && e.client && !e.win;
     if (client_surface || other_surface(node, surface)) {
-        wlr_seat_pointer_notify_enter(server.seat, surface, sx, sy);
-        if (motion)
-            wlr_seat_pointer_notify_motion(server.seat, time, sx, sy);
+        notify_enter(surface, sx, sy, time, motion);
         /* the client sets the cursor, keep what it set */
         return;
     }
 
-    wlr_seat_pointer_notify_clear_focus(server.seat);
+    notify_clear_focus();
     if (e.win)
         cursor = e.win->cursor;
     seat_set_cursor(cursor);
@@ -1140,9 +1233,8 @@ void seat_pointer_replay_press(void)
                                      a->delta_discrete, a->source,
                                      a->relative_direction);
     } else {
-        wlr_seat_pointer_notify_button(server.seat, seat.replay_time,
-                                       seat.replay_button,
-                                       WL_POINTER_BUTTON_STATE_PRESSED);
+        notify_button(seat.replay_time, seat.replay_button,
+                      WL_POINTER_BUTTON_STATE_PRESSED);
         seat.press_owner = PRESS_CLIENT;
     }
 }
@@ -1188,8 +1280,7 @@ static void handle_cursor_button(struct wl_listener *listener, void *data)
     else seat.buttons &= ~(1u << MIN(xbutton, 31));
 
     if (seat.locked) {
-        wlr_seat_pointer_notify_button(server.seat, ev->time_msec,
-                                       ev->button, ev->state);
+        notify_button(ev->time_msec, ev->button, ev->state);
         return;
     }
 
@@ -1213,8 +1304,7 @@ static void handle_cursor_button(struct wl_listener *listener, void *data)
 
     /* a client has the pointer */
     if (seat.press_owner == PRESS_CLIENT) {
-        wlr_seat_pointer_notify_button(server.seat, ev->time_msec,
-                                       ev->button, ev->state);
+        notify_button(ev->time_msec, ev->button, ev->state);
         if (!seat.buttons) {
             seat.press_owner = PRESS_NONE;
             seat_rebase_pointer();
@@ -1224,8 +1314,7 @@ static void handle_cursor_button(struct wl_listener *listener, void *data)
 
     if (!press) {
         /* a release without its press (it went to something gone) */
-        wlr_seat_pointer_notify_button(server.seat, ev->time_msec,
-                                       ev->button, ev->state);
+        notify_button(ev->time_msec, ev->button, ev->state);
         return;
     }
 
@@ -1261,7 +1350,7 @@ static void handle_cursor_button(struct wl_listener *listener, void *data)
         seat.replay_time = ev->time_msec;
         seat.replay_button = ev->button;
         if (surface)
-            wlr_seat_pointer_notify_enter(server.seat, surface, sx, sy);
+            notify_enter(surface, sx, sy, ev->time_msec, FALSE);
         event_pointer(&e);
         /* if nothing replayed it (a binding grabbed the pointer), the client
            doesn't get it, and owbox keeps the pointer */
@@ -1276,8 +1365,7 @@ static void handle_cursor_button(struct wl_listener *listener, void *data)
         if (seat.pgrab) {
             seat.press_owner = PRESS_OWBOX;
         } else {
-            wlr_seat_pointer_notify_button(server.seat, ev->time_msec,
-                                           ev->button, ev->state);
+            notify_button(ev->time_msec, ev->button, ev->state);
             seat.press_owner = PRESS_CLIENT;
             layers_surface_clicked(surface);
         }
@@ -1285,7 +1373,7 @@ static void handle_cursor_button(struct wl_listener *listener, void *data)
         /* a frame element or the root window */
         event_pointer(&e);
         seat.press_owner = PRESS_OWBOX;
-        wlr_seat_pointer_notify_clear_focus(server.seat);
+        notify_clear_focus();
     }
     if (!seat.buttons && seat.press_owner != PRESS_NONE && !seat.pgrab) {
         seat.press_owner = PRESS_NONE;
@@ -1464,6 +1552,48 @@ static void touch_to_layout(struct wlr_touch *touch, double x, double y,
                                          x, y, lx, ly);
 }
 
+/* ---- tablet tools, which act as the pointer (with the tablet protocol
+   for clients that take it) ---- */
+
+void seat_tool_motion(struct wlr_tablet_v2_tablet_tool *tool,
+                      struct wlr_tablet_v2_tablet *tablet, guint32 time)
+{
+    notify_activity();
+    seat.tool = tool;
+    seat.tool_tablet = tablet;
+    pointer_update(time, TRUE);
+    seat.tool = NULL;
+    seat.tool_tablet = NULL;
+}
+
+void seat_tool_button(struct wlr_tablet_v2_tablet_tool *tool,
+                      struct wlr_tablet_v2_tablet *tablet, guint32 time,
+                      guint32 button, gboolean press)
+{
+    struct wlr_pointer_button_event ev = {
+        .time_msec = time,
+        .button = button,
+        .state = press ? WL_POINTER_BUTTON_STATE_PRESSED :
+            WL_POINTER_BUTTON_STATE_RELEASED,
+    };
+
+    seat.tool = tool;
+    seat.tool_tablet = tablet;
+    handle_cursor_button(NULL, &ev);
+    wlr_seat_pointer_notify_frame(server.seat);
+    seat.tool = NULL;
+    seat.tool_tablet = NULL;
+}
+
+void seat_tool_set_cursor(struct wlr_surface *surface, gint hx, gint hy)
+{
+    if (seat.pgrab || seat.press_owner == PRESS_OWBOX) return;
+    seat.cursor_from_client = TRUE;
+    seat.cursor_name = NULL;
+    seat.xcursor_name = NULL;
+    wlr_cursor_set_surface(server.cursor, surface, hx, hy);
+}
+
 static void emulate_button(guint32 time, gboolean press)
 {
     struct wlr_pointer_button_event ev = {
@@ -1581,7 +1711,14 @@ static void handle_request_set_shape(struct wl_listener *listener,
                                      void *data)
 {
     struct wlr_cursor_shape_manager_v1_request_set_shape_event *ev = data;
-    if (ev->seat_client != server.seat->pointer_state.focused_client)
+    if (ev->device_type == WLR_CURSOR_SHAPE_MANAGER_V1_DEVICE_TYPE_TABLET_TOOL)
+    {
+        /* the client a tablet tool is over */
+        struct wlr_surface *s = ev->tablet_tool->focused_surface;
+        if (!s || wl_resource_get_client(s->resource) !=
+            ev->seat_client->client)
+            return;
+    } else if (ev->seat_client != server.seat->pointer_state.focused_client)
         return;
     if (seat.pgrab || seat.press_owner == PRESS_OWBOX) return;
     seat.cursor_from_client = TRUE;
@@ -1778,6 +1915,7 @@ void seat_set_locked(gboolean locked)
         panels_hide();
         wlr_seat_keyboard_notify_clear_focus(server.seat);
         wlr_seat_pointer_notify_clear_focus(server.seat);
+        tablet_tools_leave();
         seat.override_focus = NULL;
     } else {
         ObClient *c = seat.focus;
@@ -1847,6 +1985,8 @@ void seat_init(void)
            handle_touch_cancel);
     LISTEN(&server.cursor->events.touch_frame, seat.touch_frame,
            handle_touch_frame);
+    tablet_init();
+    ime_init();
 
     LISTEN(&server.seat->events.request_set_cursor, seat.request_set_cursor,
            handle_request_set_cursor);
@@ -1897,6 +2037,8 @@ void seat_init(void)
 
 void seat_finish(void)
 {
+    ime_finish();
+    tablet_finish();
     wl_list_remove(&seat.new_input.link);
     wl_list_remove(&seat.cursor_motion.link);
     wl_list_remove(&seat.cursor_motion_absolute.link);

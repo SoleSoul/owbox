@@ -15,12 +15,11 @@ newest version wlroots has:
 | Surfaces and buffers | wl_compositor, wl_subcompositor, wl_shm, linux-dmabuf (and wl_drm), linux-drm-syncobj (when the GPU's driver supports explicit sync), single-pixel-buffer, viewporter, fractional-scale, alpha-modifier, presentation-time, content-type, tearing-control, wl_fixes |
 | Windows | xdg-shell, xdg-decoration, KDE server-decoration, xdg-activation, xdg-dialog, xdg-foreign (v1 and v2), xdg-toplevel-icon, xdg-system-bell |
 | Desktop components | wlr-layer-shell, ext-session-lock, ext-idle-notify, idle-inhibit, ext-foreign-toplevel-list, wlr-foreign-toplevel-management, ext-workspace, security-context |
-| Input | wl_seat, wl_data_device, primary-selection, wlr-data-control, ext-data-control, cursor-shape, pointer-constraints, relative-pointer, pointer-gestures, keyboard-shortcuts-inhibit, virtual-keyboard, wlr-virtual-pointer |
+| Input | wl_seat, wl_data_device, primary-selection, wlr-data-control, ext-data-control, cursor-shape, pointer-constraints, relative-pointer, pointer-gestures, keyboard-shortcuts-inhibit, virtual-keyboard, wlr-virtual-pointer, tablet-v2, text-input-v3, input-method-v2 |
 | Outputs and capture | xdg-output, wlr-output-management, wlr-output-power-management, wlr-gamma-control, wlr-screencopy, wlr-export-dmabuf, ext-image-copy-capture (monitors and windows) |
 
-Planned: text-input-v3 and input-method-v2 (input methods such as fcitx5
-and ibus), tablet-v2 (drawing tablets). Left out: color-management and
-color-representation, drm-lease, transient-seat and xdg-toplevel-tag.
+Left out: color-management and color-representation, drm-lease,
+transient-seat and xdg-toplevel-tag.
 
 ## X applications (ICCCM and EWMH)
 

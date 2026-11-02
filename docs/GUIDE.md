@@ -126,6 +126,7 @@ protocols. (Packages are in the official repositories unless marked AUR.)
 | Screen sharing | `xdg-desktop-portal-wlr`, `wireplumber` | | owbox shows its own menu to choose a monitor or a window. *WirePlumber* is needed even when [PulseAudio](https://wiki.archlinux.org/title/PulseAudio) handles the sound. |
 | Other portals (file choosers) | `xdg-desktop-portal-gtk` | | |
 | Keyring | `gnome-keyring` | | See [GNOME/Keyring](https://wiki.archlinux.org/title/GNOME/Keyring). |
+| Input method | `fcitx5` | | For languages typed through an input method, such as Chinese or Japanese. It starts with the session. Wayland applications use it directly; X applications need `export XMODIFIERS=@im=fcitx` in `~/.config/owbox/environment`. See [Fcitx5](https://wiki.archlinux.org/title/Fcitx5). |
 
 ## Tips and tricks
 
