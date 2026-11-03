@@ -54,6 +54,7 @@ monitors), and what most Openbox users add on top of it:
   from Openbox
 - screen sharing (of a monitor or a window) with an Openbox style menu to
   choose what to share
+- input methods such as fcitx5, and drawing tablets with pressure and tilt
 - what a desktop session needs out of the box: monitors that turn off when
   idle, locking (when idle, before suspending, from the menu), Lock,
   Suspend, Restart and Shut Down in the menu, volume and brightness keys

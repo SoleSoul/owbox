@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.8.0 (2026-11-03)
 
 - Drawing tablets (tablet-v2): applications that support them, such as
   Krita and GIMP, get the pen's pressure, tilt, rotation and buttons, and
