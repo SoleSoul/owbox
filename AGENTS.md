@@ -151,11 +151,17 @@ screen):
 - Screen sharing: `tools/screencast-test.py 1 5` runs a portal session
   (1 monitors, 2 windows) and counts the frames with build/owbox-pwcount.
   It needs WirePlumber running (nothing links the streams without it).  To
-  test a headless owbox, start `WAYLAND_DISPLAY=<its display>
-  /usr/lib/xdg-desktop-portal-wlr -r` (it replaces the session's portal,
-  restart xdg-desktop-portal-wlr.service afterwards), use
-  `WLR_RENDERER=gles2` to test the GPU's formats, and keep something
-  changing on the screen.
+  test a headless owbox, give it portals on a bus of their own, so the
+  session's aren't touched:
+  `XDG_CURRENT_DESKTOP=owbox tests/run.sh $T dbus-daemon --session --fork
+  --print-address=1 --print-pid=1 > $T/bus`, then run the test, a browser
+  (`zen-browser --no-remote --profile $T/zen` with a page calling
+  `getDisplayMedia()`) or `/usr/lib/xdg-desktop-portal-wlr -l DEBUG` with
+  `DBUS_SESSION_BUS_ADDRESS=$(head -1 $T/bus)`. Afterwards kill the
+  processes on that bus too (the portals it started), found by the bus
+  address in `/proc/PID/environ`. Use `WLR_RENDERER=gles2` to test the
+  GPU's formats. A window alone: `grim -T <identifier>` (the identifier is
+  in `--msg windows`).
 - Logs: `--debug` (the test scripts use it) and `--debug-wlroots`. The
   user's session logs to `~/.cache/owbox/owbox.log`; headless.sh gives
   test runs their own cache, so they don't replace it.
@@ -171,7 +177,8 @@ Pitfalls seen before:
 - Never `pkill -f`, `pgrep -f` or `ps | grep` + kill with a pattern that
   is anywhere in your own command line, including in a variable's value or
   a path: it matches the shell running it. Kill by the PID (`$!`,
-  `$T/pid`), and list candidates before killing anything.
+  `$T/pid`), and list candidates before killing anything. Never let a PID
+  be 0 or empty: `kill 0` signals your own process group.
 - When testing inside the user's owbox session, OWBOX_SOCK points at their
   owbox: tests/run.sh unsets it, other commands must too.  Only a DRM
   session updates the D-Bus/systemd environment, keep it that way.
