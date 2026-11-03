@@ -186,6 +186,11 @@ static struct {
     struct wl_listener new_idle_inhibitor;
     struct wl_listener new_virtual_keyboard;
     struct wl_listener new_virtual_pointer;
+    /* owbox: the seat's keyboard while no real one is */
+    struct wlr_keyboard fallback_keyboard;
+    /* owbox: the real keyboard used last, which gets the seat back from a
+       virtual keyboard that goes away */
+    struct wlr_keyboard *last_real_keyboard;
 } seat;
 
 static void pointer_update(guint32 time, gboolean motion);
@@ -501,6 +506,14 @@ static gboolean handle_vt_switch(xkb_keysym_t sym)
     return FALSE;
 }
 
+/* owbox: remember the real keyboard used last, whoever gets its keys (the
+   input method's grab too) */
+static void keyboard_used(struct wlr_keyboard *wlr_keyboard)
+{
+    if (!wlr_input_device_get_virtual_keyboard(&wlr_keyboard->base))
+        seat.last_real_keyboard = wlr_keyboard;
+}
+
 static void keyboard_handle_key(struct wl_listener *listener, void *data)
 {
     ObKeyboard *kb = wl_container_of(listener, kb, key);
@@ -513,6 +526,7 @@ static void keyboard_handle_key(struct wl_listener *listener, void *data)
 
     if (wlr_input_device_get_virtual_keyboard(&kb->wlr_keyboard->base))
         ev->time_msec = now_msec();
+    keyboard_used(kb->wlr_keyboard);
     notify_activity();
 
     e.type = press ? OB_EVENT_KEY_PRESS : OB_EVENT_KEY_RELEASE;
@@ -583,6 +597,7 @@ static void keyboard_handle_modifiers(struct wl_listener *listener,
 {
     ObKeyboard *kb = wl_container_of(listener, kb, modifiers);
 
+    keyboard_used(kb->wlr_keyboard);
     if (!seat.locked && ime_modifiers(kb->wlr_keyboard))
         return;
     wlr_seat_set_keyboard(server.seat, kb->wlr_keyboard);
@@ -590,14 +605,43 @@ static void keyboard_handle_modifiers(struct wl_listener *listener,
                                        &kb->wlr_keyboard->modifiers);
 }
 
+/* owbox: the seat always has a keyboard (seat_update_capabilities), so the
+   clients must always have a keymap: without one, they get keyboard focus
+   and modifiers they can't read (and Chrome crashes). When the seat's
+   keyboard goes away, the real keyboard used last takes its place (with its
+   layout and locks), or another real one, or the fallback keyboard, which
+   has the configured keymap and no keys. */
+static void seat_keyboard_replace(void)
+{
+    ObKeyboard *kb;
+
+    if (seat.last_real_keyboard) {
+        wlr_seat_set_keyboard(server.seat, seat.last_real_keyboard);
+        return;
+    }
+    wl_list_for_each(kb, &seat.keyboards, link)
+        if (!wlr_input_device_get_virtual_keyboard(&kb->wlr_keyboard->base))
+        {
+            wlr_seat_set_keyboard(server.seat, kb->wlr_keyboard);
+            return;
+        }
+    wlr_seat_set_keyboard(server.seat, &seat.fallback_keyboard);
+}
+
 static void keyboard_handle_destroy(struct wl_listener *listener, void *data)
 {
     ObKeyboard *kb = wl_container_of(listener, kb, destroy);
+    gboolean current = wlr_seat_get_keyboard(server.seat) == kb->wlr_keyboard;
+
+    if (seat.last_real_keyboard == kb->wlr_keyboard)
+        seat.last_real_keyboard = NULL;
     wl_list_remove(&kb->modifiers.link);
     wl_list_remove(&kb->key.link);
     wl_list_remove(&kb->destroy.link);
     wl_list_remove(&kb->link);
     g_free(kb);
+    if (current)
+        seat_keyboard_replace();
 }
 
 static void keyboard_configure(struct wlr_keyboard *wlr_keyboard)
@@ -666,7 +710,14 @@ static void new_keyboard(struct wlr_keyboard *wlr_keyboard, gboolean virtual)
     kb->destroy.notify = keyboard_handle_destroy;
     wl_signal_add(&wlr_keyboard->base.events.destroy, &kb->destroy);
 
-    wlr_seat_set_keyboard(server.seat, wlr_keyboard);
+    /* a virtual keyboard has no keymap yet: made the seat's keyboard now,
+       it would tell the clients there is no keymap (and Chrome crashes on
+       the modifiers that follow). It becomes the seat's keyboard on its
+       first key, which comes after its keymap. */
+    if (!virtual) {
+        keyboard_used(wlr_keyboard);
+        wlr_seat_set_keyboard(server.seat, wlr_keyboard);
+    }
     wl_list_insert(&seat.keyboards, &kb->link);
 }
 
@@ -833,8 +884,11 @@ void seat_reconfigure(void)
     ObPointerDevice *p;
     struct wlr_xcursor_manager *old;
 
+    /* virtual keyboards keep the keymap their client gave them */
     wl_list_for_each(kb, &seat.keyboards, link)
-        keyboard_configure(kb->wlr_keyboard);
+        if (!wlr_input_device_get_virtual_keyboard(&kb->wlr_keyboard->base))
+            keyboard_configure(kb->wlr_keyboard);
+    keyboard_configure(&seat.fallback_keyboard);
     wl_list_for_each(p, &seat.pointers, link)
         configure_libinput(p->device);
 
@@ -1939,6 +1993,10 @@ gboolean seat_is_locked(void)
 
 #define LISTEN(sig, l, f) do { (l).notify = (f); wl_signal_add((sig), &(l)); } while (0)
 
+static const struct wlr_keyboard_impl fallback_keyboard_impl = {
+    .name = "owbox-fallback-keyboard",
+};
+
 void seat_init(void)
 {
     wl_list_init(&seat.keyboards);
@@ -1946,6 +2004,10 @@ void seat_init(void)
     seat.used_keys = g_hash_table_new(g_direct_hash, g_direct_equal);
 
     server.seat = wlr_seat_create(server.display, "seat0");
+    wlr_keyboard_init(&seat.fallback_keyboard, &fallback_keyboard_impl,
+                      "owbox-fallback-keyboard");
+    keyboard_configure(&seat.fallback_keyboard);
+    wlr_seat_set_keyboard(server.seat, &seat.fallback_keyboard);
     server.cursor = wlr_cursor_create();
     wlr_cursor_attach_output_layout(server.cursor, server.output_layout);
     server.xcursor_manager =
@@ -2037,6 +2099,8 @@ void seat_init(void)
 
 void seat_finish(void)
 {
+    ObKeyboard *kb, *next;
+
     ime_finish();
     tablet_finish();
     wl_list_remove(&seat.new_input.link);
@@ -2070,6 +2134,17 @@ void seat_finish(void)
     wl_list_remove(&seat.new_virtual_keyboard.link);
     wl_list_remove(&seat.new_virtual_pointer.link);
     g_hash_table_destroy(seat.used_keys);
+    /* the keyboards go with the backend, after this: stop following them,
+       so none puts the fallback keyboard back */
+    wl_list_for_each_safe(kb, next, &seat.keyboards, link) {
+        wl_list_remove(&kb->modifiers.link);
+        wl_list_remove(&kb->key.link);
+        wl_list_remove(&kb->destroy.link);
+        wl_list_remove(&kb->link);
+        g_free(kb);
+    }
+    wlr_seat_set_keyboard(server.seat, NULL);
+    wlr_keyboard_finish(&seat.fallback_keyboard);
     wlr_xcursor_manager_destroy(server.xcursor_manager);
     wlr_cursor_destroy(server.cursor);
 }

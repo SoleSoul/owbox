@@ -13,6 +13,10 @@
   and works while it is minimized.
 - Sharing a window or a monitor that doesn't change starts at once:
   browsers showed nothing until something on it changed.
+- Applications always get a keymap: Chrome crashed when it started while
+  an input method, such as fcitx5, was running or had just quit.
+- Changing the keyboard settings no longer replaces the keymap of an input
+  method's or another program's virtual keyboard.
 
 ## 0.7.0 (2026-11-02)
 

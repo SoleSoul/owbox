@@ -148,6 +148,11 @@ each event, the way the X server's grabs and event masks did:
 - Keys that owbox doesn't use go to the input method while it holds the
   keyboard (ime.c), except those of its own virtual keyboard, which go to
   the client.
+- The seat always has a keyboard with a keymap, as it always offers one: a
+  virtual keyboard becomes the seat's on its first key (its keymap comes
+  first), and when the seat's keyboard goes away, the real keyboard used
+  last takes over, or a fallback keyboard with the configured keymap and
+  no keys (`seat_keyboard_replace`).
 - A tablet's pen moves the cursor and is a pointer for owbox: its tip is
   the left button, its buttons are the middle, right and side buttons, so
   bindings, frames and menus work with it. A client surface that supports
