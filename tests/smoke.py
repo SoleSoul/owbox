@@ -147,6 +147,47 @@ def test_shade_decorate(out):
           pixel(out, *title))
 
 
+def test_window_capture(out):
+    """Capturing a window (for sharing it) gets the window, not what
+    covers it, at once even when it doesn't change"""
+    procs = [subprocess.Popen([os.path.join(HERE, "run.sh"), out, "foot",
+                               "-o", "colors-dark.background=ff0000",
+                               "-T", "red", "sleep", "1000"],
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)]
+    if not wait_windows(out, 1):
+        check("foot maps", False)
+        procs[0].terminate()
+        return
+    procs.append(subprocess.Popen([os.path.join(HERE, "run.sh"), out, "foot",
+                                   "-T", "cover", "sleep", "1000"],
+                                  stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL))
+    wait_windows(out, 2)
+    action(out, '<action name="Maximize"/>')
+    time.sleep(0.5)
+    red = [w for w in windows(out) if w["title"] == "red"][0]
+    path = os.path.join(out, "window.png")
+    try:
+        r = run(out, "grim", "-T", red["identifier"], path, timeout=5)
+        ok = r.returncode == 0
+    except subprocess.TimeoutExpired:
+        ok = False
+    check("a window that doesn't change is captured", ok)
+    if ok:
+        import cairo
+        img = cairo.ImageSurface.create_from_png(path)
+        x, y = img.get_width() // 2, img.get_height() // 2
+        d, st = img.get_data(), img.get_stride()
+        b, g, r_ = d[y * st + x * 4:y * st + x * 4 + 3]
+        check("a covered window is captured, not what covers it",
+              (r_, g, b) == (255, 0, 0) and
+              img.get_width() == red["width"], ((r_, g, b), img.get_width()))
+    for p in procs:
+        p.terminate()
+    wait_windows(out, 0)
+
+
 def test_scale(out):
     """<owbox><scale> makes the frame larger and keeps the window's size"""
     rc = os.path.join(out, "rc.xml")
@@ -819,6 +860,7 @@ def main():
     try:
         test_xdg(out)
         test_scale(out)
+        test_window_capture(out)
         test_idle(out)
         test_idle_dbus(out)
         test_panels(out)

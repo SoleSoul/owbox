@@ -86,6 +86,22 @@ issue's link and when it was reported.
 - **Remove when:** a GTK release reloads such themes correctly (check with
   the Python reproduction).
 
+### Screen sharing something that doesn't change
+
+- **Where:** `request_frame()` in `src/capture.c`.
+- **Problem:** a capture session gets a frame when its source (a window or
+  a monitor) changes, which the protocol allows. Zen (Firefox) sharing a
+  window or monitor that doesn't change, through xdg-desktop-portal-wlr,
+  showed nothing until it changed, although the first frame had been
+  sent. Whether that frame is lost in xdg-desktop-portal-wlr or in Firefox
+  isn't known yet.
+- **Workaround:** when a session has waited a second for a frame, owbox
+  redraws the source, so it gets one.
+- **Real fix:** in xdg-desktop-portal-wlr or Firefox, once found. Not
+  reported yet.
+- **Remove when:** that is fixed. It costs a render a second while
+  something that doesn't change is shared.
+
 ## In users' setups (documentation only)
 
 ### Chromium and Electron find no keyring

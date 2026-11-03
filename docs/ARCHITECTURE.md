@@ -123,6 +123,11 @@ the frame's decorations, at the client's offset (the frame's size). The tree's
 origin is the client's window geometry: wlroots' xdg scene tree moves the
 surfaces by the geometry's offset, so client-side shadows hang outside it.
 
+Each window's surfaces (and its popups) are also in a scene of their own,
+for sharing the window (`capture_node` in ObClientImpl): wlroots captures a
+node by rendering its scene within the node's extents, which would include
+the windows covering it.
+
 ## Input
 
 `seat.c` turns wlroots events into ObEvents for event.c and decides who gets

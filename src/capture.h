@@ -19,7 +19,14 @@
 #ifndef __ob_capture_h
 #define __ob_capture_h
 
+struct wlr_ext_image_capture_source_v1;
+struct wlr_scene;
+
 void capture_init(void);
 void capture_finish(void);
+
+/*! The source captures a window's own scene (made for it by its backend) */
+void capture_window_scene(struct wlr_ext_image_capture_source_v1 *source,
+                          struct wlr_scene *scene);
 
 #endif

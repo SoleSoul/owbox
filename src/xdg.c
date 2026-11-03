@@ -53,6 +53,8 @@ typedef struct {
     ObClient *client;
     struct wlr_xdg_toplevel *toplevel;
     struct wlr_scene_tree *tree;
+    /*! The window and its popups again, alone, for screen sharing */
+    struct wlr_scene *capture;
 
     /*! The serial of the last configure that changed the size */
     guint32 size_serial;
@@ -85,6 +87,8 @@ typedef struct {
 
 typedef struct {
     struct wlr_xdg_popup *popup;
+    /*! Shown in its toplevel's capture scene */
+    gboolean captured;
     struct wl_listener commit;
     struct wl_listener destroy;
 } ObXdgPopup;
@@ -101,6 +105,8 @@ static struct wl_listener new_decoration;
 static struct wl_listener new_kde_decoration;
 static struct wl_listener set_icon;
 static GList *kde_decorations = NULL;
+/*! The xdg surfaces' trees in their toplevel's capture scene */
+static GHashTable *capture_trees = NULL;
 
 #define XDG(c) ((ObXdgToplevel*)(c)->impl_data)
 
@@ -470,6 +476,11 @@ static pid_t xdg_get_pid(ObClient *self)
     return pid;
 }
 
+static struct wlr_scene_node* xdg_capture_node(ObClient *self)
+{
+    return &XDG(self)->capture->tree.node;
+}
+
 const ObClientImpl xdg_client_impl = {
     .get_type = xdg_get_type,
     .get_normal_hints = xdg_get_normal_hints,
@@ -492,6 +503,7 @@ const ObClientImpl xdg_client_impl = {
     .get_pid = xdg_get_pid,
     .ping = xdg_ping,
     .ping_pending = xdg_ping_pending,
+    .capture_node = xdg_capture_node,
 };
 
 /* ---- toplevel events ---- */
@@ -610,6 +622,8 @@ static void handle_destroy(struct wl_listener *l, void *data)
     wl_list_remove(&x->set_title.link);
     wl_list_remove(&x->set_app_id.link);
     wl_list_remove(&x->set_parent.link);
+    g_hash_table_remove(capture_trees, x->toplevel->base);
+    wlr_scene_node_destroy(&x->capture->tree.node);
     client_free(x->client);
     g_free(x);
 }
@@ -710,6 +724,11 @@ static void handle_new_toplevel(struct wl_listener *l, void *data)
                                            toplevel->base);
     wlr_scene_node_set_enabled(&x->tree->node, FALSE);
     toplevel->base->data = x->tree;
+    x->capture = wlr_scene_create();
+    x->capture->restack_xwayland_surfaces = FALSE;
+    g_hash_table_insert(capture_trees, toplevel->base,
+                        wlr_scene_xdg_surface_create(&x->capture->tree,
+                                                     toplevel->base));
     x->client = client_new(&xdg_client_impl, x, x->tree);
 
 #define LISTEN(sig, l, f) do { x->l.notify = (f); wl_signal_add((sig), &x->l); } while (0)
@@ -788,6 +807,8 @@ static void popup_handle_destroy(struct wl_listener *l, void *data)
     ObXdgPopup *p = wl_container_of(l, p, destroy);
     wl_list_remove(&p->commit.link);
     wl_list_remove(&p->destroy.link);
+    if (p->captured)
+        g_hash_table_remove(capture_trees, p->popup->base);
     g_free(p);
 }
 
@@ -795,12 +816,25 @@ void xdg_popup_add(struct wlr_xdg_popup *popup,
                    struct wlr_scene_tree *parent_tree)
 {
     ObXdgPopup *p;
+    struct wlr_xdg_surface *parent;
+    struct wlr_scene_tree *capture_parent = NULL;
 
     popup->base->data = wlr_scene_xdg_surface_create(parent_tree,
                                                      popup->base);
 
     p = g_new0(ObXdgPopup, 1);
     p->popup = popup;
+    /* a window's popups are in its capture scene too, a layer surface's
+       have none */
+    if (popup->parent &&
+        (parent = wlr_xdg_surface_try_from_wlr_surface(popup->parent)))
+        capture_parent = g_hash_table_lookup(capture_trees, parent);
+    if (capture_parent) {
+        g_hash_table_insert(capture_trees, popup->base,
+                            wlr_scene_xdg_surface_create(capture_parent,
+                                                         popup->base));
+        p->captured = TRUE;
+    }
     p->commit.notify = popup_handle_commit;
     wl_signal_add(&popup->base->surface->events.commit, &p->commit);
     p->destroy.notify = popup_handle_destroy;
@@ -846,6 +880,7 @@ static void handle_set_icon(struct wl_listener *l, void *data)
 
 void xdg_init(void)
 {
+    capture_trees = g_hash_table_new(g_direct_hash, g_direct_equal);
     server.xdg_shell = wlr_xdg_shell_create(server.display, 7);
     /* ping.c decides when a client isn't responding, keep wlroots from
        giving up on the ping before that */

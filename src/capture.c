@@ -23,18 +23,38 @@
    the GPU reads fastest.  NVIDIA's driver says that is 24 bit RGB, which
    screen sharing (PipeWire consumers like browsers) doesn't take, so they
    get nothing.  The 32 bit formats are offered too, the renderer reads
-   them as well. */
+   them as well.
+
+   A session gets a frame only when the source changes, and a browser
+   sharing a window or monitor that doesn't change showed nothing.  So a
+   source that a session has waited a second for is redrawn (see
+   docs/WORKAROUNDS.md). */
 
 #include "capture.h"
 #include "server.h"
 
 #include <drm_fourcc.h>
 #include <stdlib.h>
+#include <wlr/interfaces/wlr_ext_image_capture_source_v1.h>
 #include <wlr/types/wlr_ext_image_capture_source_v1.h>
 #include <wlr/types/wlr_ext_image_copy_capture_v1.h>
+#include <wlr/types/wlr_output.h>
+#include <wlr/types/wlr_scene.h>
+
+/*! A source that doesn't change is sent again after this long */
+#define IDLE_FRAME_MS 1000
 
 typedef struct {
     struct wlr_ext_image_capture_source_v1 *source;
+    /*! wlroots' implementation of the source, and a copy of it with
+      owbox's request_frame */
+    const struct wlr_ext_image_capture_source_v1_interface *impl;
+    struct wlr_ext_image_capture_source_v1_interface wrapped;
+    /*! A window's own scene, or the monitor */
+    struct wlr_scene *scene;
+    struct wlr_output *output;
+    /*! Sends a frame when the source hasn't changed for a while */
+    guint idle_timer;
     struct wl_listener constraints_update;
     struct wl_listener destroy;
 } ObCaptureSource;
@@ -98,31 +118,98 @@ static void handle_constraints_update(struct wl_listener *l, void *data)
         wl_signal_emit_mutable(&s->source->events.constraints_update, NULL);
 }
 
+/*! Redraw all of the output, as when its contents were lost */
+static void damage_output(struct wlr_output *o)
+{
+    pixman_region32_t whole;
+    struct wlr_output_event_damage ev = { o, &whole };
+
+    pixman_region32_init_rect(&whole, 0, 0, o->width, o->height);
+    wl_signal_emit_mutable(&o->events.damage, &ev);
+    pixman_region32_fini(&whole);
+}
+
+/*! Redraw the source, so that it sends a frame */
+static void damage_source(ObCaptureSource *s)
+{
+    if (s->scene) {
+        struct wlr_scene_output *so;
+        /* the source's own output in the window's scene */
+        wl_list_for_each(so, &s->scene->outputs, link)
+            damage_output(so->output);
+    } else if (s->output)
+        damage_output(s->output);
+}
+
+static gboolean idle_frame(gpointer data)
+{
+    ObCaptureSource *s = data;
+
+    s->idle_timer = 0;
+    damage_source(s);
+    return FALSE; /* don't repeat */
+}
+
+/*! A session waits for a frame */
+static void request_frame(struct wlr_ext_image_capture_source_v1 *source,
+                          bool schedule_frame)
+{
+    ObCaptureSource *s = g_hash_table_lookup(sources, source);
+
+    if (!s) return;
+    if (s->idle_timer)
+        g_source_remove(s->idle_timer);
+    s->idle_timer = g_timeout_add(IDLE_FRAME_MS, idle_frame, s);
+    if (s->impl->request_frame)
+        s->impl->request_frame(source, schedule_frame);
+}
+
 static void handle_destroy(struct wl_listener *l, void *data)
 {
     ObCaptureSource *s = wl_container_of(l, s, destroy);
     wl_list_remove(&s->constraints_update.link);
     wl_list_remove(&s->destroy.link);
+    if (s->idle_timer)
+        g_source_remove(s->idle_timer);
     g_hash_table_remove(sources, s->source);
     g_free(s);
+}
+
+static ObCaptureSource* source_get(
+    struct wlr_ext_image_capture_source_v1 *source)
+{
+    ObCaptureSource *s = g_hash_table_lookup(sources, source);
+
+    if (s) return s;
+    s = g_new0(ObCaptureSource, 1);
+    s->source = source;
+    /* before replacing impl, which wlroots recognizes it by */
+    s->output = wlr_output_try_from_ext_image_capture_source_v1(source);
+    s->impl = source->impl;
+    s->wrapped = *source->impl;
+    s->wrapped.request_frame = request_frame;
+    source->impl = &s->wrapped;
+    s->constraints_update.notify = handle_constraints_update;
+    wl_signal_add(&source->events.constraints_update,
+                  &s->constraints_update);
+    s->destroy.notify = handle_destroy;
+    wl_signal_add(&source->events.destroy, &s->destroy);
+    g_hash_table_insert(sources, source, s);
+    return s;
+}
+
+void capture_window_scene(struct wlr_ext_image_capture_source_v1 *source,
+                          struct wlr_scene *scene)
+{
+    source_get(source)->scene = scene;
 }
 
 static void handle_new_session(struct wl_listener *l, void *data)
 {
     struct wlr_ext_image_copy_capture_session_v1 *session = data;
     struct wlr_ext_image_capture_source_v1 *source = session->source;
-    ObCaptureSource *s;
 
-    if (!g_hash_table_lookup(sources, source)) {
-        s = g_new0(ObCaptureSource, 1);
-        s->source = source;
-        s->constraints_update.notify = handle_constraints_update;
-        wl_signal_add(&source->events.constraints_update,
-                      &s->constraints_update);
-        s->destroy.notify = handle_destroy;
-        wl_signal_add(&source->events.destroy, &s->destroy);
-        g_hash_table_insert(sources, source, s);
-    }
+    source_get(source);
     /* the session has sent the formats already, send them again */
     if (add_formats(source))
         wl_signal_emit_mutable(&source->events.constraints_update, NULL);

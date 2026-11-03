@@ -63,6 +63,8 @@ typedef struct {
     struct wlr_scene_tree *tree;
     /*! The surface's scene, while the X window has a surface */
     struct wlr_scene_tree *surface_tree;
+    /*! The surface again, alone, for screen sharing */
+    struct wlr_scene *capture;
     ObClient *client;
     /*! Shown as an override-redirect window */
     gboolean unmanaged;
@@ -424,6 +426,11 @@ static gboolean xw_ping_pending(ObClient *self)
     return XW(self)->xs->pinging;
 }
 
+static struct wlr_scene_node* xw_capture_node(ObClient *self)
+{
+    return &XW(self)->capture->tree.node;
+}
+
 static const ObClientImpl xwayland_client_impl = {
     .get_type = xw_get_type,
     .get_normal_hints = xw_get_normal_hints,
@@ -448,6 +455,7 @@ static const ObClientImpl xwayland_client_impl = {
     .get_pid = xw_get_pid,
     .ping = xw_ping,
     .ping_pending = xw_ping_pending,
+    .capture_node = xw_capture_node,
 };
 
 /* ---- override-redirect windows ---- */
@@ -539,6 +547,7 @@ static void handle_associate(struct wl_listener *l, void *data)
     struct wlr_surface *s = x->xs->surface;
 
     x->surface_tree = wlr_scene_subsurface_tree_create(x->tree, s);
+    wlr_scene_subsurface_tree_create(&x->capture->tree, s);
     x->surface_tree_destroy.notify = handle_surface_tree_destroy;
     wl_signal_add(&x->surface_tree->node.events.destroy,
                   &x->surface_tree_destroy);
@@ -959,6 +968,7 @@ static void handle_destroy(struct wl_listener *l, void *data)
         x->surface_tree = NULL;
     }
     wlr_scene_node_destroy(&x->tree->node);
+    wlr_scene_node_destroy(&x->capture->tree.node);
     x->xs->data = NULL;
     g_free(x);
 }
@@ -975,6 +985,8 @@ static void handle_new_surface(struct wl_listener *l, void *data)
     xs->data = x;
     g_hash_table_insert(windows, GUINT_TO_POINTER(xs->window_id), x);
     x->tree = wlr_scene_tree_create(server.unmanaged_tree);
+    x->capture = wlr_scene_create();
+    x->capture->restack_xwayland_surfaces = FALSE;
 
 #define LISTEN(sig, l, f) do { x->l.notify = (f); wl_signal_add((sig), &x->l); } while (0)
     LISTEN(&xs->events.destroy, destroy, handle_destroy);

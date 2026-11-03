@@ -27,6 +27,7 @@
 #include "event.h"
 #include "icons.h"
 #include "xdg.h"
+#include "capture.h"
 #include "debug.h"
 
 #include <string.h>
@@ -581,12 +582,22 @@ static void handle_new_capture_request(struct wl_listener *l, void *data)
 
     if (!h) return;
     if (!h->capture) {
-        /* the client's surfaces with their popups, without the frame */
+        /* the client's surfaces with their popups, without the frame, and
+           without the windows above it: wlroots renders the scene within
+           the node's extents, so the backends give the window a scene of
+           its own */
+        struct wlr_scene_node *node = h->client->impl->capture_node ?
+            h->client->impl->capture_node(h->client) : NULL;
+
         h->capture = wlr_ext_image_capture_source_v1_create_with_scene_node(
-            &h->client->surface_tree->node,
+            /* owbox's own dialogs have none */
+            node ? node : &h->client->surface_tree->node,
             wl_display_get_event_loop(server.display),
             server.allocator, server.renderer);
         if (!h->capture) return;
+        if (node)
+            capture_window_scene(h->capture, wl_container_of(
+                node, (struct wlr_scene*)NULL, tree.node));
         h->capture_destroy.notify = handle_capture_destroy;
         wl_signal_add(&h->capture->events.destroy, &h->capture_destroy);
     }

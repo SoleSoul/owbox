@@ -9,6 +9,10 @@
 - Input methods, such as fcitx5 (text-input-v3 and input-method-v2):
   owbox passes the keys to the input method, its text to the application,
   and shows its candidates below the text cursor.
+- Sharing a window shows the window itself, not the windows covering it,
+  and works while it is minimized.
+- Sharing a window or a monitor that doesn't change starts at once:
+  browsers showed nothing until something on it changed.
 
 ## 0.7.0 (2026-11-02)
 

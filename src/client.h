@@ -128,6 +128,9 @@ struct _ObClientImpl
     gboolean (*ping)(ObClient *self);
     /*! Is the last ping unanswered */
     gboolean (*ping_pending)(ObClient *self);
+    /*! The window's contents in a scene of their own, for screen sharing
+      the window without what covers it; may be NULL */
+    struct wlr_scene_node* (*capture_node)(ObClient *self);
 };
 
 struct _ObClient
