@@ -242,13 +242,11 @@ whole release:
 
 1. Choose the version: X.Y+1.0 with new features, X.Y.Z+1 with only
    fixes.
-2. Run `tools/ci-local.sh` (CI's steps in a clean Arch container, which
-   also catches missing dependencies).
-3. Set the version in `meson.build`, the `.TH` line of docs/owbox.1 and
-   README.md's status line; rename CHANGELOG.md's `## Unreleased` to
-   `## X.Y.Z (date)`, and remove what it ships from ROADMAP.md.
-4. Commit `owbox X.Y.Z`, tag it (`git tag -a vX.Y.Z -m "owbox X.Y.Z"`),
-   push main and the tag, and check that CI passes.
+2. Set the version in `meson.build` and the `.TH` line of docs/owbox.1,
+   and rename CHANGELOG.md's `## Unreleased` to `## X.Y.Z (date)`.
+3. Commit `owbox X.Y.Z`, push main and wait for its CI to pass (`gh run
+   watch`). If it fails, fix it and push again.
+4. Tag it (`git tag -a vX.Y.Z -m "owbox X.Y.Z"`) and push the tag.
 5. `gh release create vX.Y.Z --title "owbox X.Y.Z"`, with the CHANGELOG
    section as the notes.
 6. Update the AUR `owbox` package. Its clone and steps are on the user's
