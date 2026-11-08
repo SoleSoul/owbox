@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.8.1 (2026-11-08)
 
 - logind's idle inhibitors (`systemd-inhibit --what=idle`) no longer keep
   the monitors on: programs take them to keep the computer awake and
