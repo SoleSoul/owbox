@@ -57,7 +57,6 @@ static gint64 last_activity;   /* g_get_monotonic_time() */
 static gboolean screens_off;
 static gboolean inhibited;     /* by a window or an application */
 static gboolean window_inhibited; /* the idle-inhibit protocol */
-static gboolean logind_inhibited; /* systemd-inhibit --what=idle */
 static gboolean active;        /* org.freedesktop.ScreenSaver's Active */
 static gint64 lock_started;    /* when a locker was last started */
 
@@ -68,7 +67,7 @@ static guint screensaver_name, screensaver_objs[2], owner_signal;
 static guint32 next_cookie = 1;
 static GCancellable *cancel;
 static gchar *session_path;
-static guint sleep_signal, session_signal, inhibited_signal;
+static guint sleep_signal, session_signal;
 static gint sleep_fd = -1;     /* the delay inhibitor for suspending */
 static guint sleep_timer;
 
@@ -140,7 +139,7 @@ static GList *app_inhibitors; /* ObAppInhibitor* */
 
 static void update_inhibited(void)
 {
-    gboolean inh = window_inhibited || app_inhibitors || logind_inhibited;
+    gboolean inh = window_inhibited || app_inhibitors;
 
     if (inh == inhibited) return;
     inhibited = inh;
@@ -344,7 +343,9 @@ static void got_session(GObject *src, GAsyncResult *res, gpointer data)
 }
 
 /* logind's IdleHint (for its IdleAction) and LockedHint (loginctl shows
-   it), which a desktop sets for its session */
+   it), which a desktop sets for its session.  logind's idle inhibitors
+   (systemd-inhibit --what=idle) hold off its IdleAction, and don't keep the
+   monitors on: programs take them to stay reachable */
 static void set_session_hint(const gchar *method, gboolean value)
 {
     if (!system_bus || !session_path) return;
@@ -363,69 +364,6 @@ static void set_locked_hint(gboolean locked)
     set_session_hint("SetLockedHint", locked);
 }
 
-/* logind's idle inhibitors (systemd-inhibit --what=idle --mode=block),
-   from its BlockInhibited, "what"s separated by colons */
-static void set_block_inhibited(const gchar *what)
-{
-    gchar **list = g_strsplit(what, ":", -1);
-    gboolean inh = g_strv_contains((const gchar *const*)list, "idle");
-
-    g_strfreev(list);
-    if (inh == logind_inhibited) return;
-    ob_debug(inh ? "logind has an idle inhibitor, keeping the screen on" :
-             "logind's idle inhibitors are gone");
-    logind_inhibited = inh;
-    update_inhibited();
-}
-
-static void got_block_inhibited(GObject *src, GAsyncResult *res,
-                                gpointer data)
-{
-    GVariant *r, *v;
-    GError *e = NULL;
-
-    r = g_dbus_connection_call_finish(G_DBUS_CONNECTION(src), res, &e);
-    if (!r) {
-        if (!g_error_matches(e, G_IO_ERROR, G_IO_ERROR_CANCELLED))
-            ob_debug("No inhibitors from logind: %s", e->message);
-        g_error_free(e);
-        return;
-    }
-    g_variant_get(r, "(v)", &v);
-    if (g_variant_is_of_type(v, G_VARIANT_TYPE_STRING))
-        set_block_inhibited(g_variant_get_string(v, NULL));
-    g_variant_unref(v);
-    g_variant_unref(r);
-}
-
-static void get_block_inhibited(void)
-{
-    g_dbus_connection_call(system_bus, LOGIND, LOGIND_PATH,
-                           "org.freedesktop.DBus.Properties", "Get",
-                           g_variant_new("(ss)", LOGIND_MANAGER,
-                                         "BlockInhibited"),
-                           G_VARIANT_TYPE("(v)"), G_DBUS_CALL_FLAGS_NONE, -1,
-                           cancel, got_block_inhibited, NULL);
-}
-
-static void on_manager_changed(GDBusConnection *bus, const gchar *sender,
-                               const gchar *path, const gchar *iface,
-                               const gchar *signal, GVariant *params,
-                               gpointer data)
-{
-    const gchar *what;
-    GVariant *changed;
-    const gchar **invalidated;
-
-    g_variant_get(params, "(&s@a{sv}^a&s)", NULL, &changed, &invalidated);
-    if (g_variant_lookup(changed, "BlockInhibited", "&s", &what))
-        set_block_inhibited(what);
-    else if (g_strv_contains(invalidated, "BlockInhibited"))
-        get_block_inhibited();
-    g_variant_unref(changed);
-    g_free(invalidated);
-}
-
 static void logind_startup(void)
 {
     GError *e = NULL;
@@ -439,11 +377,6 @@ static void logind_startup(void)
     sleep_signal = g_dbus_connection_signal_subscribe(
         system_bus, LOGIND, LOGIND_MANAGER, "PrepareForSleep", LOGIND_PATH,
         NULL, G_DBUS_SIGNAL_FLAGS_NONE, on_prepare_for_sleep, NULL, NULL);
-    inhibited_signal = g_dbus_connection_signal_subscribe(
-        system_bus, LOGIND, "org.freedesktop.DBus.Properties",
-        "PropertiesChanged", LOGIND_PATH, LOGIND_MANAGER,
-        G_DBUS_SIGNAL_FLAGS_NONE, on_manager_changed, NULL, NULL);
-    get_block_inhibited();
     /* the session owbox runs in */
     g_dbus_connection_call(system_bus, LOGIND, LOGIND_PATH, LOGIND_MANAGER,
                            "GetSession", g_variant_new("(s)", "auto"),
@@ -461,10 +394,7 @@ static void logind_shutdown(void)
         g_dbus_connection_signal_unsubscribe(system_bus, sleep_signal);
     if (session_signal)
         g_dbus_connection_signal_unsubscribe(system_bus, session_signal);
-    if (inhibited_signal)
-        g_dbus_connection_signal_unsubscribe(system_bus, inhibited_signal);
-    sleep_signal = session_signal = inhibited_signal = 0;
-    logind_inhibited = FALSE;
+    sleep_signal = session_signal = 0;
     release_sleep_inhibitor();
     g_free(session_path);
     session_path = NULL;

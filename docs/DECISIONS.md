@@ -155,7 +155,12 @@ users had X's screen blanking for free, and a session whose monitors never
 turn off, or that suspends unlocked, is broken out of the box. owbox
 already knows the input, the idle inhibitors (videos) and the lock state,
 and serves `org.freedesktop.ScreenSaver` for applications that ask through
-D-Bus.
+D-Bus. logind's idle inhibitors don't keep the monitors on: they are for
+the system's idle (logind's IdleAction, suspending), and programs take them
+to keep the computer reachable (Claude Desktop's Remote Control holds one
+all the time), when the monitors should still turn off. Keeping the screen
+on is asked for with idle-inhibit, `org.freedesktop.ScreenSaver` or the
+portal.
 It runs a screen locker (swaylock and others, found or configured) and
 doesn't draw one. A monitor turned off stays in the layout, so its windows
 don't move. logind is used only when owbox runs on the hardware: a test

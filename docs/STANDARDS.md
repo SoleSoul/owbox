@@ -60,9 +60,9 @@ ignored, as in Openbox.
   `XDG_CURRENT_DESKTOP`, `XDG_SESSION_TYPE`, `XDG_SESSION_DESKTOP`)
   imported into systemd and D-Bus activation.
 - logind: Lock locks the screen, PrepareForSleep locks it before
-  suspending (with a delay inhibitor), idle block inhibitors
-  (`systemd-inhibit --what=idle`) keep the monitors on, and owbox sets the
-  session's IdleHint and LockedHint. Unlock is ignored: with
+  suspending (with a delay inhibitor), and owbox sets the session's
+  IdleHint and LockedHint. Idle inhibitors (`systemd-inhibit --what=idle`)
+  are left to logind, for its IdleAction: they don't keep the monitors on. Unlock is ignored: with
   ext-session-lock only the screen locker unlocks.
 
 ## Keyboards

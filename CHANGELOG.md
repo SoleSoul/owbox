@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- logind's idle inhibitors (`systemd-inhibit --what=idle`) no longer keep
+  the monitors on: programs take them to keep the computer awake and
+  reachable (Claude Desktop's Remote Control always does), not the screen.
+  They still hold off logind's `IdleAction`. Video players, calls and
+  applications asking through D-Bus or the portal keep the monitors on as
+  before.
+
 ## 0.8.0 (2026-11-03)
 
 - Drawing tablets (tablet-v2): applications that support them, such as

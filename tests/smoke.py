@@ -325,7 +325,7 @@ loop.run()
 
 def test_idle_dbus(out):
     """Keeping the monitors on through D-Bus (org.freedesktop.ScreenSaver,
-    logind's idle inhibitors) and logind's session hints, with an owbox on
+    not logind's idle inhibitors) and logind's session hints, with an owbox on
     its own session and system buses"""
     if not shutil.which("dbus-daemon") or \
             not importlib.util.find_spec("gi"):
@@ -412,11 +412,7 @@ def test_idle_dbus(out):
         time.sleep(0.3)
 
         say(logind, "idle")
-        time.sleep(5)
-        check("logind's idle inhibitor keeps them on", power(),
-              outputs(o)[0])
-        say(logind, "")
-        check("and its end lets them turn off", wait_off())
+        check("logind's idle inhibitor doesn't keep them on", wait_off())
     finally:
         for p in procs:
             if p.poll() is None:
